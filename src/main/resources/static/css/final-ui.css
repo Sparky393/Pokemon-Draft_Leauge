@@ -442,7 +442,6 @@
   }
 }
 
-
 /* Live draft board: one team per column, with alternating snake rounds. */
 .live-draft-board {
   margin-bottom: 24px;
@@ -519,7 +518,6 @@
 .draft-cell-empty {
   background: rgba(120, 135, 170, 0.08);
 }
-
 
 /* Drafted Pokémon use the same image cards as the available Pokémon pool. */
 .draft-snake-table {

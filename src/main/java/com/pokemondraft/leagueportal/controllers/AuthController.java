@@ -1,12 +1,11 @@
 package com.pokemondraft.leagueportal.controllers;
 
-import com.pokemondraft.leagueportal.entity.AppUser;
-import com.pokemondraft.leagueportal.services.AuthService;
-import jakarta.servlet.http.HttpSession;
-import jakarta.servlet.http.HttpServletRequest;
-import java.util.Map;
 import com.pokemondraft.leagueportal.dto.UserDto;
 import com.pokemondraft.leagueportal.mapper.LeagueMapper;
+import com.pokemondraft.leagueportal.services.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import java.util.Map;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,8 +20,8 @@ public class AuthController {
   public record LoginRequest(String username, String password) {}
 
   @PostMapping("/login")
-  public UserDto login(@RequestBody LoginRequest req, HttpSession session,
-      HttpServletRequest request) {
+  public UserDto login(
+      @RequestBody LoginRequest req, HttpSession session, HttpServletRequest request) {
     var user = auth.login(req.username(), req.password(), session);
     request.changeSessionId(); // Avoid reusing a pre-login session identifier.
     return LeagueMapper.authUser(user);
@@ -59,5 +58,4 @@ public class AuthController {
   public UserDto me(HttpSession session) {
     return LeagueMapper.authUser(auth.current(session));
   }
-
 }

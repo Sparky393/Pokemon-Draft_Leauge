@@ -6,11 +6,11 @@ import java.util.NoSuchElementException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -22,15 +22,17 @@ public class ApiExceptionHandler {
   @ExceptionHandler(ResponseStatusException.class)
   public ResponseEntity<Map<String, String>> leagueRule(ResponseStatusException e) {
     String reason = e.getReason();
-    String message = reason != null && !reason.isBlank()
-        ? reason
-        : switch (e.getStatusCode().value()) {
-            case 401 -> "Please log in again to continue.";
-            case 403 -> "You do not have permission to perform this action.";
-            case 404 -> "The requested item was not found.";
-            case 409 -> "This action conflicts with the current league state. Refresh and try again.";
-            default -> "That action could not be completed. Check your selections.";
-          };
+    String message =
+        reason != null && !reason.isBlank()
+            ? reason
+            : switch (e.getStatusCode().value()) {
+              case 401 -> "Please log in again to continue.";
+              case 403 -> "You do not have permission to perform this action.";
+              case 404 -> "The requested item was not found.";
+              case 409 ->
+                  "This action conflicts with the current league state. Refresh and try again.";
+              default -> "That action could not be completed. Check your selections.";
+            };
     return ResponseEntity.status(e.getStatusCode()).body(Map.of("message", message));
   }
 

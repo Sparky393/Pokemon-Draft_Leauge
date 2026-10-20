@@ -2,11 +2,11 @@ package com.pokemondraft.leagueportal.services;
 
 import com.pokemondraft.leagueportal.entity.*;
 import com.pokemondraft.leagueportal.repositories.*;
-import java.util.*;
 import java.time.*;
+import java.util.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -14,8 +14,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class FreeAgencyService {
   private static final int ROSTER_LIMIT = 10, ROSTER_BUDGET = 100;
   private static final ZoneId EASTERN = ZoneId.of("America/New_York");
-  private static final LocalDateTime[] CLOSES = {LocalDateTime.of(2026,11,28,19,0), LocalDateTime.of(2026,12,1,19,0)};
-  private static final LocalDateTime[] OPENS = {LocalDateTime.of(2026,11,25,0,0),LocalDateTime.of(2026,11,28,19,0)};
+  private static final LocalDateTime[] CLOSES = {
+    LocalDateTime.of(2026, 11, 28, 19, 0), LocalDateTime.of(2026, 12, 1, 19, 0)
+  };
+  private static final LocalDateTime[] OPENS = {
+    LocalDateTime.of(2026, 11, 25, 0, 0), LocalDateTime.of(2026, 11, 28, 19, 0)
+  };
   private final Clock clock;
   private final FreeAgentBidRepository bids;
   private final TeamRepository teams;
@@ -33,15 +37,32 @@ public class FreeAgencyService {
       PokemonRepository pokemon,
       RosterEntryRepository roster,
       TransactionRecordRepository transactions,
-      TradeOfferRepository trades, MatchupRepository matchups, LeagueSettingsRepository settings) {
-    this(bids,teams,pokemon,roster,transactions,trades,matchups,settings,Clock.system(EASTERN));
+      TradeOfferRepository trades,
+      MatchupRepository matchups,
+      LeagueSettingsRepository settings) {
+    this(
+        bids,
+        teams,
+        pokemon,
+        roster,
+        transactions,
+        trades,
+        matchups,
+        settings,
+        Clock.system(EASTERN));
   }
 
-  public FreeAgencyService(FreeAgentBidRepository bids, TeamRepository teams,
-      PokemonRepository pokemon, RosterEntryRepository roster,
-      TransactionRecordRepository transactions, TradeOfferRepository trades,
-      MatchupRepository matchups, LeagueSettingsRepository settings, Clock clock) {
-    this.clock=clock;
+  public FreeAgencyService(
+      FreeAgentBidRepository bids,
+      TeamRepository teams,
+      PokemonRepository pokemon,
+      RosterEntryRepository roster,
+      TransactionRecordRepository transactions,
+      TradeOfferRepository trades,
+      MatchupRepository matchups,
+      LeagueSettingsRepository settings,
+      Clock clock) {
+    this.clock = clock;
     this.bids = bids;
     this.teams = teams;
     this.pokemon = pokemon;
@@ -62,8 +83,7 @@ public class FreeAgencyService {
     if (s.isWaiverProcessed() || s.getCurrentWeek() != 4 || waiverPeriodsProcessed() >= 2)
       return false;
     List<Matchup> third = matchups.findByWeekOrderByIdAsc(3);
-    return third.size() == 8 && third.stream().allMatch(Matchup::isPlayed)
-        && biddingTimeOpen();
+    return third.size() == 8 && third.stream().allMatch(Matchup::isPlayed) && biddingTimeOpen();
   }
 
   /** Specific eligibility reason shown to coaches and used for bid errors. */
@@ -71,30 +91,42 @@ public class FreeAgencyService {
     LeagueSettings league = settings.findById(1L).orElseGet(LeagueSettings::new);
     int week = league.getCurrentWeek();
     if (week < 4)
-      return "Free agency opens in Week 4. The commissioner has the league set to Week " + week + ".";
+      return "Free agency opens in Week 4. The commissioner has the league set to Week "
+          + week
+          + ".";
     if (week > 4)
-      return "Free agency is only available in Week 4. The league is currently in Week " + week + ".";
+      return "Free agency is only available in Week 4. The league is currently in Week "
+          + week
+          + ".";
     if (league.isWaiverProcessed() || waiverPeriodsProcessed() >= 2)
       return "Both Week 4 waiver periods have already been processed. Free agency is closed.";
     List<Matchup> third = matchups.findByWeekOrderByIdAsc(3);
     long completed = third.stream().filter(Matchup::isPlayed).count();
     if (third.size() != 8 || completed != 8)
       return "All 8 Week 3 game results must be recorded before Week 4 free agency opens ("
-          + completed + "/8 complete).";
+          + completed
+          + "/8 complete).";
     if (!biddingTimeOpen()) {
-      int period=waiverPeriodsProcessed();
-      LocalDateTime now=LocalDateTime.now(clock.withZone(EASTERN));
-      if (period>=2) return "Both waiver periods have ended.";
-      return "FAAB Period "+(period+1)+" accepts bids only from "+OPENS[period]
-          +" through before "+CLOSES[period]+" Eastern (7:00 PM cutoff). Current Eastern time: "+now+".";
+      int period = waiverPeriodsProcessed();
+      LocalDateTime now = LocalDateTime.now(clock.withZone(EASTERN));
+      if (period >= 2) return "Both waiver periods have ended.";
+      return "FAAB Period "
+          + (period + 1)
+          + " accepts bids only from "
+          + OPENS[period]
+          + " through before "
+          + CLOSES[period]
+          + " Eastern (7:00 PM cutoff). Current Eastern time: "
+          + now
+          + ".";
     }
     return null;
   }
 
   private boolean biddingTimeOpen() {
-    int period=waiverPeriodsProcessed();
-    if (period>=2) return false;
-    LocalDateTime now=LocalDateTime.now(clock.withZone(EASTERN));
+    int period = waiverPeriodsProcessed();
+    if (period >= 2) return false;
+    LocalDateTime now = LocalDateTime.now(clock.withZone(EASTERN));
     return !now.isBefore(OPENS[period]) && now.isBefore(CLOSES[period]);
   }
 
@@ -108,11 +140,14 @@ public class FreeAgencyService {
     settings.lockForDraft(); // Serialize concurrent FAAB requests through the existing league row.
     requireWindow();
     Team t = teams.findById(teamId).orElseThrow();
-    if (t.getFaBudget() <= 0) throw bad("You have $0 FAAB remaining. You cannot submit another bid.");
+    if (t.getFaBudget() <= 0)
+      throw bad("You have $0 FAAB remaining. You cannot submit another bid.");
     if (amount <= 0 || amount > 3 || amount > t.getFaBudget())
       throw bad("Enter a whole-dollar bid between $1 and $" + Math.min(3, t.getFaBudget()) + ".");
-    List<FreeAgentBid> pending = bids.findByStatus(BidStatus.PENDING).stream()
-        .filter(b -> b.getTeamId().equals(teamId)).toList();
+    List<FreeAgentBid> pending =
+        bids.findByStatus(BidStatus.PENDING).stream()
+            .filter(b -> b.getTeamId().equals(teamId))
+            .toList();
     if (pending.size() >= 3)
       throw bad("You already have 3 pending FAAB bids, the maximum allowed.");
     int reserved = pending.stream().mapToInt(FreeAgentBid::getAmount).sum();
@@ -124,19 +159,34 @@ public class FreeAgencyService {
     if (pending.stream().anyMatch(b -> Objects.equals(b.getDropPokemonId(), drop)))
       throw bad("This Pokémon is already selected as the drop in another pending bid.");
     if (wanted == null) throw bad("Choose the free-agent Pokémon you want to acquire.");
-    Pokemon w = pokemon.findById(wanted).orElseThrow(() -> bad("This free agent no longer exists. Refresh the list."));
+    Pokemon w =
+        pokemon
+            .findById(wanted)
+            .orElseThrow(() -> bad("This free agent no longer exists. Refresh the list."));
     if (roster.findByPokemonId(wanted).isPresent() || w.isDrafted())
-      throw new ResponseStatusException(HttpStatus.CONFLICT, w.getName() + " is already owned by a team and is not available as a free agent.");
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT,
+          w.getName() + " is already owned by a team and is not available as a free agent.");
     int count = (int) roster.countByTeamId(teamId);
-    if (count != ROSTER_LIMIT) throw bad("Your roster has " + count + "/10 Pokémon. You need exactly 10 to submit a FAAB bid.");
-    if (drop == null)
-      throw bad("Choose a Pokémon from your roster to drop if your bid wins.");
+    if (count != ROSTER_LIMIT)
+      throw bad(
+          "Your roster has " + count + "/10 Pokémon. You need exactly 10 to submit a FAAB bid.");
+    if (drop == null) throw bad("Choose a Pokémon from your roster to drop if your bid wins.");
     RosterEntry d = verifyOwner(teamId, drop);
     Pokemon dp = pokemon.findById(d.getPokemonId()).orElseThrow();
     if (w.getPrice() > dp.getPrice())
-      throw bad(w.getName() + " costs $" + w.getPrice() + ", but " + dp.getName() + " costs $" + dp.getPrice() + ". The free agent cannot cost more than your drop.");
+      throw bad(
+          w.getName()
+              + " costs $"
+              + w.getPrice()
+              + ", but "
+              + dp.getName()
+              + " costs $"
+              + dp.getPrice()
+              + ". The free agent cannot cost more than your drop.");
     int value = rosterValue(teamId) - dp.getPrice() + w.getPrice();
-    if (value > ROSTER_BUDGET) throw bad("This swap would put your roster at $" + value + "/$100. The cap is $100.");
+    if (value > ROSTER_BUDGET)
+      throw bad("This swap would put your roster at $" + value + "/$100. The cap is $100.");
     return bids.save(new FreeAgentBid(teamId, wanted, drop, amount));
   }
 
@@ -145,14 +195,18 @@ public class FreeAgencyService {
   public void cancelBid(Long teamId, Long bidId) {
     settings.lockForDraft();
     requireWindow();
-    FreeAgentBid bid = bids.findById(bidId).orElseThrow(() ->
-        new ResponseStatusException(HttpStatus.NOT_FOUND, "That FAAB bid no longer exists."));
+    FreeAgentBid bid =
+        bids.findById(bidId)
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "That FAAB bid no longer exists."));
     if (!bid.getTeamId().equals(teamId))
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-          "You can only withdraw bids made by your own team.");
+      throw new ResponseStatusException(
+          HttpStatus.FORBIDDEN, "You can only withdraw bids made by your own team.");
     if (bid.getStatus() != BidStatus.PENDING)
-      throw new ResponseStatusException(HttpStatus.CONFLICT,
-          "This bid has already been processed and cannot be withdrawn.");
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT, "This bid has already been processed and cannot be withdrawn.");
     bids.delete(bid);
   }
 
@@ -162,15 +216,20 @@ public class FreeAgencyService {
     // Commissioner processes only after bidding closes; allow overdue processing
     // so missing the end-of-day target cannot permanently strand a period.
     if (waiverClosedForProcessing())
-      throw bad("FAAB processing is only available after 7:00 PM Eastern on "
-          +(waiverPeriodsProcessed()==0?"November 28":"December 1")+".");
+      throw bad(
+          "FAAB processing is only available after 7:00 PM Eastern on "
+              + (waiverPeriodsProcessed() == 0 ? "November 28" : "December 1")
+              + ".");
     List<FreeAgentBid> pending = bids.findByStatus(BidStatus.PENDING);
     Map<Long, List<FreeAgentBid>> groups = new LinkedHashMap<>();
     for (FreeAgentBid bid : pending)
       groups.computeIfAbsent(bid.getWantedPokemonId(), k -> new ArrayList<>()).add(bid);
     List<List<FreeAgentBid>> ordered = new ArrayList<>(groups.values());
-    ordered.sort(Comparator.comparingInt((List<FreeAgentBid> group) ->
-        group.stream().mapToInt(FreeAgentBid::getAmount).max().orElse(0)).reversed());
+    ordered.sort(
+        Comparator.comparingInt(
+                (List<FreeAgentBid> group) ->
+                    group.stream().mapToInt(FreeAgentBid::getAmount).max().orElse(0))
+            .reversed());
     List<Map<String, Object>> wheels = new ArrayList<>();
     int winners = 0;
     for (List<FreeAgentBid> group : ordered) {
@@ -178,29 +237,50 @@ public class FreeAgencyService {
       FreeAgentBid winner = null;
       while (!candidates.isEmpty()) {
         int top = candidates.stream().mapToInt(FreeAgentBid::getAmount).max().orElse(0);
-        List<FreeAgentBid> valid = candidates.stream()
-            .filter(bid -> bid.getAmount() == top && canApplyBid(bid)).toList();
+        List<FreeAgentBid> valid =
+            candidates.stream().filter(bid -> bid.getAmount() == top && canApplyBid(bid)).toList();
         if (valid.isEmpty()) {
           candidates.removeIf(bid -> bid.getAmount() == top);
           continue;
         }
-        int fewestWins = valid.stream().mapToInt(bid ->
-            teams.findById(bid.getTeamId()).orElseThrow().getWins()).min().orElse(0);
-        List<FreeAgentBid> worse = valid.stream().filter(bid ->
-            teams.findById(bid.getTeamId()).orElseThrow().getWins() == fewestWins).toList();
-        int mostLosses = worse.stream().mapToInt(bid ->
-            teams.findById(bid.getTeamId()).orElseThrow().getLosses()).max().orElse(0);
-        List<FreeAgentBid> tied = worse.stream().filter(bid ->
-            teams.findById(bid.getTeamId()).orElseThrow().getLosses() == mostLosses).toList();
+        int fewestWins =
+            valid.stream()
+                .mapToInt(bid -> teams.findById(bid.getTeamId()).orElseThrow().getWins())
+                .min()
+                .orElse(0);
+        List<FreeAgentBid> worse =
+            valid.stream()
+                .filter(
+                    bid -> teams.findById(bid.getTeamId()).orElseThrow().getWins() == fewestWins)
+                .toList();
+        int mostLosses =
+            worse.stream()
+                .mapToInt(bid -> teams.findById(bid.getTeamId()).orElseThrow().getLosses())
+                .max()
+                .orElse(0);
+        List<FreeAgentBid> tied =
+            worse.stream()
+                .filter(
+                    bid -> teams.findById(bid.getTeamId()).orElseThrow().getLosses() == mostLosses)
+                .toList();
         winner = tied.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(tied.size()));
         if (tied.size() > 1) {
           String name = pokemon.findById(winner.getWantedPokemonId()).orElseThrow().getName();
-          List<String> names = tied.stream().map(bid ->
-              teams.findById(bid.getTeamId()).orElseThrow().getName()).toList();
+          List<String> names =
+              tied.stream()
+                  .map(bid -> teams.findById(bid.getTeamId()).orElseThrow().getName())
+                  .toList();
           String winningName = teams.findById(winner.getTeamId()).orElseThrow().getName();
           wheels.add(Map.of("pokemon", name, "teams", names, "winner", winningName));
-          transactions.save(new TransactionRecord("WAIVER_TIEBREAK",
-              "Wheel draw for " + name + ": " + String.join(", ", names) + ". Winner: " + winningName));
+          transactions.save(
+              new TransactionRecord(
+                  "WAIVER_TIEBREAK",
+                  "Wheel draw for "
+                      + name
+                      + ": "
+                      + String.join(", ", names)
+                      + ". Winner: "
+                      + winningName));
         }
         break;
       }
@@ -212,8 +292,10 @@ public class FreeAgencyService {
       bids.saveAll(group);
     }
     int period = waiverPeriodsProcessed() + 1;
-    transactions.save(new TransactionRecord("WAIVER_PERIOD_PROCESSED",
-        "Week 4 waiver period " + period + " processed. Winners: " + winners));
+    transactions.save(
+        new TransactionRecord(
+            "WAIVER_PERIOD_PROCESSED",
+            "Week 4 waiver period " + period + " processed. Winners: " + winners));
     LeagueSettings settingsRow = settings.findById(1L).orElseThrow();
     settingsRow.setWaiverProcessed(period >= 2);
     settings.save(settingsRow);
@@ -221,11 +303,12 @@ public class FreeAgencyService {
   }
 
   private boolean waiverClosedForProcessing() {
-    LeagueSettings league=settings.findById(1L).orElseGet(LeagueSettings::new);
-    int period=waiverPeriodsProcessed();
-    if (league.getCurrentWeek()!=4 || league.isWaiverProcessed() || period>=2) return true;
-    List<Matchup> games=matchups.findByWeekOrderByIdAsc(3);
-    return games.size()!=8 || games.stream().anyMatch(m->!m.isPlayed())
+    LeagueSettings league = settings.findById(1L).orElseGet(LeagueSettings::new);
+    int period = waiverPeriodsProcessed();
+    if (league.getCurrentWeek() != 4 || league.isWaiverProcessed() || period >= 2) return true;
+    List<Matchup> games = matchups.findByWeekOrderByIdAsc(3);
+    return games.size() != 8
+        || games.stream().anyMatch(m -> !m.isPlayed())
         || LocalDateTime.now(clock.withZone(EASTERN)).isBefore(CLOSES[period]);
   }
 
@@ -244,7 +327,8 @@ public class FreeAgencyService {
     Optional<RosterEntry> d = roster.findByPokemonId(b.getDropPokemonId());
     if (d.isEmpty() || !d.get().getTeamId().equals(b.getTeamId())) return false;
     Pokemon dp = pokemon.findById(b.getDropPokemonId()).orElse(null);
-    return dp != null && w.getPrice() <= dp.getPrice()
+    return dp != null
+        && w.getPrice() <= dp.getPrice()
         && rosterValue(b.getTeamId()) - dp.getPrice() + w.getPrice() <= ROSTER_BUDGET;
   }
 
@@ -254,8 +338,18 @@ public class FreeAgencyService {
     Pokemon dp = pokemon.findById(b.getDropPokemonId()).orElseThrow();
     RosterEntry de = verifyOwner(t.getId(), dp.getId());
     int value = rosterValue(t.getId()) - dp.getPrice() + w.getPrice();
-    if (w.getPrice() > dp.getPrice()) throw bad(w.getName() + " ($" + w.getPrice() + ") costs more than " + dp.getName() + " ($" + dp.getPrice() + ").");
-    if (value > ROSTER_BUDGET) throw bad("This winning bid would exceed the $100 roster cap (new total: $" + value + ").");
+    if (w.getPrice() > dp.getPrice())
+      throw bad(
+          w.getName()
+              + " ($"
+              + w.getPrice()
+              + ") costs more than "
+              + dp.getName()
+              + " ($"
+              + dp.getPrice()
+              + ").");
+    if (value > ROSTER_BUDGET)
+      throw bad("This winning bid would exceed the $100 roster cap (new total: $" + value + ").");
     roster.delete(de);
     dp.setDrafted(false);
     pokemon.save(dp);
@@ -289,7 +383,8 @@ public class FreeAgencyService {
       int proposerFaab,
       int recipientFaab) {
     if (recipient == null) throw bad("Choose the team you want to trade with.");
-    if (teamId.equals(recipient)) throw bad("You cannot trade with your own team. Choose another coach.");
+    if (teamId.equals(recipient))
+      throw bad("You cannot trade with your own team. Choose another coach.");
     offered = clean(offered);
     requested = clean(requested);
     if (offered.isEmpty() && requested.isEmpty() && proposerFaab == 0 && recipientFaab == 0)
@@ -490,10 +585,14 @@ public class FreeAgencyService {
     RosterEntry e =
         roster
             .findByPokemonId(pokemonId)
-            .orElseThrow(() -> bad(pokemonName(pokemonId) + " is no longer rostered. Refresh and try again."));
+            .orElseThrow(
+                () ->
+                    bad(pokemonName(pokemonId) + " is no longer rostered. Refresh and try again."));
     if (!e.getTeamId().equals(teamId))
       throw new ResponseStatusException(
-          HttpStatus.FORBIDDEN, pokemonName(pokemonId) + " belongs to another team. You can only drop or trade Pokémon you own.");
+          HttpStatus.FORBIDDEN,
+          pokemonName(pokemonId)
+              + " belongs to another team. You can only drop or trade Pokémon you own.");
     return e;
   }
 

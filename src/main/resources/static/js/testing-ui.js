@@ -36,7 +36,7 @@
       </div>`;
     page.prepend(section);
 
-    const $tool = selector => section.querySelector(selector);
+    const $tool = (selector) => section.querySelector(selector);
     const phrase = $tool("#league-reset-phrase");
     const resetButton = $tool("#reset-league-now");
     let previewReady = false;
@@ -49,7 +49,7 @@
         const [locks, games, preview] = await Promise.all([
           api("/api/weeks/locks"),
           api("/api/schedule"),
-          api("/api/manager/league-reset/preview")
+          api("/api/manager/league-reset/preview"),
         ]);
         previewReady = true;
         resetButton.disabled = !phrase.value.trim();
@@ -63,9 +63,19 @@
           <span><strong>${preview.playedGames}</strong> scored games</span>`;
         const lockedWeeks = [];
         for (let week = 1; week <= 16; week++) {
-          const weekGames = games.filter(g => g.week === week);
-          const expected = [4,8,9].includes(week) ? 0 : week <= 13 ? 8 : week === 14 ? 4 : week === 15 ? 2 : 1;
-          const completed = weekGames.filter(g => g.played && g.homeScore != null && g.awayScore != null).length;
+          const weekGames = games.filter((g) => g.week === week);
+          const expected = [4, 8, 9].includes(week)
+            ? 0
+            : week <= 13
+              ? 8
+              : week === 14
+                ? 4
+                : week === 15
+                  ? 2
+                  : 1;
+          const completed = weekGames.filter(
+            (g) => g.played && g.homeScore != null && g.awayScore != null,
+          ).length;
           const locked = locks[String(week)] === true;
           lockedWeeks.push(`<div class="manager-week-item">
             <div class="manager-week-label"><strong>Week ${week}</strong>
@@ -73,31 +83,37 @@
             </div>
             <button type="button" class="${locked ? "secondary" : "primary"} manager-lock-button"
               data-week="${week}" data-locked="${locked}"
-              ${(!locked && (expected === 0 || completed !== expected || weekGames.length !== expected)) ? "disabled" : ""}>
+              ${!locked && (expected === 0 || completed !== expected || weekGames.length !== expected) ? "disabled" : ""}>
               ${locked ? "Unlock" : "Lock"}
             </button></div>`);
         }
         $tool("#manager-week-locks").innerHTML = lockedWeeks.join("");
-        section.querySelectorAll(".manager-lock-button").forEach(button => {
+        section.querySelectorAll(".manager-lock-button").forEach((button) => {
           button.onclick = async () => {
             const week = Number(button.dataset.week);
             const lock = button.dataset.locked !== "true";
-            if (!confirm(`${lock ? "Lock" : "Unlock"} Week ${week} results?`)) return;
+            if (!confirm(`${lock ? "Lock" : "Unlock"} Week ${week} results?`))
+              return;
             button.disabled = true;
             try {
               await api(`/api/manager/weeks/${week}/lock`, {
-                method:"PUT", body:{locked:lock}
+                method: "PUT",
+                body: { locked: lock },
               });
               toast(`Week ${week} ${lock ? "locked" : "unlocked"}`);
               await loadData();
               window.refreshCommissionerReminders?.();
-            } catch (error) {toast(error.message,true); button.disabled = false;}
+            } catch (error) {
+              toast(error.message, true);
+              button.disabled = false;
+            }
           };
         });
       } catch (error) {
-        $tool("#manager-week-locks").textContent = "Could not load controls: " + error.message;
+        $tool("#manager-week-locks").textContent =
+          "Could not load controls: " + error.message;
         $tool("#league-reset-preview").textContent = "Could not preview reset.";
-        toast(error.message,true);
+        toast(error.message, true);
       }
     }
 
@@ -106,31 +122,48 @@
         toast("Enter the league reset password first.", true);
         return;
       }
-      if (!confirm("ARE YOU SURE? This permanently resets every draft pick, roster, bid, trade, lineup, recorded score, and transaction. All Pokémon become available again. Team identities, logos, divisions, Pokémon prices and published fixtures stay unchanged. Continue?")) return;
-      if (!confirm("FINAL CONFIRMATION: Reset the live Neon league to its PRE-DRAFT state now? This cannot be undone without a database backup.")) return;
+      if (
+        !confirm(
+          "ARE YOU SURE? This permanently resets every draft pick, roster, bid, trade, lineup, recorded score, and transaction. All Pokémon become available again. Team identities, logos, divisions, Pokémon prices and published fixtures stay unchanged. Continue?",
+        )
+      )
+        return;
+      if (
+        !confirm(
+          "FINAL CONFIRMATION: Reset the live Neon league to its PRE-DRAFT state now? This cannot be undone without a database backup.",
+        )
+      )
+        return;
       resetButton.disabled = true;
       try {
         await api("/api/manager/league-reset", {
-          method:"POST",
-          body:{password:phrase.value}
+          method: "POST",
+          body: { password: phrase.value },
         });
         toast("League reset to its pre-draft state");
         await refreshBase();
         await renderManager();
-      } catch (error) { toast(error.message,true); resetButton.disabled = false; }
-      finally { phrase.value = ""; resetButton.disabled = true; }
+      } catch (error) {
+        toast(error.message, true);
+        resetButton.disabled = false;
+      } finally {
+        phrase.value = "";
+        resetButton.disabled = true;
+      }
     };
     await loadData();
   }
 
   const managerNav = document.querySelector("#manager-nav");
   if (managerNav)
-    managerNav.addEventListener("click", () => setTimeout(addCommissionerTools, 0));
+    managerNav.addEventListener("click", () =>
+      setTimeout(addCommissionerTools, 0),
+    );
 
   const managerPage = document.querySelector("#page-manager");
   if (managerPage) {
     new MutationObserver(() => {
       if (!managerPage.classList.contains("hidden")) addCommissionerTools();
-    }).observe(managerPage, {childList:true});
+    }).observe(managerPage, { childList: true });
   }
 })();

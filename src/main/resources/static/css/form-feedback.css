@@ -1,15 +1,22 @@
 .form-error {
-  display:block;
-  margin:12px 0;
-  padding:11px 13px;
-  border:1px solid rgba(255,135,150,.43);
-  border-radius:10px;
-  background:rgba(139,36,52,.16);
-  color:#ffd5db;
-  font-size:13px;
-  line-height:1.5;
-  overflow-wrap:anywhere;
+  display: block;
+  margin: 12px 0;
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 135, 150, 0.43);
+  border-radius: 10px;
+  background: rgba(139, 36, 52, 0.16);
+  color: #ffd5db;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
-.form-error.hidden {display:none;}
-#bid-preview.budget-error {color:#ffb1bd !important;line-height:1.6;}
-#bid-preview:not(.budget-error) {line-height:1.6;}
+.form-error.hidden {
+  display: none;
+}
+#bid-preview.budget-error {
+  color: #ffb1bd !important;
+  line-height: 1.6;
+}
+#bid-preview:not(.budget-error) {
+  line-height: 1.6;
+}

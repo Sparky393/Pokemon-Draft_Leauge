@@ -1,6 +1,7 @@
 package com.pokemondraft.leagueportal;
 
 import static org.junit.jupiter.api.Assertions.*;
+
 import com.pokemondraft.leagueportal.entity.*;
 import com.pokemondraft.leagueportal.repositories.*;
 import com.pokemondraft.leagueportal.services.*;
@@ -10,10 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest(properties = {
-    "spring.datasource.url=jdbc:h2:mem:neonlogintest;DB_CLOSE_DELAY=-1",
-    "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+@SpringBootTest(
+    properties = {
+      "spring.datasource.url=jdbc:h2:mem:neonlogintest;DB_CLOSE_DELAY=-1",
+      "spring.jpa.hibernate.ddl-auto=create-drop"
+    })
 @Transactional
 class NeonCoachLoginMigrationTest {
   @Autowired AppUserRepository users;
@@ -23,11 +25,14 @@ class NeonCoachLoginMigrationTest {
   @Autowired MatchupRepository matchups;
 
   private AppUser userFor(long teamId) {
-    return users.findAll().stream().filter(u -> Objects.equals(u.getTeamId(), teamId))
-        .findFirst().orElseThrow();
+    return users.findAll().stream()
+        .filter(u -> Objects.equals(u.getTeamId(), teamId))
+        .findFirst()
+        .orElseThrow();
   }
 
-  @Test void fixesSwappedUsernamesUsingTeamIdsWithoutTouchingTeamRecordsOrPasswords() {
+  @Test
+  void fixesSwappedUsernamesUsingTeamIdsWithoutTouchingTeamRecordsOrPasswords() {
     Team first = teams.findById(1L).orElseThrow();
     Team second = teams.findById(2L).orElseThrow();
     first.setCoachName("Wide Right");
@@ -61,11 +66,17 @@ class NeonCoachLoginMigrationTest {
     assertEquals(originalDraft1, teams.findById(1L).orElseThrow().getDraftPosition());
     assertEquals(originalDraft2, teams.findById(2L).orElseThrow().getDraftPosition());
     assertDoesNotThrow(migration::reconcile, "Repeated Render starts must be safe");
-    assertEquals("manager", users.findAll().stream()
-        .filter(u -> u.getRole() == Role.MANAGER).findFirst().orElseThrow().getUsername());
+    assertEquals(
+        "manager",
+        users.findAll().stream()
+            .filter(u -> u.getRole() == Role.MANAGER)
+            .findFirst()
+            .orElseThrow()
+            .getUsername());
   }
 
-  @Test void duplicateDraftPositionsDoNotPreventPublishedMatchupMigration() {
+  @Test
+  void duplicateDraftPositionsDoNotPreventPublishedMatchupMigration() {
     List<Team> current = teams.findAll();
     assertEquals(16, current.size());
     Map<Long, Integer> originalPositions = new HashMap<>();
@@ -80,8 +91,8 @@ class NeonCoachLoginMigrationTest {
     }
 
     assertDoesNotThrow(schedule::syncOfficialSchedule);
-    assertEquals(80, matchups.findAll().stream()
-        .filter(m -> m.getWeek() >= 1 && m.getWeek() <= 13).count());
+    assertEquals(
+        80, matchups.findAll().stream().filter(m -> m.getWeek() >= 1 && m.getWeek() <= 13).count());
     for (Team t : teams.findAll()) {
       assertEquals(originalPositions.get(t.getId()).intValue(), t.getDraftPosition());
       assertNotNull(t.getName());

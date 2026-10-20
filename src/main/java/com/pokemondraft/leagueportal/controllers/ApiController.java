@@ -1,8 +1,8 @@
 package com.pokemondraft.leagueportal.controllers;
 
 import com.pokemondraft.leagueportal.dto.*;
-import com.pokemondraft.leagueportal.mapper.LeagueMapper;
 import com.pokemondraft.leagueportal.entity.*;
+import com.pokemondraft.leagueportal.mapper.LeagueMapper;
 import com.pokemondraft.leagueportal.repositories.*;
 import com.pokemondraft.leagueportal.services.*;
 import jakarta.servlet.http.HttpSession;
@@ -106,14 +106,19 @@ public class ApiController {
     }
     if (r.draftPosition() != null && r.draftPosition() != t.getDraftPosition()) {
       if (picks.count() > 0 || settings().isDraftFinalized())
-        throw new ResponseStatusException(HttpStatus.CONFLICT,
+        throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
             "Draft order cannot be changed after the first pick. Your current order is preserved.");
       if (r.draftPosition() < 1 || r.draftPosition() > 16)
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Draft position must be from 1 to 16.");
-      if (teams.findAll().stream().anyMatch(other -> !other.getId().equals(id)
-          && other.getDraftPosition() == r.draftPosition()))
-        throw new ResponseStatusException(HttpStatus.CONFLICT,
-            "That draft position is already assigned to another team. Swap their positions before starting the draft.");
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST, "Draft position must be from 1 to 16.");
+      if (teams.findAll().stream()
+          .anyMatch(
+              other -> !other.getId().equals(id) && other.getDraftPosition() == r.draftPosition()))
+        throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "That draft position is already assigned to another team. Swap their positions before"
+                + " starting the draft.");
       t.setDraftPosition(r.draftPosition());
     }
     if (r.manualRank() != null) t.setManualRank(r.manualRank());
@@ -138,11 +143,14 @@ public class ApiController {
   public Pokemon price(@PathVariable Long id, @RequestBody PriceUpdate r, HttpSession session) {
     auth.manager(session);
     if (r.price() < 0 || r.price() > 20)
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pokémon draft prices must be between $0 and $20.");
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Pokémon draft prices must be between $0 and $20.");
     Pokemon p = pokemon.findById(id).orElseThrow();
     if (p.getPrice() != r.price() && (picks.count() > 0 || settings().isDraftFinalized()))
-      throw new ResponseStatusException(HttpStatus.CONFLICT,
-          "Pokémon prices are locked once the draft begins. Existing draft and roster values stay unchanged.");
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT,
+          "Pokémon prices are locked once the draft begins. Existing draft and roster values stay"
+              + " unchanged.");
     p.setPrice(r.price());
     return pokemon.save(p);
   }
@@ -258,7 +266,9 @@ public class ApiController {
   public Map<String, Object> lineup(HttpSession session) {
     AppUser u = auth.current(session);
     if (u.getRole() == Role.MANAGER)
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Commissioners do not have a team lineup. Sign in as a coach to submit one.");
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "Commissioners do not have a team lineup. Sign in as a coach to submit one.");
     LeagueSettings s = settings();
     Map<String, Object> out = new LinkedHashMap<>();
     out.put("week", s.getCurrentWeek());
@@ -279,8 +289,8 @@ public class ApiController {
   public WeeklySubmission submitLineup(@RequestBody LineupRequest r, HttpSession session) {
     AppUser u = auth.current(session);
     if (u.getRole() == Role.MANAGER)
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          "Commissioners cannot submit team lineups.");
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Commissioners cannot submit team lineups.");
     return lineupService.submit(u.getTeamId(), r.pokemonIds());
   }
 
@@ -293,7 +303,8 @@ public class ApiController {
     boolean reveal =
         u.getRole() == Role.MANAGER
             || (s.getLineupDeadline() != null
-                && LocalDateTime.now(java.time.ZoneId.of("America/New_York")).isAfter(s.getLineupDeadline()));
+                && LocalDateTime.now(java.time.ZoneId.of("America/New_York"))
+                    .isAfter(s.getLineupDeadline()));
     if (!reveal)
       throw new ResponseStatusException(
           HttpStatus.FORBIDDEN, "Lineups stay hidden until the deadline");
@@ -306,7 +317,9 @@ public class ApiController {
   public FreeAgentBid bid(@RequestBody BidRequest r, HttpSession session) {
     AppUser u = auth.current(session);
     if (u.getRole() == Role.MANAGER)
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Commissioners cannot submit FAAB bids. Sign in as a coach to make a bid.");
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "Commissioners cannot submit FAAB bids. Sign in as a coach to make a bid.");
     return freeAgency.submitBid(u.getTeamId(), r.wantedPokemonId(), r.dropPokemonId(), r.amount());
   }
 
@@ -314,32 +327,36 @@ public class ApiController {
   public void withdrawBid(@PathVariable Long bidId, HttpSession session) {
     AppUser user = auth.current(session);
     if (user.getRole() != Role.COACH)
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-          "Only coaches can withdraw their own FAAB bids.");
+      throw new ResponseStatusException(
+          HttpStatus.FORBIDDEN, "Only coaches can withdraw their own FAAB bids.");
     freeAgency.cancelBid(user.getTeamId(), bidId);
   }
 
   @GetMapping("/free-agency/bids")
   public List<Map<String, Object>> bids(HttpSession session) {
     AppUser u = auth.current(session);
-    List<FreeAgentBid> visible = u.getRole() == Role.MANAGER
-        ? bids.findAll()
-        : bids.findByTeamIdOrderByCreatedAtDesc(u.getTeamId());
-    Map<Long, String> names = pokemon.findAll().stream()
-        .collect(Collectors.toMap(Pokemon::getId, Pokemon::getName));
-    return visible.stream().map(b -> {
-      Map<String, Object> result = new LinkedHashMap<>();
-      result.put("id", b.getId());
-      result.put("teamId", b.getTeamId());
-      result.put("wantedPokemonId", b.getWantedPokemonId());
-      result.put("dropPokemonId", b.getDropPokemonId());
-      result.put("wantedPokemonName", names.get(b.getWantedPokemonId()));
-      result.put("dropPokemonName", names.get(b.getDropPokemonId()));
-      result.put("amount", b.getAmount());
-      result.put("status", b.getStatus());
-      result.put("createdAt", b.getCreatedAt());
-      return result;
-    }).toList();
+    List<FreeAgentBid> visible =
+        u.getRole() == Role.MANAGER
+            ? bids.findAll()
+            : bids.findByTeamIdOrderByCreatedAtDesc(u.getTeamId());
+    Map<Long, String> names =
+        pokemon.findAll().stream().collect(Collectors.toMap(Pokemon::getId, Pokemon::getName));
+    return visible.stream()
+        .map(
+            b -> {
+              Map<String, Object> result = new LinkedHashMap<>();
+              result.put("id", b.getId());
+              result.put("teamId", b.getTeamId());
+              result.put("wantedPokemonId", b.getWantedPokemonId());
+              result.put("dropPokemonId", b.getDropPokemonId());
+              result.put("wantedPokemonName", names.get(b.getWantedPokemonId()));
+              result.put("dropPokemonName", names.get(b.getDropPokemonId()));
+              result.put("amount", b.getAmount());
+              result.put("status", b.getStatus());
+              result.put("createdAt", b.getCreatedAt());
+              return result;
+            })
+        .toList();
   }
 
   @PostMapping("/manager/free-agency/process")
@@ -376,21 +393,24 @@ public class ApiController {
     if (r.leagueName() != null) s.setLeagueName(r.leagueName());
     if (r.currentWeek() != null) {
       if (r.currentWeek() < 1 || r.currentWeek() > SeasonCalendar.FINAL_WEEK)
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose a week between 1 and 16.");
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST, "Choose a week between 1 and 16.");
       s.setCurrentWeek(r.currentWeek());
     }
-    if (r.regularSeasonWeeks() != null && r.regularSeasonWeeks() != SeasonCalendar.REGULAR_SEASON_END)
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Published schedule ends in Week 13");
+    if (r.regularSeasonWeeks() != null
+        && r.regularSeasonWeeks() != SeasonCalendar.REGULAR_SEASON_END)
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Published schedule ends in Week 13");
     if (r.draftOpen() != null) s.setDraftOpen(r.draftOpen());
     if (r.snakeDraft() != null && r.snakeDraft() != s.isSnakeDraft()) {
       if (picks.count() > 0 || s.isDraftFinalized())
-        throw new ResponseStatusException(HttpStatus.CONFLICT,
-            "Snake/linear draft format cannot change after the first pick.");
+        throw new ResponseStatusException(
+            HttpStatus.CONFLICT, "Snake/linear draft format cannot change after the first pick.");
       s.setSnakeDraft(r.snakeDraft());
     }
     if (r.draftOpen() != null && r.draftOpen() && s.isDraftFinalized())
-      throw new ResponseStatusException(HttpStatus.CONFLICT,
-          "The official draft is finalized. It cannot be reopened.");
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT, "The official draft is finalized. It cannot be reopened.");
     // Random seeds cannot change the published season schedule.
     if (r.lineupDeadline() != null)
       s.setLineupDeadline(

@@ -13,11 +13,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Align coach logins to team.coach_name using the account's existing team_id.
- * Never modifies team rows, team assignments, passwords or user IDs.
+ * Align coach logins to team.coach_name using the account's existing team_id. Never modifies team
+ * rows, team assignments, passwords or user IDs.
  *
- * Two-phase usernames avoid unique-index failures if names are swapped between
- * coach accounts in a live database. Each run is idempotent.
+ * <p>Two-phase usernames avoid unique-index failures if names are swapped between coach accounts in
+ * a live database. Each run is idempotent.
  */
 @Service
 public class CoachLoginMigrationService {
@@ -35,16 +35,15 @@ public class CoachLoginMigrationService {
   public void reconcile() {
     Map<Long, String> coachByTeam = new HashMap<>();
     for (Team team : teams.findAll()) {
-      if (team.getId() != null && team.getCoachName() != null
-          && !team.getCoachName().isBlank())
+      if (team.getId() != null && team.getCoachName() != null && !team.getCoachName().isBlank())
         coachByTeam.put(team.getId(), team.getCoachName().trim());
     }
 
     List<AppUser> accounts = users.findAll();
-    Map<String, AppUser> ownerOfUsername = accounts.stream()
-        .collect(Collectors.toMap(AppUser::getUsername, user -> user));
-    Map<Long, AppUser> byId = accounts.stream()
-        .collect(Collectors.toMap(AppUser::getId, user -> user));
+    Map<String, AppUser> ownerOfUsername =
+        accounts.stream().collect(Collectors.toMap(AppUser::getUsername, user -> user));
+    Map<Long, AppUser> byId =
+        accounts.stream().collect(Collectors.toMap(AppUser::getId, user -> user));
     Map<Long, String> desired = new LinkedHashMap<>();
 
     for (AppUser account : accounts) {
@@ -60,8 +59,11 @@ public class CoachLoginMigrationService {
     for (Map.Entry<Long, String> entry : new ArrayList<>(desired.entrySet())) {
       Long previous = firstOwner.putIfAbsent(entry.getValue(), entry.getKey());
       if (previous != null) {
-        log.warn("Skipping conflicting login {} for accounts {} and {}",
-            entry.getValue(), previous, entry.getKey());
+        log.warn(
+            "Skipping conflicting login {} for accounts {} and {}",
+            entry.getValue(),
+            previous,
+            entry.getKey());
         desired.remove(previous);
         desired.remove(entry.getKey());
       }
@@ -74,10 +76,14 @@ public class CoachLoginMigrationService {
       changed = false;
       for (Map.Entry<Long, String> entry : new ArrayList<>(desired.entrySet())) {
         AppUser owner = ownerOfUsername.get(entry.getValue());
-        if (owner != null && !owner.getId().equals(entry.getKey())
+        if (owner != null
+            && !owner.getId().equals(entry.getKey())
             && !desired.containsKey(owner.getId())) {
-          log.warn("Cannot change coach login {} to {}; reserved by account {}",
-              entry.getKey(), entry.getValue(), owner.getId());
+          log.warn(
+              "Cannot change coach login {} to {}; reserved by account {}",
+              entry.getKey(),
+              entry.getValue(),
+              owner.getId());
           desired.remove(entry.getKey());
           changed = true;
         }
@@ -104,7 +110,8 @@ public class CoachLoginMigrationService {
       users.saveAndFlush(account);
     }
     if (!desired.isEmpty())
-      log.info("Synchronized {} coach account usernames to existing team.coach_name values",
+      log.info(
+          "Synchronized {} coach account usernames to existing team.coach_name values",
           desired.size());
   }
 }

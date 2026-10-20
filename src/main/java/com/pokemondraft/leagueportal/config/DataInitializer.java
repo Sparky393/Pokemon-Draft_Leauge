@@ -3,12 +3,11 @@ package com.pokemondraft.leagueportal.config;
 import com.pokemondraft.leagueportal.entity.*;
 import com.pokemondraft.leagueportal.repositories.*;
 import com.pokemondraft.leagueportal.services.ScheduleService;
-import com.pokemondraft.leagueportal.services.SeasonCalendar;
 import java.util.*;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Configuration
 public class DataInitializer {
@@ -32,14 +31,17 @@ public class DataInitializer {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         users.save(new AppUser("manager", encoder.encode("manager"), Role.MANAGER, null));
         for (int i = 1; i <= 16; i++)
-          users.save(new AppUser("coach" + i, encoder.encode("password"), Role.COACH, saved.get(i - 1).getId()));
+          users.save(
+              new AppUser(
+                  "coach" + i, encoder.encode("password"), Role.COACH, saved.get(i - 1).getId()));
       }
       // Existing user names, passwords, divisions, budgets, roster ownership,
       // draft order and team identities belong to the live database.
       // Do not reconcile, reprice, or reset them on code deployments.
       Map<String, Integer> basePrices = BasePrices.values();
       if (pokemon.count() == 0) {
-        for (String name : championsPool()) pokemon.save(new Pokemon(name, basePrices.getOrDefault(name, 0)));
+        for (String name : championsPool())
+          pokemon.save(new Pokemon(name, basePrices.getOrDefault(name, 0)));
       } else {
         // Existing league data is authoritative. On restart/deploy, only add
         // newly supported Pokemon; never overwrite commissioner prices, roster

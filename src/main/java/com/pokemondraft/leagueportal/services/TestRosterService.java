@@ -155,25 +155,34 @@ public class TestRosterService {
         "teams", teamList.size(), "pokemonAssigned", assigned, "highestRosterValue", highestValue);
   }
 
-
-  public record ResetPreview(long draftPicks, long rosterEntries, long bids,
-      long trades, long transactions, long weeklyLineups, long playedGames,
+  public record ResetPreview(
+      long draftPicks,
+      long rosterEntries,
+      long bids,
+      long trades,
+      long transactions,
+      long weeklyLineups,
+      long playedGames,
       long lockedWeeks) {}
 
   @Transactional(readOnly = true)
   public ResetPreview resetPreview() {
     return new ResetPreview(
-        picks.count(), roster.count(), bids.count(), trades.count(),
-        transactions.count(), submissions.count(),
+        picks.count(),
+        roster.count(),
+        bids.count(),
+        trades.count(),
+        transactions.count(),
+        submissions.count(),
         matchups.findAll().stream().filter(Matchup::isPlayed).count(),
         weekLocks.count());
   }
 
   /**
-   * Reset every post-draft activity in one database transaction. League setup,
-   * coach accounts, team IDs/names/branding/divisions, the Pokémon pool/prices,
-   * draft order, season fixture template and league configuration stay intact.
-   * No scheduled job, deployment, or startup routine calls this method.
+   * Reset every post-draft activity in one database transaction. League setup, coach accounts, team
+   * IDs/names/branding/divisions, the Pokémon pool/prices, draft order, season fixture template and
+   * league configuration stay intact. No scheduled job, deployment, or startup routine calls this
+   * method.
    */
   @Transactional
   public Map<String, Integer> resetLeague() {
@@ -193,7 +202,8 @@ public class TestRosterService {
       }
     }
     for (Matchup m : matchups.findAll()) {
-      if (m.getWeek() < 1 || m.getWeek() > SeasonCalendar.REGULAR_SEASON_END
+      if (m.getWeek() < 1
+          || m.getWeek() > SeasonCalendar.REGULAR_SEASON_END
           || !SeasonCalendar.isRegularGameWeek(m.getWeek())) {
         // Remove historical superseded fixtures and dynamically generated
         // playoff rounds. The published regular-season schedule remains.

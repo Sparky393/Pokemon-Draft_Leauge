@@ -12,7 +12,8 @@ renderLineup = async function () {
   }
   const d = await api("/api/flow/lineup");
   if (!d.lineupRequired) {
-    $("#page-lineup").innerHTML = `<h1>Weekly Lineup</h1><div class="card"><h2>Week ${d.week}: ${esc(d.weekLabel)}</h2><p class="muted">No match or lineup submission is scheduled this week. Submissions will reopen in the next playing week.</p></div>`;
+    $("#page-lineup").innerHTML =
+      `<h1>Weekly Lineup</h1><div class="card"><h2>Week ${d.week}: ${esc(d.weekLabel)}</h2><p class="muted">No match or lineup submission is scheduled this week. Submissions will reopen in the next playing week.</p></div>`;
     return;
   }
   const selected = new Set(d.selectedPokemonIds || []);

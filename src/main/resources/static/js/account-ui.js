@@ -3,11 +3,15 @@ async function renderAccount() {
   const manager = state.user.role === "MANAGER";
   const security = await api("/api/auth/security");
   const passwordWarning = security.usingInitialPassword
-    ? '<div class="card form-error" role="status"><strong>Change your initial password.</strong> '
-      + 'This account still uses the original setup password. Use the Change My Password form below before the league begins.</div>'
+    ? '<div class="card form-error" role="status"><strong>Change your initial password.</strong> ' +
+      "This account still uses the original setup password. Use the Change My Password form below before the league begins.</div>"
     : "";
-  const myTeam = state.teams.find(t => Number(t.id) === Number(state.user.teamId));
-  const branding = !manager && myTeam ? `
+  const myTeam = state.teams.find(
+    (t) => Number(t.id) === Number(state.user.teamId),
+  );
+  const branding =
+    !manager && myTeam
+      ? `
     <section class="card branding-card" aria-labelledby="team-branding-heading">
       <div class="eyebrow">Club Identity</div>
       <div class="branding-intro">
@@ -40,7 +44,8 @@ async function renderAccount() {
           <p class="muted branding-help" id="branding-selected" aria-live="polite">Your logo is stored with your team, even after a deployment.</p>
         </div>
       </div>
-    </section>` : "";
+    </section>`
+      : "";
   $("#page-account").innerHTML = `
     <h1>Account Settings</h1>
     ${branding}
@@ -60,24 +65,33 @@ async function renderAccount() {
     $("#branding-save-name").onclick = async () => {
       const button = $("#branding-save-name");
       const name = $("#branding-name").value.trim();
-      if (name.length < 2 || name.length > 40) return toast("Team names must be 2–40 characters", true);
+      if (name.length < 2 || name.length > 40)
+        return toast("Team names must be 2–40 characters", true);
       button.disabled = true;
       try {
-        const updated = await api("/api/teams/me/name", {method:"PUT", body:{name}});
+        const updated = await api("/api/teams/me/name", {
+          method: "PUT",
+          body: { name },
+        });
         refreshTeamIdentity(updated);
         toast("Team name saved across the league");
         await renderAccount();
-      } catch (error) { toast(error.message, true); }
-      finally { button.disabled = false; }
+      } catch (error) {
+        toast(error.message, true);
+      } finally {
+        button.disabled = false;
+      }
     };
 
     let previewUrl = null;
     $("#branding-file").onchange = () => {
       const file = $("#branding-file").files[0];
       $("#branding-upload").disabled = !file || file.size > 1024 * 1024;
-      $("#branding-selected").textContent = !file ? "No file selected."
-        : file.size > 1024 * 1024 ? "Image is too large. Max size: 1 MB."
-        : file.name + " · Ready to upload";
+      $("#branding-selected").textContent = !file
+        ? "No file selected."
+        : file.size > 1024 * 1024
+          ? "Image is too large. Max size: 1 MB."
+          : file.name + " · Ready to upload";
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       if (file && file.size <= 1024 * 1024) {
         previewUrl = URL.createObjectURL(file);
@@ -99,23 +113,34 @@ async function renderAccount() {
       try {
         const body = new FormData();
         body.append("file", file);
-        const response = await fetch("/api/teams/me/logo", {method:"POST", body, headers: {"X-Requested-With":"XMLHttpRequest"}});
+        const response = await fetch("/api/teams/me/logo", {
+          method: "POST",
+          body,
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+        });
         const result = await response.json();
-        if (!response.ok) throw new Error(apiErrorMessage(response.status, result));
+        if (!response.ok)
+          throw new Error(apiErrorMessage(response.status, result));
         refreshTeamIdentity(result);
         toast("Team logo uploaded");
         await renderAccount();
-      } catch (error) { toast(error.message, true); button.disabled = false; }
-      finally { if (previewUrl) URL.revokeObjectURL(previewUrl); }
+      } catch (error) {
+        toast(error.message, true);
+        button.disabled = false;
+      } finally {
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+      }
     };
     $("#branding-remove").onclick = async () => {
       if (!confirm("Remove your current team logo?")) return;
       try {
-        const updated = await api("/api/teams/me/logo", {method:"DELETE"});
+        const updated = await api("/api/teams/me/logo", { method: "DELETE" });
         refreshTeamIdentity(updated);
         toast("Team logo removed");
         await renderAccount();
-      } catch (error) { toast(error.message, true); }
+      } catch (error) {
+        toast(error.message, true);
+      }
     };
   }
 
@@ -123,28 +148,46 @@ async function renderAccount() {
     const currentPassword = $("#account-current").value;
     const newPassword = $("#account-new").value;
     const confirmation = $("#account-confirm").value;
-    if (newPassword !== confirmation) return toast("New passwords do not match", true);
-    if (newPassword.length < 8 || newPassword.length > 72) return toast("Use 8–72 characters", true);
+    if (newPassword !== confirmation)
+      return toast("New passwords do not match", true);
+    if (newPassword.length < 8 || newPassword.length > 72)
+      return toast("Use 8–72 characters", true);
     try {
-      await api("/api/auth/change-password", {method: "POST", body: {currentPassword, newPassword}});
+      await api("/api/auth/change-password", {
+        method: "POST",
+        body: { currentPassword, newPassword },
+      });
       $("#account-current").value = "";
       $("#account-new").value = "";
       $("#account-confirm").value = "";
       toast("Password changed");
-    } catch (e) { toast(e.message, true); }
+    } catch (e) {
+      toast(e.message, true);
+    }
   });
   if (manager) {
     const users = await api("/api/auth/manager/users");
-    $("#reset-user").innerHTML += users.map(u => `<option value="${u.id}">${esc(u.username)}</option>`).join("");
+    $("#reset-user").innerHTML += users
+      .map((u) => `<option value="${u.id}">${esc(u.username)}</option>`)
+      .join("");
     $("#reset-password").addEventListener("click", async () => {
       const id = Number($("#reset-user").value);
       if (!id) return toast("Select a coach", true);
-      const name = users.find(u => u.id === id)?.username || "this coach";
-      if (!confirm(`Generate a new temporary password for ${name}? Their old password will immediately stop working.`)) return;
+      const name = users.find((u) => u.id === id)?.username || "this coach";
+      if (
+        !confirm(
+          `Generate a new temporary password for ${name}? Their old password will immediately stop working.`,
+        )
+      )
+        return;
       try {
-        const result = await api(`/api/auth/manager/users/${id}/reset-password`, {method: "POST"});
+        const result = await api(
+          `/api/auth/manager/users/${id}/reset-password`,
+          { method: "POST" },
+        );
         const secret = result?.temporaryPassword;
-        if (!secret) throw new Error("No temporary password returned. Try again.");
+        if (!secret)
+          throw new Error("No temporary password returned. Try again.");
         // Shown once; it is never stored in localStorage or included in a URL.
         document.querySelector("#manager-temp-password")?.remove();
         const output = document.createElement("div");
@@ -154,15 +197,21 @@ async function renderAccount() {
         heading.textContent = "New temporary password for " + name;
         const code = document.createElement("code");
         code.textContent = secret;
-        code.style.cssText = "display:block;user-select:all;overflow-wrap:anywhere;margin:12px 0;font-size:16px;";
+        code.style.cssText =
+          "display:block;user-select:all;overflow-wrap:anywhere;margin:12px 0;font-size:16px;";
         const info = document.createElement("p");
-        info.textContent = "Give this privately to the coach and ask them to change it immediately. Copy it now; you cannot retrieve it again.";
+        info.textContent =
+          "Give this privately to the coach and ask them to change it immediately. Copy it now; you cannot retrieve it again.";
         const close = document.createElement("button");
-        close.type = "button"; close.textContent = "Hide password"; close.onclick = () => output.remove();
-        output.append(heading,code,info,close);
+        close.type = "button";
+        close.textContent = "Hide password";
+        close.onclick = () => output.remove();
+        output.append(heading, code, info, close);
         $("#reset-password").insertAdjacentElement("afterend", output);
         toast(`New temporary password generated for ${name}`);
-      } catch (e) { toast(e.message, true); }
+      } catch (e) {
+        toast(e.message, true);
+      }
     });
   }
 }

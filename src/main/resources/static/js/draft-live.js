@@ -52,7 +52,11 @@
               ? "draft-cell-current"
               : "draft-cell-empty";
           const pokemon = pick
-            ? { ...pokemonById.get(pick.pokemonId), id: pick.pokemonId, name: pick.pokemonName }
+            ? {
+                ...pokemonById.get(pick.pokemonId),
+                id: pick.pokemonId,
+                name: pick.pokemonName,
+              }
             : null;
           const content = pokemon
             ? pokemonCard(pokemon, "draft-board-pokemon")
@@ -93,10 +97,13 @@
   window.renderDraft = async function () {
     await originalRenderDraft();
     const d = await api("/api/draft");
-    lastSignature = JSON.stringify({pickCount:d.picks.length,
-      currentTeamId:d.currentTeam?.id??null,
-      draftOpen:d.settings.draftOpen,draftFinalized:d.settings.draftFinalized,
-      snakeDraft:d.settings.snakeDraft});
+    lastSignature = JSON.stringify({
+      pickCount: d.picks.length,
+      currentTeamId: d.currentTeam?.id ?? null,
+      draftOpen: d.settings.draftOpen,
+      draftFinalized: d.settings.draftFinalized,
+      snakeDraft: d.settings.snakeDraft,
+    });
 
     const page = document.querySelector("#page-draft");
     if (!page) return;
@@ -106,7 +113,11 @@
     // Match its own heading, not a nested heading from another card.
     [...page.children]
       .filter((element) => element.classList.contains("card"))
-      .filter((card) => card.querySelector(":scope > h2")?.textContent.trim() === "Draft Board")
+      .filter(
+        (card) =>
+          card.querySelector(":scope > h2")?.textContent.trim() ===
+          "Draft Board",
+      )
       .forEach((card) => card.remove());
 
     const title = page.querySelector(".section-title");
@@ -116,24 +127,28 @@
     const board = page.querySelector(".live-draft-board");
     board?.querySelectorAll(".draft-board-pokemon").forEach((card) => {
       card.addEventListener("click", () => {
-        const pick = d.picks.find((p) => String(p.pokemonId) === card.dataset.pokemonId);
-        if (pick) showPokemonDetails({ id: pick.pokemonId, name: pick.pokemonName });
+        const pick = d.picks.find(
+          (p) => String(p.pokemonId) === card.dataset.pokemonId,
+        );
+        if (pick)
+          showPokemonDetails({ id: pick.pokemonId, name: pick.pokemonName });
       });
     });
     if (board) hydratePokemonCards(board);
   };
 
   async function checkDraft() {
-    if (refreshing || state.page !== "draft" || !state.user || document.hidden) return;
+    if (refreshing || state.page !== "draft" || !state.user || document.hidden)
+      return;
     refreshing = true;
     try {
       const d = await api("/api/draft/status");
       const next = JSON.stringify({
-        pickCount:d.pickCount,
-        currentTeamId:d.currentTeamId,
-        draftOpen:d.draftOpen,
-        draftFinalized:d.draftFinalized,
-        snakeDraft:d.snakeDraft
+        pickCount: d.pickCount,
+        currentTeamId: d.currentTeamId,
+        draftOpen: d.draftOpen,
+        draftFinalized: d.draftFinalized,
+        snakeDraft: d.snakeDraft,
       });
       if (lastSignature !== null && next !== lastSignature) {
         if (!document.querySelector(".pokemon-detail-overlay")) {

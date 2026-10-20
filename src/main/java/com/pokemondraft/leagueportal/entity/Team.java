@@ -26,23 +26,49 @@ public class Team {
   // Persist logo bytes in Neon. The public Team JSON includes only the image URL.
   @Column(columnDefinition = "text")
   private String logoBase64;
+
   private String logoContentType;
   private Long logoVersion;
   // An immutable fixture-sheet identity: display names are editable by coaches.
   private Integer officialSlot;
 
   @com.fasterxml.jackson.annotation.JsonIgnore
-  public String getLogoBase64() { return logoBase64; }
-  public void setLogoBase64(String value) { logoBase64 = value; }
-  public String getLogoContentType() { return logoContentType; }
-  public void setLogoContentType(String value) { logoContentType = value; }
-  public Long getLogoVersion() { return logoVersion; }
-  public void setLogoVersion(Long value) { logoVersion = value; }
-  public Integer getOfficialSlot() { return officialSlot; }
-  public void setOfficialSlot(Integer value) { officialSlot = value; }
+  public String getLogoBase64() {
+    return logoBase64;
+  }
+
+  public void setLogoBase64(String value) {
+    logoBase64 = value;
+  }
+
+  public String getLogoContentType() {
+    return logoContentType;
+  }
+
+  public void setLogoContentType(String value) {
+    logoContentType = value;
+  }
+
+  public Long getLogoVersion() {
+    return logoVersion;
+  }
+
+  public void setLogoVersion(Long value) {
+    logoVersion = value;
+  }
+
+  public Integer getOfficialSlot() {
+    return officialSlot;
+  }
+
+  public void setOfficialSlot(Integer value) {
+    officialSlot = value;
+  }
+
   public String getLogoUrl() {
-    return logoBase64 == null || id == null ? null :
-        "/api/teams/" + id + "/logo?v=" + (logoVersion == null ? 0 : logoVersion);
+    return logoBase64 == null || id == null
+        ? null
+        : "/api/teams/" + id + "/logo?v=" + (logoVersion == null ? 0 : logoVersion);
   }
 
   public Team() {}

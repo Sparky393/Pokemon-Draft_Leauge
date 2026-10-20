@@ -2,6 +2,7 @@ package com.pokemondraft.leagueportal;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+
 import com.pokemondraft.leagueportal.entity.*;
 import com.pokemondraft.leagueportal.repositories.*;
 import com.pokemondraft.leagueportal.services.*;
@@ -9,7 +10,8 @@ import java.util.*;
 import org.junit.jupiter.api.Test;
 
 class LeagueResetTest {
-  @Test void resetClearsOnlyPostDraftStateAndPreservesPreDraftSetup() {
+  @Test
+  void resetClearsOnlyPostDraftStateAndPreservesPreDraftSetup() {
     TeamRepository teams = mock(TeamRepository.class);
     PokemonRepository pokemon = mock(PokemonRepository.class);
     RosterEntryRepository roster = mock(RosterEntryRepository.class);
@@ -23,8 +25,20 @@ class LeagueResetTest {
     WeekLockRepository locks = mock(WeekLockRepository.class);
     ScheduleService schedule = mock(ScheduleService.class);
 
-    TestRosterService service = new TestRosterService(teams, pokemon, roster, picks,
-        submissions, transactions, bids, trades, matchups, settings, locks, schedule);
+    TestRosterService service =
+        new TestRosterService(
+            teams,
+            pokemon,
+            roster,
+            picks,
+            submissions,
+            transactions,
+            bids,
+            trades,
+            matchups,
+            settings,
+            locks,
+            schedule);
     Team team = new Team("Burn", "Coach Burn", "A", 7);
     team.setFaBudget(1);
     team.setWins(4);

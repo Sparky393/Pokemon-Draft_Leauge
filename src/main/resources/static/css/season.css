@@ -1,34 +1,155 @@
 /* Season 2 fixture calendar and elimination bracket */
-.season-week { margin-bottom: 16px; }
-.season-week-head { display:flex; justify-content:space-between; align-items:center; gap:18px; margin-bottom:16px; }
-.season-week-head h2 { margin:0; font-size:21px; }
-.season-kind { font-size:11px; letter-spacing:1.2px; font-weight:800; color:#a8daff; padding:8px 12px; background:rgba(68,150,225,.12); border:1px solid rgba(110,192,255,.22); border-radius:999px; white-space:nowrap; }
-.season-matches { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; }
-.season-match, .playoff-game { min-width:0; padding:16px; border-radius:16px; background:rgba(6,25,49,.48); border:1px solid rgba(110,185,245,.18); }
-.season-versus { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:12px; align-items:center; }
-.season-versus strong {overflow-wrap:anywhere; font-size:15px;}
-.season-versus strong:last-child {text-align:right;}
-.season-versus span {font-size:13px;font-weight:850;color:#8ecfff;white-space:nowrap;}
-.season-lineup-status {font-size:12px; margin:12px 0 0;}
-.season-off-week {grid-column:1/-1; padding:22px; color:#c6e0fa; border-radius:14px; border:1px dashed rgba(110,190,245,.25); background:rgba(31,76,126,.15);}
-.season-off-week p {margin:8px 0 0;}
-.season-score-controls {margin:14px 0 0;gap:8px;}
-.season-score-controls input {width:75px;min-width:68px;}
-.season-kind + * {flex-shrink:1;}
-.playoff-status {font-size:15px;line-height:1.65;}
-.playoff-flow {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px;align-items:start;}
-.playoff-stage {min-width:0;}
-.playoff-stage h2 {font-size:20px;}
-.playoff-games {display:grid;gap:12px;}
-.playoff-game-label {font-size:11px; font-weight:800; letter-spacing:1px; color:#8cc8f7; text-transform:uppercase; margin-bottom:12px;}
-.playoff-game.awaiting {border-style:dashed;opacity:.82;}
-.playoff-game .small {margin-top:12px;line-height:1.5;}
-.playoff-game .season-versus {grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);}
-.playoff-game .season-versus strong {font-size:13px;}
-.playoff-stage .toolbar {align-items:center;}
-@media (max-width:1200px) {.playoff-flow {grid-template-columns:1fr 1fr;} .playoff-flow>.playoff-stage:last-child {grid-column:1/-1;}}
-@media (max-width:760px) {.playoff-flow {grid-template-columns:1fr;} .playoff-flow>.playoff-stage:last-child {grid-column:auto;} .season-week-head {align-items:flex-start;flex-direction:column;} .season-matches {grid-template-columns:1fr;}}
-
+.season-week {
+  margin-bottom: 16px;
+}
+.season-week-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+.season-week-head h2 {
+  margin: 0;
+  font-size: 21px;
+}
+.season-kind {
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  font-weight: 800;
+  color: #a8daff;
+  padding: 8px 12px;
+  background: rgba(68, 150, 225, 0.12);
+  border: 1px solid rgba(110, 192, 255, 0.22);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.season-matches {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+.season-match,
+.playoff-game {
+  min-width: 0;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(6, 25, 49, 0.48);
+  border: 1px solid rgba(110, 185, 245, 0.18);
+}
+.season-versus {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+.season-versus strong {
+  overflow-wrap: anywhere;
+  font-size: 15px;
+}
+.season-versus strong:last-child {
+  text-align: right;
+}
+.season-versus span {
+  font-size: 13px;
+  font-weight: 850;
+  color: #8ecfff;
+  white-space: nowrap;
+}
+.season-lineup-status {
+  font-size: 12px;
+  margin: 12px 0 0;
+}
+.season-off-week {
+  grid-column: 1/-1;
+  padding: 22px;
+  color: #c6e0fa;
+  border-radius: 14px;
+  border: 1px dashed rgba(110, 190, 245, 0.25);
+  background: rgba(31, 76, 126, 0.15);
+}
+.season-off-week p {
+  margin: 8px 0 0;
+}
+.season-score-controls {
+  margin: 14px 0 0;
+  gap: 8px;
+}
+.season-score-controls input {
+  width: 75px;
+  min-width: 68px;
+}
+.season-kind + * {
+  flex-shrink: 1;
+}
+.playoff-status {
+  font-size: 15px;
+  line-height: 1.65;
+}
+.playoff-flow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 17px;
+  align-items: start;
+}
+.playoff-stage {
+  min-width: 0;
+}
+.playoff-stage h2 {
+  font-size: 20px;
+}
+.playoff-games {
+  display: grid;
+  gap: 12px;
+}
+.playoff-game-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #8cc8f7;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.playoff-game.awaiting {
+  border-style: dashed;
+  opacity: 0.82;
+}
+.playoff-game .small {
+  margin-top: 12px;
+  line-height: 1.5;
+}
+.playoff-game .season-versus {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.playoff-game .season-versus strong {
+  font-size: 13px;
+}
+.playoff-stage .toolbar {
+  align-items: center;
+}
+@media (max-width: 1200px) {
+  .playoff-flow {
+    grid-template-columns: 1fr 1fr;
+  }
+  .playoff-flow > .playoff-stage:last-child {
+    grid-column: 1/-1;
+  }
+}
+@media (max-width: 760px) {
+  .playoff-flow {
+    grid-template-columns: 1fr;
+  }
+  .playoff-flow > .playoff-stage:last-child {
+    grid-column: auto;
+  }
+  .season-week-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .season-matches {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* Revealed lineups need real card width. Half-width columns were squeezing
    three fixed-size sprites into ~90px cards and cropping their artwork. */
@@ -47,8 +168,8 @@
   min-width: 0;
   padding: 16px;
   border-radius: 16px;
-  border: 1px solid rgba(130, 190, 240, .16);
-  background: rgba(6, 25, 49, .24);
+  border: 1px solid rgba(130, 190, 240, 0.16);
+  background: rgba(6, 25, 49, 0.24);
 }
 .season-match--revealed .lineup-reveal h4 {
   margin: 0 0 14px;

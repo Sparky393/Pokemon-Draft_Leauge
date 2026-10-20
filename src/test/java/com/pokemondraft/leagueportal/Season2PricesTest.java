@@ -1,6 +1,7 @@
 package com.pokemondraft.leagueportal;
 
 import static org.junit.jupiter.api.Assertions.*;
+
 import com.pokemondraft.leagueportal.config.BasePrices;
 import java.util.*;
 import org.junit.jupiter.api.Test;
@@ -8,7 +9,8 @@ import org.junit.jupiter.api.Test;
 class Season2PricesTest {
   private final Map<String, Integer> prices = BasePrices.values();
 
-  @Test void csvPriceTiersMatchRepresentativePokemon() {
+  @Test
+  void csvPriceTiersMatchRepresentativePokemon() {
     assertEquals(20, prices.get("Indeedee (Female)"));
     assertEquals(20, prices.get("Sneasler"));
     assertEquals(19, prices.get("Gholdengo"));
@@ -33,14 +35,16 @@ class Season2PricesTest {
     assertEquals(0, prices.get("Slurpuff"));
   }
 
-  @Test void allPricesAreWithinZeroToTwentyAndUnique() {
+  @Test
+  void allPricesAreWithinZeroToTwentyAndUnique() {
     assertTrue(prices.size() >= 230);
     assertTrue(prices.values().stream().allMatch(v -> v >= 0 && v <= 20));
     assertFalse(prices.containsKey("Price Chart Modifiers"));
     assertFalse(prices.containsKey("Fake Out"));
   }
 
-  @Test void regionalFormsDoNotOverwriteBaseForms() {
+  @Test
+  void regionalFormsDoNotOverwriteBaseForms() {
     assertEquals(20, prices.get("Raichu"));
     assertEquals(10, prices.get("Raichu (Alolan)"));
     assertEquals(2, prices.get("Goodra"));

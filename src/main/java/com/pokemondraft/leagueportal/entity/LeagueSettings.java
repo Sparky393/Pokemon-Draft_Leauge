@@ -82,15 +82,29 @@ public class LeagueSettings {
     lineupDeadline = v;
   }
 
+  public boolean isDraftFinalized() {
+    return Boolean.TRUE.equals(draftFinalized);
+  }
 
-  public boolean isDraftFinalized() { return Boolean.TRUE.equals(draftFinalized); }
-  public void setDraftFinalized(boolean v) { draftFinalized = v; }
+  public void setDraftFinalized(boolean v) {
+    draftFinalized = v;
+  }
 
-  public boolean isSeason2PricesApplied() { return Boolean.TRUE.equals(season2PricesApplied); }
-  public void setSeason2PricesApplied(boolean value) { season2PricesApplied = value; }
+  public boolean isSeason2PricesApplied() {
+    return Boolean.TRUE.equals(season2PricesApplied);
+  }
 
-  public boolean isWaiverProcessed() { return Boolean.TRUE.equals(waiverProcessed); }
-  public void setWaiverProcessed(boolean v) { waiverProcessed = v; }
+  public void setSeason2PricesApplied(boolean value) {
+    season2PricesApplied = value;
+  }
+
+  public boolean isWaiverProcessed() {
+    return Boolean.TRUE.equals(waiverProcessed);
+  }
+
+  public void setWaiverProcessed(boolean v) {
+    waiverProcessed = v;
+  }
 
   @Transient
   public boolean isPlayoffSeedModeEnabled() {

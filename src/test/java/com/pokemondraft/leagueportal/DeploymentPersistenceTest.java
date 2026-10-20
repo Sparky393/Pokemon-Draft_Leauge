@@ -1,6 +1,7 @@
 package com.pokemondraft.leagueportal;
 
 import static org.junit.jupiter.api.Assertions.*;
+
 import com.pokemondraft.leagueportal.entity.*;
 import com.pokemondraft.leagueportal.repositories.*;
 import org.junit.jupiter.api.Test;
@@ -10,10 +11,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Re-running the startup initializer must not rewrite an established league. */
-@SpringBootTest(properties={
-    "spring.datasource.url=jdbc:h2:mem:deploymenttest;DB_CLOSE_DELAY=-1",
-    "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+@SpringBootTest(
+    properties = {
+      "spring.datasource.url=jdbc:h2:mem:deploymenttest;DB_CLOSE_DELAY=-1",
+      "spring.jpa.hibernate.ddl-auto=create-drop"
+    })
 @Transactional
 class DeploymentPersistenceTest {
   @Autowired CommandLineRunner initializer;
@@ -23,7 +25,8 @@ class DeploymentPersistenceTest {
   @Autowired MatchupRepository matchups;
   @Autowired AppUserRepository users;
 
-  @Test void codeRedeployKeepsCustomizedLeagueState() throws Exception {
+  @Test
+  void codeRedeployKeepsCustomizedLeagueState() throws Exception {
     LeagueSettings league = settings.findById(1L).orElseThrow();
     league.setCurrentWeek(7);
     league.setWaiverProcessed(true);
@@ -48,20 +51,21 @@ class DeploymentPersistenceTest {
     existing.setPlayed(true);
     matchups.saveAndFlush(existing);
 
-    AppUser user = users.findAll().stream().filter(x->x.getRole()==Role.COACH).findFirst().orElseThrow();
+    AppUser user =
+        users.findAll().stream().filter(x -> x.getRole() == Role.COACH).findFirst().orElseThrow();
     Long userId = user.getId();
     user.setUsername("my-custom-login");
     users.saveAndFlush(user);
 
     initializer.run();
 
-    assertEquals(7,settings.findById(1L).orElseThrow().getCurrentWeek());
+    assertEquals(7, settings.findById(1L).orElseThrow().getCurrentWeek());
     assertTrue(settings.findById(1L).orElseThrow().isWaiverProcessed());
     assertFalse(settings.findById(1L).orElseThrow().isDraftOpen());
-    assertEquals("Still My Team",teams.findById(teamId).orElseThrow().getName());
-    assertEquals(1,teams.findById(teamId).orElseThrow().getFaBudget());
-    assertEquals(9,pokemon.findById(pokemonId).orElseThrow().getPrice());
-    assertEquals(3,matchups.findById(gameId).orElseThrow().getHomeScore());
-    assertEquals("my-custom-login",users.findById(userId).orElseThrow().getUsername());
+    assertEquals("Still My Team", teams.findById(teamId).orElseThrow().getName());
+    assertEquals(1, teams.findById(teamId).orElseThrow().getFaBudget());
+    assertEquals(9, pokemon.findById(pokemonId).orElseThrow().getPrice());
+    assertEquals(3, matchups.findById(gameId).orElseThrow().getHomeScore());
+    assertEquals("my-custom-login", users.findById(userId).orElseThrow().getUsername());
   }
 }

@@ -9,7 +9,9 @@ public final class LeagueMapper {
   private LeagueMapper() {}
 
   public static RosterPokemonDto rosterPokemon(RosterEntry entry, Pokemon pokemon) {
-    return new RosterPokemonDto(entry.getId(), entry.getPokemonId(),
+    return new RosterPokemonDto(
+        entry.getId(),
+        entry.getPokemonId(),
         pokemon == null ? "Unknown" : pokemon.getName(),
         pokemon == null ? 0 : pokemon.getPrice());
   }
@@ -18,17 +20,28 @@ public final class LeagueMapper {
     return new LineupPokemonDto(pokemon.getId(), pokemon.getName(), pokemon.getPrice());
   }
 
-  public static DraftPickDto draftPick(DraftPick pick, Map<Long, String> teamNames,
-      Map<Long, String> pokemonNames) {
-    return new DraftPickDto(pick.getOverallPick(), pick.getRoundNumber(), pick.getTeamId(),
-        teamNames.get(pick.getTeamId()), pick.getPokemonId(), pokemonNames.get(pick.getPokemonId()));
+  public static DraftPickDto draftPick(
+      DraftPick pick, Map<Long, String> teamNames, Map<Long, String> pokemonNames) {
+    return new DraftPickDto(
+        pick.getOverallPick(),
+        pick.getRoundNumber(),
+        pick.getTeamId(),
+        teamNames.get(pick.getTeamId()),
+        pick.getPokemonId(),
+        pokemonNames.get(pick.getPokemonId()));
   }
 
   public static MatchupDto matchup(Matchup matchup, Map<Long, String> teamNames) {
-    return new MatchupDto(matchup.getId(), matchup.getWeek(), matchup.getHomeTeamId(),
-        matchup.getAwayTeamId(), teamNames.get(matchup.getHomeTeamId()),
-        teamNames.get(matchup.getAwayTeamId()), matchup.getHomeScore(),
-        matchup.getAwayScore(), matchup.isPlayed());
+    return new MatchupDto(
+        matchup.getId(),
+        matchup.getWeek(),
+        matchup.getHomeTeamId(),
+        matchup.getAwayTeamId(),
+        teamNames.get(matchup.getHomeTeamId()),
+        teamNames.get(matchup.getAwayTeamId()),
+        matchup.getHomeScore(),
+        matchup.getAwayScore(),
+        matchup.isPlayed());
   }
 
   public static UserDto user(AppUser user) {
@@ -36,7 +49,10 @@ public final class LeagueMapper {
   }
 
   public static UserDto authUser(AppUser user) {
-    return new UserDto(user.getId(), user.getUsername(), user.getRole().name(),
+    return new UserDto(
+        user.getId(),
+        user.getUsername(),
+        user.getRole().name(),
         user.getTeamId() == null ? "" : user.getTeamId());
   }
 }

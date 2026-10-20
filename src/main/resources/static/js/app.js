@@ -60,9 +60,14 @@ async function enterApp() {
   state.settings = dash.settings;
   $("#whoami").innerHTML =
     `<strong>${esc(state.user.username)}</strong><br>${esc(state.user.role)}${state.user.teamId ? ` · ${esc(teamName(state.user.teamId))}` : ""}`;
-  if (state.user.teamId) refreshTeamIdentity(state.teams.find(t => Number(t.id) === Number(state.user.teamId)));
+  if (state.user.teamId)
+    refreshTeamIdentity(
+      state.teams.find((t) => Number(t.id) === Number(state.user.teamId)),
+    );
   $("#manager-nav").classList.toggle("hidden", state.user.role !== "MANAGER");
-  document.querySelector('[data-page="freeagency"]')?.classList.toggle("hidden", state.user.role === "MANAGER");
+  document
+    .querySelector('[data-page="freeagency"]')
+    ?.classList.toggle("hidden", state.user.role === "MANAGER");
   // Apply role-based navigation before allowing the app to become visible.
   $("#app").classList.remove("hidden");
   await showPage("home");
@@ -80,7 +85,9 @@ $("#login-button").addEventListener("click", async () => {
   const password = $("#login-password").value;
   loginFeedback.classList.add("hidden");
   if (!username || !password) {
-    loginFeedback.textContent = !username ? "Enter your username." : "Enter your password.";
+    loginFeedback.textContent = !username
+      ? "Enter your username."
+      : "Enter your password.";
     loginFeedback.classList.remove("hidden");
     return;
   }
@@ -98,7 +105,7 @@ $("#login-button").addEventListener("click", async () => {
     button.disabled = false;
   }
 });
-["#login-username", "#login-password"].forEach(id => {
+["#login-username", "#login-password"].forEach((id) => {
   $(id).addEventListener("input", () => loginFeedback.classList.add("hidden"));
 });
 $("#login-password").addEventListener("keydown", (e) => {
@@ -367,18 +374,30 @@ async function renderManager() {
     </div>`;
   $("#manager-process-faab").addEventListener("click", async () => {
     const button = $("#manager-process-faab");
-    if (!confirm("Process the current Week 4 FAAB period? This will award winning bids, update rosters, and permanently deduct FAAB from winning teams. Continue?")) return;
+    if (
+      !confirm(
+        "Process the current Week 4 FAAB period? This will award winning bids, update rosters, and permanently deduct FAAB from winning teams. Continue?",
+      )
+    )
+      return;
     button.disabled = true;
     try {
-      const result = await api("/api/manager/free-agency/process", { method:"POST" });
-      toast(`FAAB period ${result.period} processed: ${result.winners} winning bid(s)`);
-      $("#manager-faab-message").textContent = `Period ${result.period} processed successfully. Results are in Free Agency → Transactions for coaches.`;
+      const result = await api("/api/manager/free-agency/process", {
+        method: "POST",
+      });
+      toast(
+        `FAAB period ${result.period} processed: ${result.winners} winning bid(s)`,
+      );
+      $("#manager-faab-message").textContent =
+        `Period ${result.period} processed successfully. Results are in Free Agency → Transactions for coaches.`;
       await refreshBase();
       window.refreshCommissionerReminders?.();
     } catch (error) {
       toast(error.message, true);
       $("#manager-faab-message").textContent = error.message;
-    } finally { button.disabled = false; }
+    } finally {
+      button.disabled = false;
+    }
   });
   $("#save-settings").addEventListener("click", async () => {
     try {

@@ -37,25 +37,36 @@ public class WeeklyLineupService {
     LeagueSettings s = settings.findById(1L).orElseThrow();
     int week = s.getCurrentWeek();
     if (!SeasonCalendar.week(week).lineupRequired())
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "There are no lineup submissions in Week " + week + ". Choose a scheduled game week.");
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "There are no lineup submissions in Week " + week + ". Choose a scheduled game week.");
     finalizeExpired(week);
-    if (s.getLineupDeadline() != null && !LocalDateTime.now(ZoneId.of("America/New_York")).isBefore(s.getLineupDeadline()))
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The Week " + week + " lineup deadline has passed. Your lineup can no longer be changed.");
+    if (s.getLineupDeadline() != null
+        && !LocalDateTime.now(ZoneId.of("America/New_York")).isBefore(s.getLineupDeadline()))
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "The Week "
+              + week
+              + " lineup deadline has passed. Your lineup can no longer be changed.");
     if (ids == null || ids.size() != 6 || new HashSet<>(ids).size() != 6)
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Select exactly 6 different Pokémon from your roster.");
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Select exactly 6 different Pokémon from your roster.");
     Matchup m = matchupFor(teamId, week);
     Long opponent = m.getHomeTeamId().equals(teamId) ? m.getAwayTeamId() : m.getHomeTeamId();
     if (submissions.findByTeamIdAndWeek(opponent, week).isPresent()
         && submissions.findByTeamIdAndWeek(teamId, week).isPresent())
       throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST, "Both coaches have submitted their Week " + week + " lineups. This matchup is locked.");
+          HttpStatus.BAD_REQUEST,
+          "Both coaches have submitted their Week " + week + " lineups. This matchup is locked.");
     Set<Long> mine =
         roster.findByTeamId(teamId).stream()
             .map(RosterEntry::getPokemonId)
             .collect(Collectors.toSet());
     if (!mine.containsAll(ids))
       throw new ResponseStatusException(
-          HttpStatus.FORBIDDEN, "At least one selected Pokémon is no longer on your team. Refresh your roster and choose again.");
+          HttpStatus.FORBIDDEN,
+          "At least one selected Pokémon is no longer on your team. Refresh your roster and choose"
+              + " again.");
     String csv = ids.stream().map(String::valueOf).collect(Collectors.joining(","));
     WeeklySubmission ws =
         submissions
@@ -69,8 +80,8 @@ public class WeeklyLineupService {
 
   @Transactional
   public void finalizeExpired(int week) {
-    if (week < 1 || week > SeasonCalendar.FINAL_WEEK
-        || !SeasonCalendar.week(week).lineupRequired()) return;
+    if (week < 1 || week > SeasonCalendar.FINAL_WEEK || !SeasonCalendar.week(week).lineupRequired())
+      return;
     LeagueSettings s = settings.findById(1L).orElse(null);
     if (s == null
         || s.getCurrentWeek() != week
@@ -85,27 +96,36 @@ public class WeeklyLineupService {
 
   private void ensureAutomatic(Long teamId, int week) {
     if (submissions.findByTeamIdAndWeek(teamId, week).isPresent()) return;
-    List<Long> owned = roster.findByTeamId(teamId).stream()
-        .map(RosterEntry::getPokemonId).distinct().sorted().toList();
+    List<Long> owned =
+        roster.findByTeamId(teamId).stream()
+            .map(RosterEntry::getPokemonId)
+            .distinct()
+            .sorted()
+            .toList();
     if (owned.size() < 6)
       throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST, "Team " + teamId + " has fewer than 6 Pokémon and cannot be assigned an automatic lineup");
+          HttpStatus.BAD_REQUEST,
+          "Team "
+              + teamId
+              + " has fewer than 6 Pokémon and cannot be assigned an automatic lineup");
 
     Set<Long> selected = new LinkedHashSet<>();
     // Carry forward the most recent lineup, skipping non-playing weeks.
     submissions.findAll().stream()
         .filter(ws -> teamId.equals(ws.getTeamId()) && ws.getWeek() < week)
         .max(Comparator.comparingInt(WeeklySubmission::getWeek))
-        .ifPresent(previous -> {
-          for (String id : previous.getPokemonIdsCsv().split(",")) {
-            try {
-              Long pokemonId = Long.valueOf(id.trim());
-              if (owned.contains(pokemonId) && selected.size() < 6) selected.add(pokemonId);
-            } catch (NumberFormatException ignored) {
-              // Ignore malformed historical entries rather than failing automatic lineup creation.
-            }
-          }
-        });
+        .ifPresent(
+            previous -> {
+              for (String id : previous.getPokemonIdsCsv().split(",")) {
+                try {
+                  Long pokemonId = Long.valueOf(id.trim());
+                  if (owned.contains(pokemonId) && selected.size() < 6) selected.add(pokemonId);
+                } catch (NumberFormatException ignored) {
+                  // Ignore malformed historical entries rather than failing automatic lineup
+                  // creation.
+                }
+              }
+            });
     // Replace departed Pokémon, or fill a first-ever lineup, in stable ID order.
     for (Long id : owned) {
       if (selected.size() == 6) break;
@@ -137,8 +157,8 @@ public class WeeklyLineupService {
   }
 
   /**
-   * Fetch all submission flags for the published schedule in one repository call,
-   * instead of querying twice per game (and once per revealed Pokémon).
+   * Fetch all submission flags for the published schedule in one repository call, instead of
+   * querying twice per game (and once per revealed Pokémon).
    */
   @Transactional
   public Map<Long, Map<String, Object>> matchupLineupsBatch(List<Matchup> games) {
@@ -147,8 +167,8 @@ public class WeeklyLineupService {
     Map<String, WeeklySubmission> submitted = new HashMap<>();
     for (WeeklySubmission ws : submissions.findAll())
       submitted.put(ws.getTeamId() + ":" + ws.getWeek(), ws);
-    Map<Long, Pokemon> allPokemon = pokemon.findAll().stream()
-        .collect(Collectors.toMap(Pokemon::getId, p -> p));
+    Map<Long, Pokemon> allPokemon =
+        pokemon.findAll().stream().collect(Collectors.toMap(Pokemon::getId, p -> p));
     Map<Long, Map<String, Object>> result = new HashMap<>();
     for (Matchup game : games) {
       WeeklySubmission h = submitted.get(game.getHomeTeamId() + ":" + game.getWeek());
@@ -171,8 +191,10 @@ public class WeeklyLineupService {
 
   public boolean hasMatchup(Long teamId, int week) {
     return matchups.findAllByOrderByWeekAscIdAsc().stream()
-        .anyMatch(m -> m.getWeek() == week
-            && (teamId.equals(m.getHomeTeamId()) || teamId.equals(m.getAwayTeamId())));
+        .anyMatch(
+            m ->
+                m.getWeek() == week
+                    && (teamId.equals(m.getHomeTeamId()) || teamId.equals(m.getAwayTeamId())));
   }
 
   public boolean isLocked(Long teamId, int week) {

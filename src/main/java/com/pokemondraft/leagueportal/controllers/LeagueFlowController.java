@@ -1,8 +1,8 @@
 package com.pokemondraft.leagueportal.controllers;
 
 import com.pokemondraft.leagueportal.dto.LineupPokemonDto;
-import com.pokemondraft.leagueportal.mapper.LeagueMapper;
 import com.pokemondraft.leagueportal.entity.*;
+import com.pokemondraft.leagueportal.mapper.LeagueMapper;
 import com.pokemondraft.leagueportal.repositories.*;
 import com.pokemondraft.leagueportal.services.*;
 import jakarta.servlet.http.HttpSession;
@@ -54,8 +54,8 @@ public class LeagueFlowController {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Manager has no lineup");
     LeagueSettings s = settings.findById(1L).orElseThrow();
     int week = s.getCurrentWeek();
-    boolean required = SeasonCalendar.week(week).lineupRequired()
-        && lineups.hasMatchup(u.getTeamId(), week);
+    boolean required =
+        SeasonCalendar.week(week).lineupRequired() && lineups.hasMatchup(u.getTeamId(), week);
     if (required) lineups.finalizeExpired(week);
     Map<String, Object> m = new LinkedHashMap<>();
     m.put("week", week);
@@ -64,8 +64,8 @@ public class LeagueFlowController {
     m.put("deadline", s.getLineupDeadline());
     m.put("locked", required && lineups.isLocked(u.getTeamId(), week));
     m.put("roster", required ? rosterView(u.getTeamId()) : List.of());
-    WeeklySubmission ws = required
-        ? submissions.findByTeamIdAndWeek(u.getTeamId(), week).orElse(null) : null;
+    WeeklySubmission ws =
+        required ? submissions.findByTeamIdAndWeek(u.getTeamId(), week).orElse(null) : null;
     m.put("submission", ws);
     if (ws != null)
       m.put(
@@ -97,8 +97,8 @@ public class LeagueFlowController {
     auth.current(session);
     Map<Long, String> names = new HashMap<>();
     for (Team t : teams.findAll()) names.put(t.getId(), t.getName());
-    List<Matchup> games = matchups.findAllByOrderByWeekAscIdAsc().stream()
-        .filter(g -> g.getWeek() > 0).toList();
+    List<Matchup> games =
+        matchups.findAllByOrderByWeekAscIdAsc().stream().filter(g -> g.getWeek() > 0).toList();
     Map<Long, Map<String, Object>> lineupsByGame = lineups.matchupLineupsBatch(games);
     List<Map<String, Object>> out = new ArrayList<>();
     for (Matchup x : games) {

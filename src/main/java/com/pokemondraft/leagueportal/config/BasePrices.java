@@ -2,16 +2,18 @@ package com.pokemondraft.leagueportal.config;
 
 import java.util.*;
 
-/** Season 2 pricing, transcribed from the commissioner's Draft Price Chart CSV.
- * Ability/move modifiers are not Pokemon and are deliberately excluded.
- * Regional and alternate-form labels are normalized to existing portal names.
+/**
+ * Season 2 pricing, transcribed from the commissioner's Draft Price Chart CSV. Ability/move
+ * modifiers are not Pokemon and are deliberately excluded. Regional and alternate-form labels are
+ * normalized to existing portal names.
  */
 public final class BasePrices {
   private BasePrices() {}
 
   public static Map<String, Integer> values() {
     Map<String, Integer> out = new LinkedHashMap<>();
-    String data = """
+    String data =
+"""
 20:Indeedee (Female)|Indeedee (Male)|Whimsicott|Pelipper|Rillaboom|Sneasler|Incineroar|Salamence|Golisopod|Raichu|Farigiraf|Volcarona|Grimmsnarl|Kingambit|Milotic|Gardevoir|Armarouge|Staraptor|Sinistcha|Talonflame|Vivillon
 19:Basculegion (Male)|Gholdengo|Sylveon|Gengar|Sableye|Corviknight|Pawmot|Blastoise|Hatterene
 18:Garchomp|Archaludon|Charizard|Arcanine (Hisuian)|Tyranitar|Metagross|Floette (Eternal Flower)|Lucario|Swampert|Dragonite|Aerodactyl|Kleavor
