@@ -1,0 +1,47 @@
+name: Phone and desktop smoke tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build app with H2, never production Neon
+        run: mvn --batch-mode -DskipTests package
+      - name: Install Chromium and Playwright
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start isolated local test portal
+        run: |
+          mkdir -p data
+          java -jar target/*.jar --server.port=18080 > /tmp/league-smoke.log 2>&1 &
+          for n in $(seq 1 80); do
+            if curl -sf http://127.0.0.1:18080/ > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/league-smoke.log
+          exit 1
+      - name: Test navigation and vertical layout on mobile and desktop
+        run: node tests/mobile-smoke.mjs
+      - name: Upload screenshots and logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-smoke-diagnostics
+          path: |
+            /tmp/league-smoke.log
+            tests/screenshots
+          if-no-files-found: ignore

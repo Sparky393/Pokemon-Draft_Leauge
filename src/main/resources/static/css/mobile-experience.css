@@ -1,0 +1,197 @@
+/*
+ * One-season portal phone layout.
+ * Preserve the existing glass, typography and colors; change only the flow.
+ * On phone the entire page scrolls vertically, with a swipeable nav rail.
+ */
+@media (max-width: 800px) {
+  html { scroll-padding-top: 160px; }
+  html, body { width: 100%; max-width: 100%; overflow-x: clip; }
+  .app { display:block; width:100%; max-width:100%; min-width:0; }
+  .sidebar {
+    position: sticky !important;
+    inset: 0 auto auto 0;
+    top: 0;
+    z-index: 80;
+    width:100% !important;
+    max-width:100%;
+    height:auto !important;
+    max-height:none !important;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto auto;
+    column-gap:8px;
+    row-gap:9px;
+    padding:10px 12px !important;
+    border-right:0;
+    border-bottom:1px solid rgba(125,195,255,.28);
+    background:rgba(7,22,43,.96);
+    backdrop-filter:blur(22px);
+    -webkit-backdrop-filter:blur(22px);
+    box-shadow:0 8px 28px rgba(1,7,20,.36);
+  }
+  .sidebar .brand { grid-column:1; margin:0 !important; font-size:16px; line-height:1.25; letter-spacing:0; align-self:center; }
+  .sidebar .whoami {
+    grid-column:1; grid-row:2; min-width:0;
+    margin:0 !important; padding:0 !important;
+    border:0; font-size:11px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .sidebar .sidebar-identity { min-width:0; max-width:100%; gap:8px; }
+  .sidebar .sidebar-identity .team-avatar {width:29px; height:29px; flex-shrink:0;}
+  .sidebar .sidebar-identity strong,
+  .sidebar .sidebar-identity small {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sidebar nav {
+    grid-column:1 / -1;
+    grid-row:3;
+    display:flex !important;
+    flex-wrap:nowrap !important;
+    gap:7px;
+    width:100%; max-width:100%;
+    min-width:0;
+    padding:0 2px 5px;
+    overflow-x:auto; overflow-y:hidden;
+    scroll-snap-type:x proximity;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-x:contain;
+  }
+  .sidebar nav::-webkit-scrollbar {display:none;}
+  .sidebar nav button {
+    flex:0 0 auto;
+    width:auto; min-height:42px;
+    white-space:nowrap;
+    padding:9px 12px;
+    scroll-snap-align:start;
+    font-size:12px;
+    border:1px solid rgba(125,195,255,.13);
+    border-radius:999px;
+    background:rgba(48,91,139,.18);
+  }
+  .sidebar nav button.active {border-color:rgba(118,202,255,.54);}
+  .sidebar > button[data-page="account"] {
+    grid-column:2; grid-row:1 / 3;
+    align-self:center; margin:0 !important;
+    padding:9px 10px !important;
+    border:1px solid rgba(120,190,255,.2) !important;
+    border-radius:11px;
+    font-size:11px;
+    line-height:1.35;
+    max-width:108px;
+    text-align:center;
+  }
+  .sidebar .logout {
+    grid-column:3; grid-row:1 / 3;
+    align-self:center;
+    margin:0 !important;
+    min-height:42px;
+    padding:9px !important;
+    white-space:nowrap;
+    font-size:11px;
+    border-radius:11px;
+  }
+  .sidebar .league-tool-links {
+    grid-column:1 / -1;
+    grid-row:4;
+    padding:0 !important;
+    margin:0 !important;
+    width:100%; min-width:0;
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:7px;
+  }
+  .league-tool-links > button {
+    justify-content:center;
+    min-width:0;
+    min-height:38px;
+    font-size:12px;
+    padding:7px 9px !important;
+  }
+  .league-tool-panel {
+    grid-column:1/-1;
+    width:100%; max-height:min(55vh,440px);
+    min-width:0;
+    overflow-y:auto;
+  }
+  .content {
+    width:100% !important; max-width:100% !important;
+    min-width:0;
+    margin:0 !important;
+    padding:15px 12px calc(22px + env(safe-area-inset-bottom)) !important;
+    overflow-x:clip;
+  }
+  .page, .card, .glass-panel, .team-view, .week, .season-week,
+  .manager-grid, .grid, .roster-team-grid { min-width:0; max-width:100%; }
+  .grid,.roster-team-grid,.standings-grid,.playoff-flow,.season-matches {
+    grid-template-columns:minmax(0,1fr) !important;
+    gap:12px;
+  }
+  .card,.glass-panel {padding:15px !important; border-radius:16px; margin-bottom:13px;}
+  .page-hero {display:flex;flex-direction:column;align-items:flex-start; gap:9px; margin-bottom:14px;}
+  h1,.page-hero h1 {font-size:clamp(24px,7vw,30px);line-height:1.15;}
+  h2 {font-size:21px;}
+  h3 {font-size:17px;}
+  .section-title {align-items:flex-start;flex-wrap:wrap;gap:8px;}
+  .toolbar,.filter-bar,.pokemon-filters {min-width:0;max-width:100%;}
+  .filter-bar,.pokemon-filters {padding:11px !important;gap:10px;}
+  .filter-bar > *, .pokemon-filters .filter-field,
+  .pokemon-filters .filter-field.wide {
+    width:100%; min-width:0 !important;
+    max-width:100%; flex:1 1 100%;
+  }
+  input,select,textarea,button {max-width:100%;}
+  input,select,textarea {font-size:16px !important;min-height:43px;}
+  .toolbar > label {min-width:0;max-width:100%;}
+  .toolbar input,.toolbar select {max-width:100%;}
+  .primary,.secondary,.danger {min-height:44px;}
+  .subtabs {width:100%;max-width:100%;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;}
+  .subtabs button {flex:1 0 auto;white-space:nowrap;min-height:42px;padding:9px 12px !important;}
+  .pokemon-card-grid,.roster-grid,.trade-pokemon-grid,
+  .schedule-six-grid {grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:9px !important;}
+  .pokemon-card {min-width:0;width:100%; border-radius:14px;}
+  .pokemon-art img {max-width:100%;object-fit:contain;}
+  .pokemon-card-body {padding:10px;}
+  .pokemon-card-body strong {white-space:normal;overflow-wrap:anywhere;}
+  .table-wrap,.draft-board-scroll {
+    display:block;
+    width:100%; max-width:100%; min-width:0;
+    overflow-x:auto !important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-x:contain;
+  }
+  .table-wrap table {width:max-content;min-width:100%;}
+  .table-wrap th,.table-wrap td {white-space:nowrap;padding:10px 9px;}
+  .draft-board-scroll {border-radius:13px;}
+  .draft-board-scroll:before {content:"Swipe left or right to explore the full draft board →";display:block;padding:9px 11px;color:#a6d5f4;font-size:12px;}
+  .draft-snake-table {min-width:2200px;}
+  .season-week-head {align-items:flex-start;gap:10px;flex-direction:column;}
+  .season-versus {grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:7px;}
+  .season-versus strong {font-size:12px;overflow-wrap:anywhere;}
+  .season-versus span {font-size:12px;}
+  .season-match,.playoff-game {padding:12px;min-width:0;}
+  .season-score-controls {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+  .season-score-controls input {width:100% !important;min-width:0;}
+  .season-score-controls button {min-width:0;width:100%;}
+  .season-match--revealed .lineup-reveal {gap:12px;}
+  .season-match--revealed .lineup-reveal > div {padding:10px;}
+  .season-match--revealed .schedule-six-grid {grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+  .manager-grid {display:grid;grid-template-columns:minmax(0,1fr);gap:12px;}
+  .manager-reset-section {padding:14px !important;}
+  .manager-week-list {grid-template-columns:repeat(2,minmax(0,1fr));}
+  .manager-week-item {min-width:0;gap:7px;padding:10px;}
+  .manager-week-item button {min-width:58px;min-height:40px;}
+  .manager-reset-confirm input {width:100%;}
+  .league-export-links {gap:7px;}
+  .league-export-links a,.league-notice-item {min-height:44px;display:grid;align-items:center;}
+  :focus-visible {outline:2px solid #91d7ff;outline-offset:2px;}
+}
+
+@media (max-width: 375px) {
+  .sidebar {grid-template-columns:minmax(0,1fr) auto auto;column-gap:5px;padding:9px 8px !important;}
+  .sidebar .brand {font-size:14px;}
+  .sidebar > button[data-page="account"],.sidebar .logout {font-size:10px;padding:8px 6px !important;max-width:91px;}
+  .content {padding:12px 8px 22px !important;}
+  .manager-week-list {grid-template-columns:1fr;}
+  .season-score-controls {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media (prefers-reduced-motion: reduce) {
+  .page, .card, .primary, .secondary, .danger {animation:none !important;transition:none !important;}
+}

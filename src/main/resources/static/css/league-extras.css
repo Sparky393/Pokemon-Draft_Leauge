@@ -1,0 +1,18 @@
+.league-tool-links {display:grid;gap:7px;margin:0;padding:0;}
+.league-tool-links > button {width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:0;padding:11px 13px;border:1px solid transparent;border-radius:13px;background:transparent;color:#a9bfd5;box-shadow:none;font-weight:700;text-align:left;transition:.18s ease;}.league-tool-links > button:hover,.league-tool-links > button[aria-expanded="true"]{color:#eefdff;border-color:rgba(105,190,255,.28);background:linear-gradient(135deg,rgba(55,145,240,.3),rgba(25,85,170,.2));}
+.league-notice-count {background:#a83246;color:white;border-radius:99px;min-width:20px;padding:2px 6px;text-align:center;font-size:11px;}
+.league-tool-panel {padding:14px;border:1px solid rgba(130,193,241,.3);border-radius:13px;background:rgba(11,35,68,.85);min-width:0;}
+.league-tool-panel h3 {margin:0 0 10px;font-size:15px;}
+.league-tool-panel p {line-height:1.5;}
+.league-notice-item {display:grid;width:100%;margin:7px 0;padding:9px 10px;border:1px solid rgba(124,178,228,.2);border-radius:10px;background:rgba(30,71,109,.4);color:inherit;text-align:left;gap:6px;cursor:pointer;}
+.league-notice-item small {color:#b8d0e8;line-height:1.45;}
+.draft-budget-panel {padding:16px;margin:12px 0;line-height:1.55;}
+.draft-budget-panel p {margin:7px 0;}
+.draft-budget-panel .budget-error {color:#ffacb7;}
+@media print {
+  .sidebar,.toast,.league-tool-links,button,.form-error,.selection-footer {display:none!important;}
+  .content,.app,main {display:block!important;width:100%!important;max-width:none!important;padding:0!important;margin:0!important;}
+  .page.hidden {display:none!important;}
+  body {background:white!important;color:black!important;}
+  .card {break-inside:avoid;box-shadow:none!important;color:black!important;}
+}
