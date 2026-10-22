@@ -46,8 +46,12 @@ class LeagueResetPasswordTest {
   @Test
   void missingEnvironmentPasswordNeverResets() {
     var controller = new LeagueAdministrationController(auth, resets, locks);
-    var ex = assertThrows(ResponseStatusException.class,
-        () -> controller.reset(new LeagueAdministrationController.ResetRequest("password"), session));
+    var ex =
+        assertThrows(
+            ResponseStatusException.class,
+            () ->
+                controller.reset(
+                    new LeagueAdministrationController.ResetRequest("password"), session));
     assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     verifyNoInteractions(resets);
   }
@@ -55,6 +59,7 @@ class LeagueResetPasswordTest {
   @Test
   void correctPasswordRequiresManagerAndRunsReset() {
     var controller = new LeagueAdministrationController(auth, resets, locks);
+    ReflectionTestUtils.setField(controller, "resetPassword", "configured-secret");
     controller.reset(new LeagueAdministrationController.ResetRequest("configured-secret"), session);
     verify(auth).manager(session);
     verify(resets).resetLeague();

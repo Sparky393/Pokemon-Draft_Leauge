@@ -87,15 +87,14 @@ public class WeeklyLineupService {
         || s.getCurrentWeek() != week
         || s.getLineupDeadline() == null
         || LocalDateTime.now(ZoneId.of("America/New_York")).isBefore(s.getLineupDeadline())) return;
-    for (Matchup m : matchups.findAllByOrderByWeekAscIdAsc())
-      if (m.getWeek() == week) {
-        ensureAutomatic(m.getHomeTeamId(), week);
-        ensureAutomatic(m.getAwayTeamId(), week);
-      }
+    Set<Long> submittedTeams = new HashSet<>(submissions.findSubmittedTeamIds(week));
+    for (Matchup m : matchups.findByWeekOrderByIdAsc(week)) {
+      if (submittedTeams.add(m.getHomeTeamId())) ensureAutomatic(m.getHomeTeamId(), week);
+      if (submittedTeams.add(m.getAwayTeamId())) ensureAutomatic(m.getAwayTeamId(), week);
+    }
   }
 
   private void ensureAutomatic(Long teamId, int week) {
-    if (submissions.findByTeamIdAndWeek(teamId, week).isPresent()) return;
     List<Long> owned =
         roster.findByTeamId(teamId).stream()
             .map(RosterEntry::getPokemonId)
@@ -111,9 +110,8 @@ public class WeeklyLineupService {
 
     Set<Long> selected = new LinkedHashSet<>();
     // Carry forward the most recent lineup, skipping non-playing weeks.
-    submissions.findAll().stream()
-        .filter(ws -> teamId.equals(ws.getTeamId()) && ws.getWeek() < week)
-        .max(Comparator.comparingInt(WeeklySubmission::getWeek))
+    submissions
+        .findFirstByTeamIdAndWeekLessThanOrderByWeekDesc(teamId, week)
         .ifPresent(
             previous -> {
               for (String id : previous.getPokemonIdsCsv().split(",")) {
@@ -164,11 +162,28 @@ public class WeeklyLineupService {
   public Map<Long, Map<String, Object>> matchupLineupsBatch(List<Matchup> games) {
     LeagueSettings s = settings.findById(1L).orElse(null);
     if (s != null) finalizeExpired(s.getCurrentWeek());
+    if (games.isEmpty()) return Map.of();
+    List<Long> gameIds = games.stream().map(Matchup::getId).filter(Objects::nonNull).toList();
     Map<String, WeeklySubmission> submitted = new HashMap<>();
-    for (WeeklySubmission ws : submissions.findAll())
+    for (WeeklySubmission ws :
+        gameIds.isEmpty() ? List.<WeeklySubmission>of() : submissions.findForMatchups(gameIds))
       submitted.put(ws.getTeamId() + ":" + ws.getWeek(), ws);
+    // Only names from fully revealed games are needed. Hidden lineups stay hidden.
+    Set<Long> pokemonIds = new HashSet<>();
+    for (Matchup game : games) {
+      WeeklySubmission h = submitted.get(game.getHomeTeamId() + ":" + game.getWeek());
+      WeeklySubmission a = submitted.get(game.getAwayTeamId() + ":" + game.getWeek());
+      if (h != null && a != null)
+        for (WeeklySubmission ws : List.of(h, a))
+          Arrays.stream(ws.getPokemonIdsCsv().split(","))
+              .map(Long::valueOf)
+              .forEach(pokemonIds::add);
+    }
     Map<Long, Pokemon> allPokemon =
-        pokemon.findAll().stream().collect(Collectors.toMap(Pokemon::getId, p -> p));
+        pokemonIds.isEmpty()
+            ? Map.of()
+            : pokemon.findAllById(pokemonIds).stream()
+                .collect(Collectors.toMap(Pokemon::getId, p -> p));
     Map<Long, Map<String, Object>> result = new HashMap<>();
     for (Matchup game : games) {
       WeeklySubmission h = submitted.get(game.getHomeTeamId() + ":" + game.getWeek());
@@ -190,11 +205,7 @@ public class WeeklyLineupService {
   }
 
   public boolean hasMatchup(Long teamId, int week) {
-    return matchups.findAllByOrderByWeekAscIdAsc().stream()
-        .anyMatch(
-            m ->
-                m.getWeek() == week
-                    && (teamId.equals(m.getHomeTeamId()) || teamId.equals(m.getAwayTeamId())));
+    return !matchups.findForTeamAndWeek(teamId, week).isEmpty();
   }
 
   public boolean isLocked(Long teamId, int week) {
@@ -204,11 +215,7 @@ public class WeeklyLineupService {
   }
 
   private Matchup matchupFor(Long teamId, int week) {
-    return matchups.findAllByOrderByWeekAscIdAsc().stream()
-        .filter(
-            m ->
-                m.getWeek() == week
-                    && (m.getHomeTeamId().equals(teamId) || m.getAwayTeamId().equals(teamId)))
+    return matchups.findForTeamAndWeek(teamId, week).stream()
         .findFirst()
         .orElseThrow(
             () ->
@@ -217,8 +224,14 @@ public class WeeklyLineupService {
   }
 
   private List<Map<String, Object>> names(WeeklySubmission s) {
+    Set<Long> ids =
+        Arrays.stream(s.getPokemonIdsCsv().split(","))
+            .map(Long::valueOf)
+            .collect(Collectors.toSet());
     Map<Long, Pokemon> all =
-        pokemon.findAll().stream().collect(Collectors.toMap(Pokemon::getId, p -> p));
+        ids.isEmpty()
+            ? Map.of()
+            : pokemon.findAllById(ids).stream().collect(Collectors.toMap(Pokemon::getId, p -> p));
     return names(s, all);
   }
 

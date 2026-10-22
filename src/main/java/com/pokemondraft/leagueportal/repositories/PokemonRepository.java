@@ -11,4 +11,16 @@ public interface PokemonRepository extends JpaRepository<Pokemon, Long> {
   List<Pokemon> findByDraftedFalseOrderByNameAsc();
 
   Optional<Pokemon> findByName(String name);
+
+  @org.springframework.data.jpa.repository.Query(
+      "select coalesce(sum(p.price), 0) from Pokemon p where p.id in :ids")
+  long totalPriceByIdIn(java.util.Collection<Long> ids);
+
+  interface Name {
+    Long getId();
+
+    String getName();
+  }
+
+  List<Name> findNamesByIdIn(java.util.Collection<Long> ids);
 }

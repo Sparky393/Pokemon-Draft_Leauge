@@ -8,4 +8,16 @@ public interface WeeklySubmissionRepository extends JpaRepository<WeeklySubmissi
   Optional<WeeklySubmission> findByTeamIdAndWeek(Long teamId, int week);
 
   List<WeeklySubmission> findByWeek(int week);
+
+  @org.springframework.data.jpa.repository.Query(
+      "select s.teamId from WeeklySubmission s where s.week = :week")
+  List<Long> findSubmittedTeamIds(int week);
+
+  @org.springframework.data.jpa.repository.Query(
+      "select s from WeeklySubmission s where exists (select m.id from Matchup m where m.id in"
+          + " :gameIds and m.week = s.week and (m.homeTeamId = s.teamId or m.awayTeamId ="
+          + " s.teamId))")
+  List<WeeklySubmission> findForMatchups(Collection<Long> gameIds);
+
+  Optional<WeeklySubmission> findFirstByTeamIdAndWeekLessThanOrderByWeekDesc(Long teamId, int week);
 }

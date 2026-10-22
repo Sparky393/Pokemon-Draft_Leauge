@@ -13,11 +13,11 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
           cache: maven
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
       - name: Build app with H2, never production Neon
         run: mvn --batch-mode -DskipTests package
       - name: Install Chromium and Playwright
@@ -36,6 +36,8 @@ jobs:
           exit 1
       - name: Test navigation and vertical layout on mobile and desktop
         run: node tests/mobile-smoke.mjs
+      - name: Verify API request reuse and draft polling
+        run: node tests/egress-browser.mjs
       - name: Upload screenshots and logs on failure
         if: failure()
         uses: actions/upload-artifact@v4

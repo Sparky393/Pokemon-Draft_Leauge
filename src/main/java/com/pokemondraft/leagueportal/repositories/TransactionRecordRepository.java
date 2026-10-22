@@ -8,4 +8,14 @@ public interface TransactionRecordRepository extends JpaRepository<TransactionRe
   List<TransactionRecord> findAllByOrderByCreatedAtDesc();
 
   long countByType(String type);
+
+  interface Revision {
+    long getRowCount();
+
+    Long getLatestId();
+  }
+
+  @org.springframework.data.jpa.repository.Query(
+      "select count(t) as rowCount, max(t.id) as latestId from TransactionRecord t")
+  Revision revision();
 }

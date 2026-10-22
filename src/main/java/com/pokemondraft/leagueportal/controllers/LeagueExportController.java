@@ -64,14 +64,21 @@ public class LeagueExportController {
     if (!Set.of("draft", "rosters", "standings", "schedule", "transactions").contains(type))
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown export type.");
     Map<Long, Team> teamNames = new HashMap<>();
-    for (Team t : teams.findAll()) teamNames.put(t.getId(), t);
+    if (Set.of("draft", "rosters", "schedule").contains(type))
+      for (Team t : teams.findAllMetadata()) teamNames.put(t.getId(), t);
+    List<DraftPick> draftRows =
+        type.equals("draft") ? picks.findAllByOrderByOverallPickAsc() : List.of();
+    List<RosterEntry> rosterRows = type.equals("rosters") ? roster.findAll() : List.of();
+    Set<Long> ids = new HashSet<>();
+    for (DraftPick pick : draftRows) ids.add(pick.getPokemonId());
+    for (RosterEntry entry : rosterRows) ids.add(entry.getPokemonId());
     Map<Long, Pokemon> pokemonNames = new HashMap<>();
-    for (Pokemon p : pokemon.findAll()) pokemonNames.put(p.getId(), p);
+    if (!ids.isEmpty()) for (Pokemon p : pokemon.findAllById(ids)) pokemonNames.put(p.getId(), p);
     StringBuilder csv = new StringBuilder();
     switch (type) {
       case "draft" -> {
         row(csv, "Overall Pick", "Round", "Team", "Pokemon", "Pokemon Price", "Picked At");
-        for (DraftPick p : picks.findAllByOrderByOverallPickAsc()) {
+        for (DraftPick p : draftRows) {
           Team t = teamNames.get(p.getTeamId());
           Pokemon mon = pokemonNames.get(p.getPokemonId());
           row(
@@ -95,10 +102,10 @@ public class LeagueExportController {
             "Team Roster Value",
             "FAAB");
         for (Team t :
-            teams.findAll().stream()
+            teamNames.values().stream()
                 .sorted(Comparator.comparing(Team::getDivision).thenComparing(Team::getName))
                 .toList()) {
-          var entries = roster.findByTeamId(t.getId());
+          var entries = rosterRows.stream().filter(e -> t.getId().equals(e.getTeamId())).toList();
           int total =
               entries.stream()
                   .mapToInt(
@@ -134,9 +141,10 @@ public class LeagueExportController {
             "Differential",
             "FAAB",
             "Manual Rank");
+        Map<String, List<Team>> standings = schedule.standings();
         for (String division : List.of("A", "B")) {
           int rank = 0;
-          for (Team t : schedule.standings(division))
+          for (Team t : standings.get(division))
             row(
                 csv,
                 division,
@@ -151,7 +159,7 @@ public class LeagueExportController {
       }
       case "schedule" -> {
         row(csv, "Week", "Home Team", "Away Team", "Home Score", "Away Score", "Played");
-        for (Matchup m : matchups.findAllByOrderByWeekAscIdAsc()) {
+        for (Matchup m : matchups.findPublished(null, null)) {
           if (m.getWeek() < 1) continue;
           Team home = teamNames.get(m.getHomeTeamId()), away = teamNames.get(m.getAwayTeamId());
           row(

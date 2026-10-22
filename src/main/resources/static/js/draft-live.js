@@ -2,17 +2,10 @@
 (() => {
   let lastSignature = null;
   let refreshing = false;
+  let draftOpen = true;
+  let draftFinalized = false;
+  let idleRevision = null;
   const originalRenderDraft = window.renderDraft;
-
-  function signature(d) {
-    return JSON.stringify({
-      picks: d.picks.map((p) => [p.overallPick, p.teamId, p.pokemonId]),
-      currentTeam: d.currentTeam?.id ?? null,
-      draftOpen: d.settings.draftOpen,
-      draftFinalized: d.settings.draftFinalized,
-      snakeDraft: d.settings.snakeDraft,
-    });
-  }
 
   function buildBoard(d) {
     const teams = [...state.teams].sort(
@@ -94,11 +87,15 @@
     </div>`;
   }
 
-  window.renderDraft = async function () {
-    await originalRenderDraft();
-    const d = await api("/api/draft");
+  window.renderDraft = async function (snapshot) {
+    const d = snapshot || (await api("/api/draft"));
+    await originalRenderDraft(d);
+    draftOpen = d.settings.draftOpen;
+    draftFinalized = d.settings.draftFinalized;
+    idleRevision = d.idleRevision;
     lastSignature = JSON.stringify({
       pickCount: d.picks.length,
+      lastPickId: d.lastPickId ?? null,
       currentTeamId: d.currentTeam?.id ?? null,
       draftOpen: d.settings.draftOpen,
       draftFinalized: d.settings.draftFinalized,
@@ -135,16 +132,34 @@
       });
     });
     if (board) hydratePokemonCards(board);
+    return d;
   };
 
   async function checkDraft() {
-    if (refreshing || state.page !== "draft" || !state.user || document.hidden)
+    if (
+      refreshing ||
+      state.page !== "draft" ||
+      !state.user ||
+      document.hidden ||
+      draftFinalized
+    )
       return;
     refreshing = true;
     try {
+      if (!draftOpen) {
+        const status = await api("/api/draft/idle-status");
+        if (
+          status.revision !== idleRevision &&
+          !document.querySelector(".pokemon-detail-overlay")
+        )
+          await window.renderDraft();
+        return;
+      }
       const d = await api("/api/draft/status");
+      draftOpen = d.draftOpen;
       const next = JSON.stringify({
         pickCount: d.pickCount,
+        lastPickId: d.lastPickId ?? null,
         currentTeamId: d.currentTeamId,
         draftOpen: d.draftOpen,
         draftFinalized: d.draftFinalized,
@@ -164,7 +179,8 @@
     }
   }
 
-  setInterval(checkDraft, 5000);
+  setInterval(() => checkDraft(), 5000);
+  window.addEventListener("focus", () => checkDraft());
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) checkDraft();
   });

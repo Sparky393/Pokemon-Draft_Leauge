@@ -279,8 +279,8 @@ renderStandings = async function () {
   $("#page-standings").innerHTML =
     `${hero("Regular Season", "Standings", "Wins → Differential → Head-to-Head → Team")}<div class="standings-grid">${panel("A", s.A)}${panel("B", s.B)}</div>`;
 };
-renderDraft = async function () {
-  const d = await api("/api/draft"),
+renderDraft = async function (snapshot) {
+  const d = snapshot || (await api("/api/draft")),
     canPick =
       state.user.role === "MANAGER" ||
       (d.currentTeam && d.currentTeam.id === state.user.teamId);
@@ -335,6 +335,7 @@ renderDraft = async function () {
         toast(e.message, true);
       }
     };
+  return d;
 };
 renderBids = async function () {
   await window.loadFaabPokemonNames();

@@ -72,6 +72,7 @@ class FreeAgencyServiceTest {
     }
     when(roster.countByTeamId(1L)).thenReturn(10L);
     when(roster.findByTeamId(1L)).thenReturn(entries);
+    when(roster.totalPriceByTeamId(1L)).thenReturn(50L);
     when(roster.findByPokemonId(10L)).thenReturn(Optional.of(entries.get(0)));
     when(pokemon.findById(99L)).thenReturn(Optional.of(new Pokemon("Available", 4)));
     when(pokemon.findById(98L)).thenReturn(Optional.of(new Pokemon("Expensive", 60)));
@@ -146,7 +147,7 @@ class FreeAgencyServiceTest {
 
   @Test
   void combinedPendingBidsCannotExceedThree() {
-    when(bids.findByStatus(BidStatus.PENDING))
+    when(bids.findByTeamIdAndStatusOrderByCreatedAtDesc(1L, BidStatus.PENDING))
         .thenReturn(List.of(new FreeAgentBid(1L, 97L, 11L, 2)));
     assertEquals(
         HttpStatus.BAD_REQUEST,
@@ -235,7 +236,7 @@ class FreeAgencyServiceTest {
 
   @Test
   void pendingBidLimitExplainsTheRemainingFaab() {
-    when(bids.findByStatus(BidStatus.PENDING))
+    when(bids.findByTeamIdAndStatusOrderByCreatedAtDesc(1L, BidStatus.PENDING))
         .thenReturn(List.of(new FreeAgentBid(1L, 97L, 11L, 2)));
     ResponseStatusException error =
         assertThrows(ResponseStatusException.class, () -> service.submitBid(1L, 99L, 10L, 2));

@@ -103,15 +103,30 @@ function wireSeasonScores(scope, refresh, playoff = false) {
 }
 
 renderSchedule = async function () {
-  const [games, calendar, lockedWeeks] = await Promise.all([
-    api("/api/flow/schedule"),
+  const root = $("#page-schedule");
+  const renderId = String(Number(root.dataset.scheduleGeneration || 0) + 1);
+  root.dataset.scheduleGeneration = renderId;
+  const scheduleQuery = () => {
+    const params = new URLSearchParams();
+    if (seasonSelectedWeek !== "all") params.set("week", seasonSelectedWeek);
+    if (seasonSelectedTeam !== "all") params.set("teamId", seasonSelectedTeam);
+    return "/api/flow/schedule" + (params.size ? "?" + params : "");
+  };
+  const initialQuery = scheduleQuery();
+  const [initialGames, calendar, lockedWeeks] = await Promise.all([
+    api(initialQuery),
     api("/api/flow/calendar"),
     api("/api/weeks/locks"),
   ]);
+  if (root.dataset.scheduleGeneration !== renderId) return;
+  let games = initialGames;
+  // Reuse an already loaded full schedule within this render. Scoring or page
+  // navigation creates a fresh render, so this never hides new saved results.
+  let allGames = initialQuery === "/api/flow/schedule" ? initialGames : null;
+  let filterRequest = 0;
   const options = state.teams
     .slice()
     .sort((a, b) => a.name.localeCompare(b.name));
-  const root = $("#page-schedule");
   root.innerHTML = `
     <div class="page-hero"><div><div class="eyebrow">Official Season 2 Fixtures</div>
     <h1>Schedule / Results</h1><p class="muted">Every regular-season matchup follows the published spreadsheet. Weeks 4, 8 and 9 have no games or lineups.</p></div></div>
@@ -182,12 +197,36 @@ renderSchedule = async function () {
     });
     wireSeasonScores(target, renderSchedule);
   };
-  root.querySelector("#schedule-week").onchange = draw;
-  root.querySelector("#schedule-team").onchange = draw;
+  const reloadGames = async () => {
+    const request = ++filterRequest;
+    seasonSelectedWeek = root.querySelector("#schedule-week").value;
+    seasonSelectedTeam = root.querySelector("#schedule-team").value;
+    if (allGames) {
+      games = allGames;
+      draw();
+      return;
+    }
+    try {
+      const query = scheduleQuery();
+      const next = await api(query);
+      if (
+        request !== filterRequest ||
+        root.dataset.scheduleGeneration !== renderId
+      )
+        return;
+      if (query === "/api/flow/schedule") allGames = next;
+      games = next;
+      draw();
+    } catch (error) {
+      toast(error.message, true);
+    }
+  };
+  root.querySelector("#schedule-week").onchange = reloadGames;
+  root.querySelector("#schedule-team").onchange = reloadGames;
   root.querySelector("#schedule-clear").onclick = () => {
     root.querySelector("#schedule-week").value = "all";
     root.querySelector("#schedule-team").value = "all";
-    draw();
+    reloadGames();
   };
   draw();
 };

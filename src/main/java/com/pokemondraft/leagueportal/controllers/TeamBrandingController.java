@@ -47,7 +47,7 @@ public class TeamBrandingController {
       throw new ResponseStatusException(
           HttpStatus.FORBIDDEN, "Only coaches can customize their team");
     return teams
-        .findById(user.getTeamId())
+        .findMetadataById(user.getTeamId())
         .orElseThrow(
             () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Your team was not found"));
   }
@@ -59,11 +59,11 @@ public class TeamBrandingController {
     if (name.length() < 2 || name.length() > 40 || name.chars().anyMatch(Character::isISOControl))
       throw new ResponseStatusException(
           HttpStatus.BAD_REQUEST, "Team name must be 2-40 characters");
-    if (teams.findAll().stream()
-        .anyMatch(t -> !t.getId().equals(team.getId()) && t.getName().equalsIgnoreCase(name)))
+    if (teams.existsByNameIgnoreCaseAndIdNot(name, team.getId()))
       throw new ResponseStatusException(HttpStatus.CONFLICT, "Another team already uses that name");
     team.setName(name);
-    return teams.save(team);
+    teams.rename(team.getId(), name);
+    return team;
   }
 
   @PostMapping(value = "/me/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -107,7 +107,9 @@ public class TeamBrandingController {
     team.setLogoBase64(Base64.getEncoder().encodeToString(content));
     team.setLogoContentType(type);
     team.setLogoVersion(System.currentTimeMillis());
-    return teams.save(team);
+    teams.updateLogo(
+        team.getId(), team.getLogoBase64(), team.getLogoContentType(), team.getLogoVersion());
+    return team;
   }
 
   @DeleteMapping("/me/logo")
@@ -116,7 +118,8 @@ public class TeamBrandingController {
     team.setLogoBase64(null);
     team.setLogoContentType(null);
     team.setLogoVersion(System.currentTimeMillis());
-    return teams.save(team);
+    teams.updateLogo(team.getId(), null, null, team.getLogoVersion());
+    return team;
   }
 
   @GetMapping("/{id}/logo")

@@ -31,7 +31,9 @@ public class WeekLockService {
   @Transactional(readOnly = true)
   public Map<Integer, Boolean> statuses() {
     Map<Integer, Boolean> out = new LinkedHashMap<>();
-    for (int i = 1; i <= SeasonCalendar.FINAL_WEEK; i++) out.put(i, isLocked(i));
+    Map<Integer, Boolean> stored = new LinkedHashMap<>();
+    for (WeekLock row : locks.findAll()) stored.put(row.getWeek(), row.isLocked());
+    for (int i = 1; i <= SeasonCalendar.FINAL_WEEK; i++) out.put(i, stored.getOrDefault(i, false));
     return out;
   }
 

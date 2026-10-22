@@ -10,4 +10,9 @@ public interface RosterEntryRepository extends JpaRepository<RosterEntry, Long> 
   Optional<RosterEntry> findByPokemonId(Long pokemonId);
 
   long countByTeamId(Long teamId);
+
+  @org.springframework.data.jpa.repository.Query(
+      "select coalesce(sum(p.price), 0) from RosterEntry r, Pokemon p where r.pokemonId = p.id and"
+          + " r.teamId = :teamId")
+  long totalPriceByTeamId(Long teamId);
 }

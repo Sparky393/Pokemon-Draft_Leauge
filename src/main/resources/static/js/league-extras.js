@@ -3,6 +3,7 @@
   let noticeCache = [];
   let lastNoticeKeys = new Set();
   let notifiedOnce = false;
+  let checkingNotices = false;
 
   const sidebar = document.querySelector(".sidebar");
   if (!sidebar) return;
@@ -96,7 +97,8 @@
   }
 
   async function checkNotices() {
-    if (!state.user || document.hidden) return;
+    if (!state.user || document.hidden || checkingNotices) return;
+    checkingNotices = true;
     try {
       const next = await api("/api/notifications");
       if (!Array.isArray(next)) return;
@@ -119,6 +121,8 @@
     } catch (error) {
       // Notification polling should never interrupt drafting or lineups.
       console.warn("League notifications unavailable:", error.message);
+    } finally {
+      checkingNotices = false;
     }
   }
 
@@ -148,11 +152,11 @@
   });
 
   const render = renderDraft;
-  renderDraft = async function () {
-    await render();
+  renderDraft = async function (snapshot) {
+    const d = snapshot || (await api("/api/draft"));
+    await render(d);
     const root = document.querySelector("#page-draft");
     if (!root || !state.user) return;
-    const d = await api("/api/draft");
     const header = document.createElement("div");
     header.className = "card draft-budget-panel";
     if (d.settings.draftFinalized) {
@@ -217,5 +221,6 @@
     const board = root.querySelector(".live-draft-board");
     if (board) board.insertAdjacentElement("beforebegin", header);
     else root.insertAdjacentElement("afterbegin", header);
+    return d;
   };
 })();

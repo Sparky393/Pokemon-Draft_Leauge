@@ -67,9 +67,10 @@ public class LeagueNotificationController {
     List<Notice> out = new ArrayList<>();
 
     if (league.isDraftOpen() && !league.isDraftFinalized()) {
-      Team onClock = draft.currentTeam();
-      if (onClock != null && teamId.equals(onClock.getId())) {
-        long selection = picks.count() + 1;
+      long count = picks.count();
+      Long onClock = draft.currentTeamId(count, league);
+      if (teamId.equals(onClock)) {
+        long selection = count + 1;
         out.add(
             new Notice(
                 "draft:" + selection,
@@ -101,10 +102,21 @@ public class LeagueNotificationController {
                 "lineup"));
     }
 
-    for (FreeAgentBid bid : bids.findByTeamIdAndStatusOrderByCreatedAtDesc(teamId, BidStatus.WON)) {
+    List<FreeAgentBid> won = bids.findByTeamIdAndStatusOrderByCreatedAtDesc(teamId, BidStatus.WON);
+    Set<Long> ids =
+        won.stream()
+            .map(FreeAgentBid::getWantedPokemonId)
+            .collect(java.util.stream.Collectors.toSet());
+    Map<Long, String> names =
+        ids.isEmpty()
+            ? Map.of()
+            : pokemon.findNamesByIdIn(ids).stream()
+                .collect(
+                    java.util.stream.Collectors.toMap(
+                        PokemonRepository.Name::getId, PokemonRepository.Name::getName));
+    for (FreeAgentBid bid : won) {
       if (bid.getStatus() != BidStatus.WON) continue;
-      Pokemon p = pokemon.findById(bid.getWantedPokemonId()).orElse(null);
-      String name = p == null ? "your selected Pokémon" : p.getName();
+      String name = names.getOrDefault(bid.getWantedPokemonId(), "your selected Pokémon");
       out.add(
           new Notice(
               "faab:" + bid.getId(),

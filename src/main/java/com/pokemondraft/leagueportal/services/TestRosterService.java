@@ -174,7 +174,7 @@ public class TestRosterService {
         trades.count(),
         transactions.count(),
         submissions.count(),
-        matchups.findAll().stream().filter(Matchup::isPlayed).count(),
+        matchups.countByPlayedTrue(),
         weekLocks.count());
   }
 

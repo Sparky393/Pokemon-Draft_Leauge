@@ -70,7 +70,7 @@ async function enterApp() {
     ?.classList.toggle("hidden", state.user.role === "MANAGER");
   // Apply role-based navigation before allowing the app to become visible.
   $("#app").classList.remove("hidden");
-  await showPage("home");
+  await showPage("home", dash);
 }
 
 // Keep login errors alongside the fields instead of a vanishing toast.
@@ -119,7 +119,7 @@ $$("[data-page]").forEach((b) =>
   b.addEventListener("click", () => showPage(b.dataset.page)),
 );
 
-async function showPage(page) {
+async function showPage(page, initialDashboard) {
   if (page === "freeagency" && state.user?.role === "MANAGER") page = "manager";
   state.page = page;
   $$(".page").forEach((p) => p.classList.add("hidden"));
@@ -128,7 +128,7 @@ async function showPage(page) {
     b.classList.toggle("active", b.dataset.page === page),
   );
   try {
-    if (page === "home") await renderHome();
+    if (page === "home") await renderHome(initialDashboard);
     if (page === "draft") await renderDraft();
     if (page === "rosters") await renderRosters();
     if (page === "standings") await renderStandings();

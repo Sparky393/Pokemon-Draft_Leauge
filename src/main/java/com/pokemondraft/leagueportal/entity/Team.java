@@ -27,6 +27,8 @@ public class Team {
   @Column(columnDefinition = "text")
   private String logoBase64;
 
+  // Used only by read-only constructor projections; never persisted.
+  @Transient private boolean logoPresent;
   private String logoContentType;
   private Long logoVersion;
   // An immutable fixture-sheet identity: display names are editable by coaches.
@@ -39,6 +41,7 @@ public class Team {
 
   public void setLogoBase64(String value) {
     logoBase64 = value;
+    logoPresent = value != null;
   }
 
   public String getLogoContentType() {
@@ -66,7 +69,7 @@ public class Team {
   }
 
   public String getLogoUrl() {
-    return logoBase64 == null || id == null
+    return (!logoPresent && logoBase64 == null) || id == null
         ? null
         : "/api/teams/" + id + "/logo?v=" + (logoVersion == null ? 0 : logoVersion);
   }
@@ -78,6 +81,38 @@ public class Team {
     this.coachName = coachName;
     this.division = division;
     this.draftPosition = draftPosition;
+  }
+
+  /** Read-only metadata projection. Never pass this partial object to save(). */
+  public Team(
+      Long id,
+      String name,
+      String coachName,
+      String division,
+      int wins,
+      int losses,
+      int differential,
+      int faBudget,
+      int draftPosition,
+      int manualRank,
+      String logoContentType,
+      Long logoVersion,
+      Integer officialSlot,
+      boolean logoPresent) {
+    this.id = id;
+    this.name = name;
+    this.coachName = coachName;
+    this.division = division;
+    this.wins = wins;
+    this.losses = losses;
+    this.differential = differential;
+    this.faBudget = faBudget;
+    this.draftPosition = draftPosition;
+    this.manualRank = manualRank;
+    this.logoContentType = logoContentType;
+    this.logoVersion = logoVersion;
+    this.officialSlot = officialSlot;
+    this.logoPresent = logoPresent;
   }
 
   public Long getId() {
