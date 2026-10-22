@@ -34,7 +34,7 @@ public class CoachLoginMigrationService {
   @Transactional
   public void reconcile() {
     Map<Long, String> coachByTeam = new HashMap<>();
-    for (Team team : teams.findAll()) {
+    for (Team team : teams.findAllMetadata()) {
       if (team.getId() != null && team.getCoachName() != null && !team.getCoachName().isBlank())
         coachByTeam.put(team.getId(), team.getCoachName().trim());
     }

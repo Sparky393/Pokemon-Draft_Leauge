@@ -8,7 +8,6 @@ import com.pokemondraft.leagueportal.entity.*;
 import com.pokemondraft.leagueportal.repositories.TeamRepository;
 import com.pokemondraft.leagueportal.services.AuthService;
 import java.util.Base64;
-import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,8 +31,9 @@ class TeamBrandingControllerTest {
     setId(other, 2L);
     when(auth.current(session)).thenReturn(new AppUser("Bingus", "secret", Role.COACH, 1L));
     when(teams.findById(1L)).thenReturn(Optional.of(mine));
+    when(teams.findMetadataById(1L)).thenReturn(Optional.of(mine));
     when(teams.findById(2L)).thenReturn(Optional.of(other));
-    when(teams.findAll()).thenReturn(List.of(mine, other));
+    when(teams.existsByNameIgnoreCaseAndIdNot("wide right", 1L)).thenReturn(true);
     when(teams.save(any(Team.class))).thenAnswer(invocation -> invocation.getArgument(0));
   }
 
@@ -53,7 +53,7 @@ class TeamBrandingControllerTest {
         controller.rename(new TeamBrandingController.TeamNameRequest("  New Burn  "), session);
     assertEquals("New Burn", changed.getName());
     assertEquals("Wide Right", other.getName());
-    verify(teams).save(mine);
+    verify(teams).rename(1L, "New Burn");
   }
 
   @Test

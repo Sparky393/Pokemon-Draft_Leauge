@@ -39,16 +39,19 @@ public class DataInitializer {
       // draft order and team identities belong to the live database.
       // Do not reconcile, reprice, or reset them on code deployments.
       Map<String, Integer> basePrices = BasePrices.values();
-      if (pokemon.count() == 0) {
+      List<Pokemon> pool = new ArrayList<>(pokemon.findAll());
+      if (pool.isEmpty()) {
         for (String name : championsPool())
-          pokemon.save(new Pokemon(name, basePrices.getOrDefault(name, 0)));
+          pool.add(pokemon.save(new Pokemon(name, basePrices.getOrDefault(name, 0))));
       } else {
         // Existing league data is authoritative. On restart/deploy, only add
         // newly supported Pokemon; never overwrite commissioner prices, roster
         // state, or delete existing Pokemon from a live database.
+        Set<String> existingNames = new HashSet<>();
+        for (Pokemon p : pool) existingNames.add(p.getName());
         for (String name : championsPool())
-          if (pokemon.findByName(name).isEmpty())
-            pokemon.save(new Pokemon(name, basePrices.getOrDefault(name, 0)));
+          if (!existingNames.contains(name))
+            pool.add(pokemon.save(new Pokemon(name, basePrices.getOrDefault(name, 0))));
       }
       // League prices and current week are authoritative after initial setup.
       // Future features must use additive schema changes, never silently reset
@@ -57,7 +60,7 @@ public class DataInitializer {
       // the derived Pokemon.drafted flag; never rebuild or remove roster rows.
       Set<Long> rosteredPokemonIds = new HashSet<>();
       for (RosterEntry entry : roster.findAll()) rosteredPokemonIds.add(entry.getPokemonId());
-      for (Pokemon p : pokemon.findAll()) {
+      for (Pokemon p : pool) {
         boolean shouldBeDrafted = rosteredPokemonIds.contains(p.getId());
         if (p.isDrafted() != shouldBeDrafted) {
           p.setDrafted(shouldBeDrafted);

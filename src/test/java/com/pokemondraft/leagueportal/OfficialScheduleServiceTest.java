@@ -33,6 +33,7 @@ class OfficialScheduleServiceTest {
       teamRows.add(team);
     }
     when(teams.findAll()).thenAnswer(inv -> new ArrayList<>(teamRows));
+    when(teams.findAllMetadata()).thenAnswer(inv -> new ArrayList<>(teamRows));
     when(teams.findByDivision("A"))
         .thenAnswer(
             inv ->

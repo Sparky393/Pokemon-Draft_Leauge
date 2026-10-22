@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -29,7 +31,7 @@ public class ApiController {
   private final FreeAgentBidRepository bids;
   private final FreeAgencyService freeAgency;
   private final WeeklyLineupService lineupService;
-  private final TransactionRecordRepository transactions;
+  private final TransactionHistoryService history;
 
   public ApiController(
       AuthService auth,
@@ -45,7 +47,7 @@ public class ApiController {
       FreeAgentBidRepository bids,
       FreeAgencyService freeAgency,
       WeeklyLineupService lineupService,
-      TransactionRecordRepository transactions) {
+      TransactionHistoryService history) {
     this.auth = auth;
     this.teams = teams;
     this.pokemon = pokemon;
@@ -59,7 +61,7 @@ public class ApiController {
     this.bids = bids;
     this.freeAgency = freeAgency;
     this.lineupService = lineupService;
-    this.transactions = transactions;
+    this.history = history;
   }
 
   @GetMapping("/dashboard")
@@ -69,16 +71,17 @@ public class ApiController {
     Map<String, Object> out = new LinkedHashMap<>();
     out.put("user", LeagueMapper.user(u));
     out.put("settings", settingsMap(s));
-    out.put("teams", teams.findAll());
+    List<Team> teamList = teams.findAllMetadata();
+    out.put("teams", teamList);
     if (u.getTeamId() != null) out.put("myRoster", rosterView(u.getTeamId()));
-    out.put("currentDraftTeam", draft.currentTeam());
+    out.put("currentDraftTeam", draft.currentTeam(teamList, picks.count(), s));
     return out;
   }
 
   @GetMapping("/teams")
   public List<Team> teams(HttpSession session) {
     auth.current(session);
-    return teams.findAll().stream()
+    return teams.findAllMetadata().stream()
         .sorted(Comparator.comparing(Team::getDivision).thenComparingInt(Team::getDraftPosition))
         .toList();
   }
@@ -112,7 +115,7 @@ public class ApiController {
       if (r.draftPosition() < 1 || r.draftPosition() > 16)
         throw new ResponseStatusException(
             HttpStatus.BAD_REQUEST, "Draft position must be from 1 to 16.");
-      if (teams.findAll().stream()
+      if (teams.findAllMetadata().stream()
           .anyMatch(
               other -> !other.getId().equals(id) && other.getDraftPosition() == r.draftPosition()))
         throw new ResponseStatusException(
@@ -158,9 +161,10 @@ public class ApiController {
   @GetMapping("/rosters")
   public List<TeamRosterDto> rosters(HttpSession session) {
     auth.current(session);
-    return teams.findAll().stream()
+    Map<Long, List<RosterPokemonDto>> members = rosterViews(roster.findAll());
+    return teams.findAllMetadata().stream()
         .sorted(Comparator.comparing(Team::getName))
-        .map(t -> new TeamRosterDto(t, rosterView(t.getId())))
+        .map(t -> new TeamRosterDto(t, members.getOrDefault(t.getId(), List.of())))
         .toList();
   }
 
@@ -171,29 +175,89 @@ public class ApiController {
   }
 
   @GetMapping("/draft")
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public Map<String, Object> draftState(HttpSession session) {
     auth.current(session);
+    LeagueSettings league = settings();
+    List<Team> teamRows = teams.findAllMetadata();
+    List<DraftPick> pickRows = picks.findAllByOrderByOverallPickAsc();
+    Map<Long, String> names =
+        teamRows.stream().collect(Collectors.toMap(Team::getId, Team::getName));
     Map<String, Object> m = new LinkedHashMap<>();
-    m.put("currentTeam", draft.currentTeam());
-    m.put("picks", pickViews());
+    m.put("currentTeam", draft.currentTeam(teamRows, pickRows.size(), league));
+    m.put("picks", pickViews(pickRows, names));
+    Long lastPickId = pickRows.stream().map(DraftPick::getId).max(Long::compareTo).orElse(null);
+    m.put("lastPickId", lastPickId);
+    Map<Long, Integer> order =
+        teamRows.stream().collect(Collectors.toMap(Team::getId, Team::getDraftPosition));
+    m.put(
+        "idleRevision",
+        draftRevision(
+            pickRows.size(),
+            lastPickId,
+            league.isDraftOpen(),
+            league.isDraftFinalized(),
+            league.isSnakeDraft(),
+            order));
     m.put("available", pokemon.findByDraftedFalseOrderByNameAsc());
-    m.put("settings", settingsMap(settings()));
+    m.put("settings", settingsMap(league));
     return m;
   }
 
   /** Lightweight live status; avoids transferring the entire Pokémon pool on polls. */
   @GetMapping("/draft/status")
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public Map<String, Object> draftStatus(HttpSession session) {
     auth.current(session);
-    LeagueSettings league = settings();
-    Team current = draft.currentTeam();
+    LeagueSettingsRepository.DraftFlags league = settingsRepo.findDraftFlagsById(1L).orElseThrow();
+    DraftPickRepository.Status status = picks.status();
+    long count = status.getPickCount();
+    Long currentId = draft.currentTeamId(count, league.isSnakeDraft());
     Map<String, Object> result = new LinkedHashMap<>();
-    result.put("pickCount", picks.count());
-    result.put("currentTeamId", current == null ? null : current.getId());
+    result.put("pickCount", count);
+    result.put("lastPickId", status.getLastPickId());
+    result.put("currentTeamId", currentId);
     result.put("draftOpen", league.isDraftOpen());
     result.put("draftFinalized", league.isDraftFinalized());
     result.put("snakeDraft", league.isSnakeDraft());
     return result;
+  }
+
+  /**
+   * A closed room only needs a tiny change detector to notice reopening/undo. Keep the same
+   * five-second responsiveness without loading live draft state.
+   */
+  @GetMapping("/draft/idle-status")
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public Map<String, String> idleDraftStatus(HttpSession session) {
+    auth.current(session);
+    var status = settingsRepo.idleStatus().orElseThrow();
+    Map<Long, Integer> order = new HashMap<>();
+    // Order can only be edited before the first pick. Include it in the revision
+    // so a coach's paused board also notices commissioner order edits.
+    if (status.getPickCount() == 0)
+      for (TeamRepository.DraftOrder team : teams.findAllProjectedByOrderByDraftPositionAsc())
+        order.put(team.getId(), team.getDraftPosition());
+    return Map.of(
+        "revision",
+        draftRevision(
+            status.getPickCount(),
+            status.getLastPickId(),
+            status.isDraftOpen(),
+            status.isDraftFinalized(),
+            status.isSnakeDraft(),
+            order));
+  }
+
+  private String draftRevision(
+      long count,
+      Long lastId,
+      boolean open,
+      boolean finalized,
+      boolean snake,
+      Map<Long, Integer> order) {
+    String positions = count == 0 ? new TreeMap<>(order).toString() : "";
+    return count + ":" + lastId + ":" + open + ":" + finalized + ":" + snake + ":" + positions;
   }
 
   public record PickRequest(Long pokemonId) {}
@@ -220,11 +284,12 @@ public class ApiController {
   @GetMapping("/standings")
   public Map<String, Object> standings(HttpSession session) {
     auth.current(session);
+    Map<String, List<Team>> divisions = schedule.standings();
     return Map.of(
         "A",
-        schedule.standings("A"),
+        divisions.get("A"),
         "B",
-        schedule.standings("B"),
+        divisions.get("B"),
         "seedModeEnabled",
         settings().isPlayoffSeedModeEnabled());
   }
@@ -233,8 +298,7 @@ public class ApiController {
   public List<MatchupDto> schedule(HttpSession session) {
     auth.current(session);
     Map<Long, String> names = teamNames();
-    return matchups.findAllByOrderByWeekAscIdAsc().stream()
-        .filter(m -> m.getWeek() >= 1)
+    return matchups.findPublished(null, null).stream()
         .map(m -> LeagueMapper.matchup(m, names))
         .toList();
   }
@@ -308,7 +372,16 @@ public class ApiController {
     if (!reveal)
       throw new ResponseStatusException(
           HttpStatus.FORBIDDEN, "Lineups stay hidden until the deadline");
-    return submissions.findByWeek(week).stream().map(this::submissionView).toList();
+    List<WeeklySubmission> rows = submissions.findByWeek(week);
+    Set<Long> ids =
+        rows.stream()
+            .flatMap(row -> Arrays.stream(row.getPokemonIdsCsv().split(",")))
+            .filter(x -> !x.isBlank())
+            .map(Long::valueOf)
+            .collect(Collectors.toSet());
+    Map<Long, String> names = pokemonNames(ids);
+    Map<Long, String> teamNames = teamNames();
+    return rows.stream().map(row -> submissionView(row, names, teamNames)).toList();
   }
 
   public record BidRequest(Long wantedPokemonId, Long dropPokemonId, int amount) {}
@@ -339,8 +412,13 @@ public class ApiController {
         u.getRole() == Role.MANAGER
             ? bids.findAll()
             : bids.findByTeamIdOrderByCreatedAtDesc(u.getTeamId());
-    Map<Long, String> names =
-        pokemon.findAll().stream().collect(Collectors.toMap(Pokemon::getId, Pokemon::getName));
+    Set<Long> ids = new HashSet<>();
+    for (FreeAgentBid bid : visible) {
+      ids.add(bid.getWantedPokemonId());
+      ids.add(bid.getDropPokemonId());
+    }
+    ids.remove(null);
+    Map<Long, String> names = pokemonNames(ids);
     return visible.stream()
         .map(
             b -> {
@@ -366,9 +444,9 @@ public class ApiController {
   }
 
   @GetMapping("/transactions")
-  public List<TransactionRecord> transactions(HttpSession session) {
+  public List<TransactionHistoryService.Entry> transactions(HttpSession session) {
     auth.current(session);
-    return transactions.findAllByOrderByCreatedAtDesc();
+    return history.history();
   }
 
   @GetMapping("/settings")
@@ -435,37 +513,53 @@ public class ApiController {
     m.put("lineupDeadline", s.getLineupDeadline());
     m.put("playoffSeedModeEnabled", s.isPlayoffSeedModeEnabled());
     m.put("waiverProcessed", s.isWaiverProcessed());
-    m.put("waiverWindowOpen", freeAgency.isWaiverWindowOpen());
-    m.put("waiverClosedReason", freeAgency.waiverClosedReason());
-    m.put("waiverPeriodsProcessed", freeAgency.waiverPeriodsProcessed());
+    FreeAgencyService.WaiverStatus waiver = freeAgency.waiverStatus(s);
+    m.put("waiverWindowOpen", waiver.open());
+    m.put("waiverClosedReason", waiver.reason());
+    m.put("waiverPeriodsProcessed", waiver.processed());
     return m;
   }
 
   private Map<Long, String> teamNames() {
-    return teams.findAll().stream().collect(Collectors.toMap(Team::getId, Team::getName));
+    return teams.findAllProjectedBy().stream()
+        .collect(Collectors.toMap(TeamRepository.Name::getId, TeamRepository.Name::getName));
   }
 
   private List<RosterPokemonDto> rosterView(Long teamId) {
-    Map<Long, Pokemon> p =
-        pokemon.findAll().stream().collect(Collectors.toMap(Pokemon::getId, x -> x));
-    return roster.findByTeamId(teamId).stream()
-        .map(e -> LeagueMapper.rosterPokemon(e, p.get(e.getPokemonId())))
-        .sorted(Comparator.comparing(RosterPokemonDto::name))
-        .toList();
+    return rosterViews(roster.findByTeamId(teamId)).getOrDefault(teamId, List.of());
   }
 
-  private List<DraftPickDto> pickViews() {
-    Map<Long, String> tn = teamNames();
-    Map<Long, String> pn =
-        pokemon.findAll().stream().collect(Collectors.toMap(Pokemon::getId, Pokemon::getName));
-    return picks.findAllByOrderByOverallPickAsc().stream()
-        .map(p -> LeagueMapper.draftPick(p, tn, pn))
-        .toList();
+  private Map<Long, List<RosterPokemonDto>> rosterViews(List<RosterEntry> entries) {
+    Set<Long> ids = entries.stream().map(RosterEntry::getPokemonId).collect(Collectors.toSet());
+    Map<Long, Pokemon> mons =
+        ids.isEmpty()
+            ? Map.of()
+            : pokemon.findAllById(ids).stream().collect(Collectors.toMap(Pokemon::getId, x -> x));
+    Map<Long, List<RosterPokemonDto>> grouped = new HashMap<>();
+    for (RosterEntry e : entries)
+      grouped
+          .computeIfAbsent(e.getTeamId(), k -> new ArrayList<>())
+          .add(LeagueMapper.rosterPokemon(e, mons.get(e.getPokemonId())));
+    grouped.values().forEach(list -> list.sort(Comparator.comparing(RosterPokemonDto::name)));
+    return grouped;
   }
 
-  private Map<String, Object> submissionView(WeeklySubmission s) {
+  private Map<Long, String> pokemonNames(Collection<Long> ids) {
+    return ids.isEmpty()
+        ? Map.of()
+        : pokemon.findNamesByIdIn(ids).stream()
+            .collect(
+                Collectors.toMap(PokemonRepository.Name::getId, PokemonRepository.Name::getName));
+  }
+
+  private List<DraftPickDto> pickViews(List<DraftPick> rows, Map<Long, String> tn) {
     Map<Long, String> pn =
-        pokemon.findAll().stream().collect(Collectors.toMap(Pokemon::getId, Pokemon::getName));
+        pokemonNames(rows.stream().map(DraftPick::getPokemonId).collect(Collectors.toSet()));
+    return rows.stream().map(p -> LeagueMapper.draftPick(p, tn, pn)).toList();
+  }
+
+  private Map<String, Object> submissionView(
+      WeeklySubmission s, Map<Long, String> pn, Map<Long, String> teamNames) {
     List<String> names =
         Arrays.stream(s.getPokemonIdsCsv().split(","))
             .filter(x -> !x.isBlank())
@@ -474,7 +568,7 @@ public class ApiController {
             .toList();
     Map<String, Object> m = new LinkedHashMap<>();
     m.put("teamId", s.getTeamId());
-    m.put("teamName", teams.findById(s.getTeamId()).map(Team::getName).orElse("Unknown"));
+    m.put("teamName", teamNames.getOrDefault(s.getTeamId(), "Unknown"));
     m.put("week", s.getWeek());
     m.put("pokemon", names);
     m.put("submittedAt", s.getSubmittedAt());

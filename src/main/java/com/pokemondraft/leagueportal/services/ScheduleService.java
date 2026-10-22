@@ -238,10 +238,12 @@ public class ScheduleService {
 
   /** Only completed, correctly scheduled regular-season games qualify teams for playoffs. */
   public boolean isRegularSeasonComplete() {
+    return isRegularSeasonComplete(matchups.findAll());
+  }
+
+  private boolean isRegularSeasonComplete(List<Matchup> all) {
     List<Matchup> scheduled =
-        matchups.findAll().stream()
-            .filter(m -> SeasonCalendar.isRegularGameWeek(m.getWeek()))
-            .toList();
+        all.stream().filter(m -> SeasonCalendar.isRegularGameWeek(m.getWeek())).toList();
     return scheduled.size() == SeasonCalendar.fixtureCount()
         && scheduled.stream()
             .allMatch(m -> m.isPlayed() && m.getHomeScore() != null && m.getAwayScore() != null);
@@ -256,16 +258,16 @@ public class ScheduleService {
       String placeholderHome,
       String placeholderAway) {}
 
-  private Matchup existingPlayoffMatch(BracketSlot slot) {
+  private Matchup existingPlayoffMatch(BracketSlot slot, List<Matchup> all) {
     if (slot.home() == null || slot.away() == null) return null;
-    return matchups.findAll().stream()
+    return all.stream()
         .filter(m -> m.getWeek() == slot.week() && sameTeams(m, slot.home(), slot.away()))
         .findFirst()
         .orElse(null);
   }
 
-  private Long winnerOf(BracketSlot slot) {
-    Matchup m = existingPlayoffMatch(slot);
+  private Long winnerOf(BracketSlot slot, List<Matchup> all) {
+    Matchup m = existingPlayoffMatch(slot, all);
     if (m == null
         || !m.isPlayed()
         || m.getHomeScore() == null
@@ -274,9 +276,10 @@ public class ScheduleService {
     return m.getHomeScore() > m.getAwayScore() ? m.getHomeTeamId() : m.getAwayTeamId();
   }
 
-  private List<BracketSlot> bracketSlots() {
-    boolean ready = isRegularSeasonComplete();
-    List<Team> a = standings("A"), b = standings("B");
+  private List<BracketSlot> bracketSlots(List<Team> teamRows, List<Matchup> all) {
+    boolean ready = isRegularSeasonComplete(all);
+    Map<String, Integer> h2h = headToHead(all);
+    List<Team> a = standings("A", teamRows, h2h), b = standings("B", teamRows, h2h);
     List<BracketSlot> result = new ArrayList<>();
     // Kanto uses 1v3 and 2v4. Johto uses 1v4 and 2v3.
     result.add(
@@ -316,13 +319,13 @@ public class ScheduleService {
             "2 seed",
             "3 seed"));
 
-    BracketSlot kSemi = semifinal(result.get(0), result.get(1), a, "Kanto");
-    BracketSlot jSemi = semifinal(result.get(2), result.get(3), b, "Johto");
+    BracketSlot kSemi = semifinal(result.get(0), result.get(1), a, "Kanto", all);
+    BracketSlot jSemi = semifinal(result.get(2), result.get(3), b, "Johto", all);
     result.add(kSemi);
     result.add(jSemi);
 
-    Long kWinner = winnerOf(kSemi);
-    Long jWinner = winnerOf(jSemi);
+    Long kWinner = winnerOf(kSemi, all);
+    Long jWinner = winnerOf(jSemi, all);
     result.add(
         new BracketSlot(
             16, "Championship", "Final", kWinner, jWinner, "Kanto champion", "Johto champion"));
@@ -330,8 +333,8 @@ public class ScheduleService {
   }
 
   private BracketSlot semifinal(
-      BracketSlot first, BracketSlot second, List<Team> seeds, String division) {
-    Long left = winnerOf(first), right = winnerOf(second);
+      BracketSlot first, BracketSlot second, List<Team> seeds, String division, List<Matchup> all) {
+    Long left = winnerOf(first, all), right = winnerOf(second, all);
     if (left == null || right == null)
       return new BracketSlot(
           15, division, "Semifinal", null, null, "Higher remaining seed", "Lower remaining seed");
@@ -352,13 +355,18 @@ public class ScheduleService {
    */
   @Transactional
   public void syncPlayoffs() {
-    List<BracketSlot> slots = bracketSlots();
+    syncPlayoffs(teams.findAllMetadata(), new ArrayList<>(matchups.findAll()));
+  }
+
+  private void syncPlayoffs(List<Team> teamRows, List<Matchup> all) {
+    List<BracketSlot> slots = bracketSlots(teamRows, all);
     Set<Long> retain = new HashSet<>();
     for (BracketSlot slot : slots) {
       if (slot.home() == null || slot.away() == null) continue;
-      Matchup game = existingPlayoffMatch(slot);
+      Matchup game = existingPlayoffMatch(slot, all);
       if (game == null) {
         game = matchups.save(new Matchup(slot.week(), slot.home(), slot.away()));
+        all.add(game);
       } else if (!slot.home().equals(game.getHomeTeamId())) {
         Integer priorHome = game.getHomeScore();
         game.setHomeScore(game.getAwayScore());
@@ -369,25 +377,30 @@ public class ScheduleService {
       }
       retain.add(game.getId());
     }
-    for (Matchup game : matchups.findAll()) {
+    for (Matchup game : new ArrayList<>(all)) {
       if (SeasonCalendar.isPlayoffWeek(game.getWeek()) && !retain.contains(game.getId())) {
         if (game.isPlayed()) {
           game.setWeek(0);
           matchups.save(game);
-        } else matchups.delete(game);
+        } else {
+          matchups.delete(game);
+          all.remove(game);
+        }
       }
     }
   }
 
   @Transactional
   public Map<String, Object> playoffBracket() {
-    syncPlayoffs();
-    boolean ready = isRegularSeasonComplete();
+    List<Team> teamRows = teams.findAllMetadata();
+    List<Matchup> all = new ArrayList<>(matchups.findAll());
+    syncPlayoffs(teamRows, all);
+    boolean ready = isRegularSeasonComplete(all);
     Map<Long, String> names = new HashMap<>();
-    for (Team t : teams.findAll()) names.put(t.getId(), t.getName());
+    for (Team t : teamRows) names.put(t.getId(), t.getName());
     List<Map<String, Object>> games = new ArrayList<>();
-    for (BracketSlot slot : bracketSlots()) {
-      Matchup game = existingPlayoffMatch(slot);
+    for (BracketSlot slot : bracketSlots(teamRows, all)) {
+      Matchup game = existingPlayoffMatch(slot, all);
       Map<String, Object> row = new LinkedHashMap<>();
       row.put("week", slot.week());
       row.put("division", slot.division());
@@ -402,7 +415,7 @@ public class ScheduleService {
       games.add(row);
     }
     long remaining =
-        matchups.findAll().stream()
+        all.stream()
             .filter(m -> SeasonCalendar.isRegularGameWeek(m.getWeek()) && !m.isPlayed())
             .count();
     Map<String, Object> result = new LinkedHashMap<>();
@@ -413,8 +426,19 @@ public class ScheduleService {
   }
 
   public List<Team> standings(String division) {
-    List<Team> list = teams.findByDivision(division);
-    Map<String, Integer> h2h = headToHead();
+    return standings(
+        division, teams.findMetadataByDivision(division), headToHead(matchups.findAll()));
+  }
+
+  public Map<String, List<Team>> standings() {
+    List<Team> teamRows = teams.findAllMetadata();
+    Map<String, Integer> h2h = headToHead(matchups.findAll());
+    return Map.of("A", standings("A", teamRows, h2h), "B", standings("B", teamRows, h2h));
+  }
+
+  private List<Team> standings(String division, List<Team> teamRows, Map<String, Integer> h2h) {
+    List<Team> list =
+        new ArrayList<>(teamRows.stream().filter(t -> division.equals(t.getDivision())).toList());
     list.sort(
         (x, y) -> {
           if (x.getManualRank() > 0 || y.getManualRank() > 0) {
@@ -432,9 +456,9 @@ public class ScheduleService {
     return list;
   }
 
-  private Map<String, Integer> headToHead() {
+  private Map<String, Integer> headToHead(List<Matchup> all) {
     Map<String, Integer> h = new HashMap<>();
-    for (Matchup m : matchups.findAll()) {
+    for (Matchup m : all) {
       if (m.getWeek() < 1
           || m.getWeek() > SeasonCalendar.REGULAR_SEASON_END
           || !SeasonCalendar.isRegularGameWeek(m.getWeek())

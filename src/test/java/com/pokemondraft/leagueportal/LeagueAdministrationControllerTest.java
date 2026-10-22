@@ -22,6 +22,8 @@ class LeagueAdministrationControllerTest {
 
   @Test
   void resetRequiresPasswordAndManager() {
+    org.springframework.test.util.ReflectionTestUtils.setField(
+        controller, "resetPassword", "configured-secret");
     assertEquals(
         HttpStatus.FORBIDDEN,
         assertThrows(
@@ -31,7 +33,7 @@ class LeagueAdministrationControllerTest {
                         new LeagueAdministrationController.ResetRequest("wrong"), session))
             .getStatusCode());
     verify(resets, never()).resetLeague();
-    controller.reset(new LeagueAdministrationController.ResetRequest("password"), session);
+    controller.reset(new LeagueAdministrationController.ResetRequest("configured-secret"), session);
     verify(resets).resetLeague();
     verify(auth, times(2)).manager(session);
   }

@@ -30,19 +30,39 @@ public class DraftService {
   }
 
   public Team currentTeam() {
-    List<Team> order = teams.findAll();
+    List<Team> order = teams.findAllMetadata();
+    return currentTeam(order, picks.count(), settings.findById(1L).orElseGet(LeagueSettings::new));
+  }
+
+  public Team currentTeam(List<Team> order, long count, LeagueSettings league) {
+    order = new ArrayList<>(order);
     order.sort(Comparator.comparingInt(Team::getDraftPosition));
-    if (order.size() != 16)
+    requireTeams(order.size());
+    if (count >= 160) return null;
+    return order.get(currentSlot(count, league.isSnakeDraft()));
+  }
+
+  /** Polls fetch only IDs and positions, never full teams or logo text. */
+  public Long currentTeamId(long count, LeagueSettings league) {
+    return currentTeamId(count, league.isSnakeDraft());
+  }
+
+  public Long currentTeamId(long count, boolean snake) {
+    List<TeamRepository.DraftOrder> order = teams.findAllProjectedByOrderByDraftPositionAsc();
+    requireTeams(order.size());
+    return count >= 160 ? null : order.get(currentSlot(count, snake)).getId();
+  }
+
+  private int currentSlot(long count, boolean snake) {
+    int round = (int) (count / 16), slot = (int) (count % 16);
+    return snake && round % 2 == 1 ? 15 - slot : slot;
+  }
+
+  private void requireTeams(int count) {
+    if (count != 16)
       throw new ResponseStatusException(
           HttpStatus.BAD_REQUEST,
           "The draft cannot start until the commissioner has configured all 16 teams.");
-    long count = picks.count();
-    if (count >= 160) return null;
-    int round = (int) (count / 16);
-    int slot = (int) (count % 16);
-    boolean snake = settings.findById(1L).orElseGet(LeagueSettings::new).isSnakeDraft();
-    if (snake && round % 2 == 1) slot = 15 - slot;
-    return order.get(slot);
   }
 
   @Transactional
@@ -60,7 +80,8 @@ public class DraftService {
       throw new ResponseStatusException(
           HttpStatus.BAD_REQUEST,
           "The commissioner has closed the draft. You cannot make picks right now.");
-    Team current = currentTeam();
+    long pickCount = picks.count();
+    Team current = currentTeam(teams.findAllMetadata(), pickCount, s);
     if (current == null)
       throw new ResponseStatusException(
           HttpStatus.BAD_REQUEST,
@@ -89,9 +110,7 @@ public class DraftService {
       throw new ResponseStatusException(
           HttpStatus.BAD_REQUEST,
           current.getName() + " already has 10 Pokémon and cannot draft another.");
-    int currentValue = 0;
-    for (RosterEntry entry : roster.findByTeamId(current.getId()))
-      currentValue += pokemon.findById(entry.getPokemonId()).map(Pokemon::getPrice).orElse(0);
+    int currentValue = Math.toIntExact(roster.totalPriceByTeamId(current.getId()));
     int newTotal = currentValue + p.getPrice();
     if (newTotal > 100)
       throw new ResponseStatusException(
@@ -107,7 +126,7 @@ public class DraftService {
               + " (this pick would make the roster $"
               + newTotal
               + ").");
-    int overall = (int) picks.count() + 1;
+    int overall = (int) pickCount + 1;
     int round = (overall - 1) / 16 + 1;
     p.setDrafted(true);
     pokemon.save(p);
@@ -125,11 +144,22 @@ public class DraftService {
       throw new ResponseStatusException(
           HttpStatus.CONFLICT,
           "The draft needs all 160 picks before it can be finalized (" + picks.count() + "/160).");
-    for (Team t : teams.findAll()) {
-      List<RosterEntry> members = roster.findByTeamId(t.getId());
+    List<RosterEntry> entries = roster.findAll();
+    Set<Long> ids = new HashSet<>();
+    for (RosterEntry e : entries) ids.add(e.getPokemonId());
+    Map<Long, Pokemon> mons = new HashMap<>();
+    if (!ids.isEmpty()) for (Pokemon p : pokemon.findAllById(ids)) mons.put(p.getId(), p);
+    Map<Long, List<RosterEntry>> byTeam = new HashMap<>();
+    for (RosterEntry e : entries)
+      byTeam.computeIfAbsent(e.getTeamId(), k -> new ArrayList<>()).add(e);
+    for (Team t : teams.findAllMetadata()) {
+      List<RosterEntry> members = byTeam.getOrDefault(t.getId(), List.of());
       int value = 0;
-      for (RosterEntry e : members)
-        value += pokemon.findById(e.getPokemonId()).orElseThrow().getPrice();
+      for (RosterEntry e : members) {
+        Pokemon p = mons.get(e.getPokemonId());
+        if (p == null) throw new NoSuchElementException();
+        value += p.getPrice();
+      }
       if (members.size() != 10 || value > 100)
         throw new ResponseStatusException(
             HttpStatus.CONFLICT,
@@ -155,9 +185,8 @@ public class DraftService {
     if (league.isDraftFinalized())
       throw new ResponseStatusException(
           HttpStatus.CONFLICT, "The official draft has been finalized. Undo is disabled.");
-    List<DraftPick> all = picks.findAllByOrderByOverallPickAsc();
-    if (all.isEmpty()) return;
-    DraftPick last = all.get(all.size() - 1);
+    DraftPick last = picks.findFirstByOrderByOverallPickDesc().orElse(null);
+    if (last == null) return;
     roster.findByPokemonId(last.getPokemonId()).ifPresent(roster::delete);
     pokemon
         .findById(last.getPokemonId())

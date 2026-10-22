@@ -78,56 +78,54 @@ public class FreeAgencyService {
     return (int) transactions.countByType("WAIVER_PERIOD_PROCESSED");
   }
 
-  public boolean isWaiverWindowOpen() {
-    LeagueSettings s = settings.findById(1L).orElseGet(LeagueSettings::new);
-    if (s.isWaiverProcessed() || s.getCurrentWeek() != 4 || waiverPeriodsProcessed() >= 2)
-      return false;
-    List<Matchup> third = matchups.findByWeekOrderByIdAsc(3);
-    return third.size() == 8 && third.stream().allMatch(Matchup::isPlayed) && biddingTimeOpen();
-  }
+  public record WaiverStatus(boolean open, String reason, int processed) {}
 
-  /** Specific eligibility reason shown to coaches and used for bid errors. */
-  public String waiverClosedReason() {
-    LeagueSettings league = settings.findById(1L).orElseGet(LeagueSettings::new);
+  /** One fresh snapshot for API settings; no cross-request cache or stale bids. */
+  public WaiverStatus waiverStatus(LeagueSettings league) {
+    int processed = waiverPeriodsProcessed();
+    String reason;
     int week = league.getCurrentWeek();
     if (week < 4)
-      return "Free agency opens in Week 4. The commissioner has the league set to Week "
-          + week
-          + ".";
-    if (week > 4)
-      return "Free agency is only available in Week 4. The league is currently in Week "
-          + week
-          + ".";
-    if (league.isWaiverProcessed() || waiverPeriodsProcessed() >= 2)
-      return "Both Week 4 waiver periods have already been processed. Free agency is closed.";
-    List<Matchup> third = matchups.findByWeekOrderByIdAsc(3);
-    long completed = third.stream().filter(Matchup::isPlayed).count();
-    if (third.size() != 8 || completed != 8)
-      return "All 8 Week 3 game results must be recorded before Week 4 free agency opens ("
-          + completed
-          + "/8 complete).";
-    if (!biddingTimeOpen()) {
-      int period = waiverPeriodsProcessed();
-      LocalDateTime now = LocalDateTime.now(clock.withZone(EASTERN));
-      if (period >= 2) return "Both waiver periods have ended.";
-      return "FAAB Period "
-          + (period + 1)
-          + " accepts bids only from "
-          + OPENS[period]
-          + " through before "
-          + CLOSES[period]
-          + " Eastern (7:00 PM cutoff). Current Eastern time: "
-          + now
-          + ".";
+      reason =
+          "Free agency opens in Week 4. The commissioner has the league set to Week " + week + ".";
+    else if (week > 4)
+      reason =
+          "Free agency is only available in Week 4. The league is currently in Week " + week + ".";
+    else if (league.isWaiverProcessed() || processed >= 2)
+      reason = "Both Week 4 waiver periods have already been processed. Free agency is closed.";
+    else {
+      List<Matchup> third = matchups.findByWeekOrderByIdAsc(3);
+      long completed = third.stream().filter(Matchup::isPlayed).count();
+      if (third.size() != 8 || completed != 8)
+        reason =
+            "All 8 Week 3 game results must be recorded before Week 4 free agency opens ("
+                + completed
+                + "/8 complete).";
+      else {
+        LocalDateTime now = LocalDateTime.now(clock.withZone(EASTERN));
+        reason =
+            !now.isBefore(OPENS[processed]) && now.isBefore(CLOSES[processed])
+                ? null
+                : "FAAB Period "
+                    + (processed + 1)
+                    + " accepts bids only from "
+                    + OPENS[processed]
+                    + " through before "
+                    + CLOSES[processed]
+                    + " Eastern (7:00 PM cutoff). Current Eastern time: "
+                    + now
+                    + ".";
+      }
     }
-    return null;
+    return new WaiverStatus(reason == null, reason, processed);
   }
 
-  private boolean biddingTimeOpen() {
-    int period = waiverPeriodsProcessed();
-    if (period >= 2) return false;
-    LocalDateTime now = LocalDateTime.now(clock.withZone(EASTERN));
-    return !now.isBefore(OPENS[period]) && now.isBefore(CLOSES[period]);
+  public boolean isWaiverWindowOpen() {
+    return waiverStatus(settings.findById(1L).orElseGet(LeagueSettings::new)).open();
+  }
+
+  public String waiverClosedReason() {
+    return waiverStatus(settings.findById(1L).orElseGet(LeagueSettings::new)).reason();
   }
 
   private void requireWindow() {
@@ -145,9 +143,7 @@ public class FreeAgencyService {
     if (amount <= 0 || amount > 3 || amount > t.getFaBudget())
       throw bad("Enter a whole-dollar bid between $1 and $" + Math.min(3, t.getFaBudget()) + ".");
     List<FreeAgentBid> pending =
-        bids.findByStatus(BidStatus.PENDING).stream()
-            .filter(b -> b.getTeamId().equals(teamId))
-            .toList();
+        bids.findByTeamIdAndStatusOrderByCreatedAtDesc(teamId, BidStatus.PENDING);
     if (pending.size() >= 3)
       throw bad("You already have 3 pending FAAB bids, the maximum allowed.");
     int reserved = pending.stream().mapToInt(FreeAgentBid::getAmount).sum();
@@ -537,7 +533,7 @@ public class FreeAgencyService {
   }
 
   private void cancelImpossibleTradesExcept(Set<Long> moved, Long acceptedId) {
-    for (TradeOffer t : trades.findAll()) {
+    for (TradeOffer t : trades.findByStatus(TradeStatus.PENDING)) {
       if (t.getStatus() != TradeStatus.PENDING || Objects.equals(t.getId(), acceptedId)) continue;
       boolean conflict =
           t.getOfferedPokemonIds().stream().anyMatch(moved::contains)
@@ -562,23 +558,22 @@ public class FreeAgencyService {
   }
 
   private int value(List<Long> ids) {
-    int v = 0;
-    for (Long id : ids) v += pokemon.findById(id).map(Pokemon::getPrice).orElse(0);
-    return v;
+    return ids.isEmpty() ? 0 : Math.toIntExact(pokemon.totalPriceByIdIn(ids));
   }
 
   private String describe(List<Long> ids, int faab) {
     List<String> parts = new ArrayList<>();
-    for (Long id : ids) parts.add(pokemon.findById(id).map(Pokemon::getName).orElse("Pokemon"));
+    Map<Long, String> names = new HashMap<>();
+    if (!ids.isEmpty())
+      for (PokemonRepository.Name p : pokemon.findNamesByIdIn(ids))
+        names.put(p.getId(), p.getName());
+    for (Long id : ids) parts.add(names.getOrDefault(id, "Pokemon"));
     if (faab > 0) parts.add("$" + faab + " FAAB");
     return parts.isEmpty() ? "nothing" : String.join(" + ", parts);
   }
 
   private int rosterValue(Long teamId) {
-    int n = 0;
-    for (RosterEntry e : roster.findByTeamId(teamId))
-      n += pokemon.findById(e.getPokemonId()).map(Pokemon::getPrice).orElse(0);
-    return n;
+    return Math.toIntExact(roster.totalPriceByTeamId(teamId));
   }
 
   private RosterEntry verifyOwner(Long teamId, Long pokemonId) {

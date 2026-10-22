@@ -32,7 +32,9 @@ class AuthServiceTest {
     when(users.findByUsername("coach1")).thenReturn(Optional.of(coach));
     when(users.findById(1L)).thenReturn(Optional.of(coach));
     when(users.findById(2L)).thenReturn(Optional.of(manager));
-    when(users.findAll()).thenReturn(List.of(coach, manager));
+    when(users.findResettableIdentities()).thenReturn(List.of(coach));
+    when(users.findIdentityById(1L)).thenReturn(Optional.of(coach));
+    when(users.findIdentityById(2L)).thenReturn(Optional.of(manager));
   }
 
   @Test

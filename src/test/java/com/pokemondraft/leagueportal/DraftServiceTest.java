@@ -30,7 +30,7 @@ class DraftServiceTest {
       league.add(t);
     }
     first = league.get(0);
-    when(teams.findAll()).thenReturn(league);
+    when(teams.findAllMetadata()).thenReturn(league);
     when(settings.findById(1L)).thenReturn(Optional.of(new LeagueSettings()));
     when(picks.count()).thenReturn(0L);
     when(roster.countByTeamId(1L)).thenReturn(0L);
@@ -84,8 +84,7 @@ class DraftServiceTest {
   @Test
   void refusesPickOverTheHundredDollarCap() {
     Pokemon existing = new Pokemon("Expensive", 99);
-    when(roster.findByTeamId(1L)).thenReturn(List.of(new RosterEntry(1L, 41L)));
-    when(pokemon.findById(41L)).thenReturn(Optional.of(existing));
+    when(roster.totalPriceByTeamId(1L)).thenReturn(99L);
     ResponseStatusException ex =
         assertThrows(ResponseStatusException.class, () -> draft.pick(1L, false, 99L));
     assertTrue(ex.getReason().contains("$100"));

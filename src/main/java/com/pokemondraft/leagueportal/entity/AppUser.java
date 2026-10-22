@@ -30,6 +30,14 @@ public class AppUser {
     this.teamId = teamId;
   }
 
+  /** Read-only identity projection, excluding password hashes. */
+  public AppUser(Long id, String username, Role role, Long teamId) {
+    this.id = id;
+    this.username = username;
+    this.role = role;
+    this.teamId = teamId;
+  }
+
   public Long getId() {
     return id;
   }

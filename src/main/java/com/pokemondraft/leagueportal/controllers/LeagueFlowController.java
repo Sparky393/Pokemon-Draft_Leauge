@@ -93,12 +93,21 @@ public class LeagueFlowController {
   }
 
   @GetMapping("/schedule")
-  public List<Map<String, Object>> schedule(HttpSession session) {
+  public List<Map<String, Object>> schedule(
+      HttpSession session,
+      @RequestParam(required = false) Integer week,
+      @RequestParam(required = false) Long teamId) {
     auth.current(session);
+    List<Matchup> games = matchups.findPublished(week, teamId);
+    Set<Long> teamIds = new HashSet<>();
+    for (Matchup game : games) {
+      teamIds.add(game.getHomeTeamId());
+      teamIds.add(game.getAwayTeamId());
+    }
     Map<Long, String> names = new HashMap<>();
-    for (Team t : teams.findAll()) names.put(t.getId(), t.getName());
-    List<Matchup> games =
-        matchups.findAllByOrderByWeekAscIdAsc().stream().filter(g -> g.getWeek() > 0).toList();
+    if (!teamIds.isEmpty())
+      for (TeamRepository.Name t : teams.findNamesByIdIn(teamIds))
+        names.put(t.getId(), t.getName());
     Map<Long, Map<String, Object>> lineupsByGame = lineups.matchupLineupsBatch(games);
     List<Map<String, Object>> out = new ArrayList<>();
     for (Matchup x : games) {
@@ -120,8 +129,14 @@ public class LeagueFlowController {
 
   private List<LineupPokemonDto> rosterView(Long teamId) {
     List<LineupPokemonDto> out = new ArrayList<>();
-    for (RosterEntry e : roster.findByTeamId(teamId)) {
-      Pokemon p = pokemon.findById(e.getPokemonId()).orElse(null);
+    List<Long> ids = roster.findByTeamId(teamId).stream().map(RosterEntry::getPokemonId).toList();
+    Map<Long, Pokemon> mons =
+        ids.isEmpty()
+            ? Map.of()
+            : pokemon.findAllById(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(Pokemon::getId, p -> p));
+    for (Long id : ids) {
+      Pokemon p = mons.get(id);
       if (p != null) out.add(LeagueMapper.lineupPokemon(p));
     }
     return out;

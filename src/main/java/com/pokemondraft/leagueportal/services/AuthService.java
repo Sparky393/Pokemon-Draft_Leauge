@@ -95,7 +95,7 @@ public class AuthService {
 
   @Transactional
   public void changePassword(HttpSession session, String oldPassword, String newPassword) {
-    AppUser user = current(session);
+    AppUser user = currentWithPassword(session);
     if (oldPassword == null || !matches(oldPassword, user.getPassword()))
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is incorrect");
     validatePassword(newPassword);
@@ -126,8 +126,7 @@ public class AuthService {
 
   public java.util.List<java.util.Map<String, Object>> resettableUsers(HttpSession session) {
     manager(session);
-    return users.findAll().stream()
-        .filter(u -> u.getRole() != Role.MANAGER)
+    return users.findResettableIdentities().stream()
         .map(
             u ->
                 java.util.Map.<String, Object>of(
@@ -137,7 +136,7 @@ public class AuthService {
 
   /** Read-only security warning; never changes a coach's existing password. */
   public boolean isUsingInitialPassword(HttpSession session) {
-    AppUser u = current(session);
+    AppUser u = currentWithPassword(session);
     String initial = u.getRole() == Role.MANAGER ? "manager" : "password";
     return matches(initial, u.getPassword());
   }
@@ -148,6 +147,14 @@ public class AuthService {
   }
 
   public AppUser current(HttpSession session) {
+    Object id = session.getAttribute(SESSION_USER_ID);
+    if (id == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please log in");
+    return users
+        .findIdentityById((Long) id)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Session expired"));
+  }
+
+  private AppUser currentWithPassword(HttpSession session) {
     Object id = session.getAttribute(SESSION_USER_ID);
     if (id == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please log in");
     return users

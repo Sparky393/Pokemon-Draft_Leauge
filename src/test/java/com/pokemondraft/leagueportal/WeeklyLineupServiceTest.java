@@ -27,7 +27,8 @@ class WeeklyLineupServiceTest {
   @BeforeEach
   void setup() {
     when(settings.findById(1L)).thenReturn(Optional.of(config));
-    when(matchups.findAllByOrderByWeekAscIdAsc()).thenReturn(List.of(new Matchup(1, 1L, 2L)));
+    when(matchups.findForTeamAndWeek(1L, 1)).thenReturn(List.of(new Matchup(1, 1L, 2L)));
+    when(matchups.findByWeekOrderByIdAsc(1)).thenReturn(List.of(new Matchup(1, 1L, 2L)));
     when(roster.findByTeamId(1L))
         .thenReturn(six.stream().map(id -> new RosterEntry(1L, id)).toList());
     when(submissions.findByTeamIdAndWeek(anyLong(), anyInt())).thenReturn(Optional.empty());
@@ -104,17 +105,14 @@ class WeeklyLineupServiceTest {
     config.setCurrentWeek(5);
     config.setLineupDeadline(
         LocalDateTime.now(java.time.ZoneId.of("America/New_York")).minusMinutes(1));
-    when(matchups.findAllByOrderByWeekAscIdAsc()).thenReturn(List.of(new Matchup(5, 1L, 2L)));
+    when(matchups.findByWeekOrderByIdAsc(5)).thenReturn(List.of(new Matchup(5, 1L, 2L)));
     when(roster.findByTeamId(2L))
         .thenReturn(
             List.of(20L, 21L, 22L, 23L, 24L, 25L).stream()
                 .map(id -> new RosterEntry(2L, id))
                 .toList());
-    when(submissions.findAll())
-        .thenReturn(
-            List.of(
-                new WeeklySubmission(1L, 1, "15,14,13,12,11,10"),
-                new WeeklySubmission(1L, 3, "10,12,14,11,13,15")));
+    when(submissions.findFirstByTeamIdAndWeekLessThanOrderByWeekDesc(1L, 5))
+        .thenReturn(Optional.of(new WeeklySubmission(1L, 3, "10,12,14,11,13,15")));
     service.finalizeExpired(5);
     var captor = org.mockito.ArgumentCaptor.forClass(WeeklySubmission.class);
     verify(submissions, times(2)).save(captor.capture());
@@ -133,7 +131,7 @@ class WeeklyLineupServiceTest {
     config.setCurrentWeek(2);
     config.setLineupDeadline(
         LocalDateTime.now(java.time.ZoneId.of("America/New_York")).minusMinutes(1));
-    when(matchups.findAllByOrderByWeekAscIdAsc()).thenReturn(List.of(new Matchup(2, 1L, 2L)));
+    when(matchups.findByWeekOrderByIdAsc(2)).thenReturn(List.of(new Matchup(2, 1L, 2L)));
     when(roster.findByTeamId(1L))
         .thenReturn(
             List.of(10L, 11L, 12L, 13L, 14L, 16L, 17L).stream()
@@ -144,8 +142,8 @@ class WeeklyLineupServiceTest {
             List.of(20L, 21L, 22L, 23L, 24L, 25L).stream()
                 .map(id -> new RosterEntry(2L, id))
                 .toList());
-    when(submissions.findAll())
-        .thenReturn(List.of(new WeeklySubmission(1L, 1, "15,14,13,12,11,10")));
+    when(submissions.findFirstByTeamIdAndWeekLessThanOrderByWeekDesc(1L, 2))
+        .thenReturn(Optional.of(new WeeklySubmission(1L, 1, "15,14,13,12,11,10")));
     service.finalizeExpired(2);
     var captor = org.mockito.ArgumentCaptor.forClass(WeeklySubmission.class);
     verify(submissions, times(2)).save(captor.capture());
@@ -163,7 +161,7 @@ class WeeklyLineupServiceTest {
     config.setCurrentWeek(2);
     config.setLineupDeadline(
         LocalDateTime.now(java.time.ZoneId.of("America/New_York")).minusMinutes(1));
-    when(matchups.findAllByOrderByWeekAscIdAsc()).thenReturn(List.of(new Matchup(2, 1L, 2L)));
+    when(matchups.findByWeekOrderByIdAsc(2)).thenReturn(List.of(new Matchup(2, 1L, 2L)));
     when(roster.findByTeamId(2L))
         .thenReturn(
             List.of(20L, 21L, 22L, 23L, 24L, 25L).stream()
