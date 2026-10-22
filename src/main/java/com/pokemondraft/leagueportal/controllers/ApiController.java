@@ -66,6 +66,15 @@ public class ApiController {
 
   @GetMapping("/dashboard")
   public Map<String, Object> dashboard(HttpSession session) {
+    return dashboard(session, true);
+  }
+
+  @GetMapping("/dashboard/view")
+  public Map<String, Object> dashboardView(HttpSession session) {
+    return dashboard(session, false);
+  }
+
+  private Map<String, Object> dashboard(HttpSession session, boolean includeRoster) {
     AppUser u = auth.current(session);
     LeagueSettings s = settings();
     Map<String, Object> out = new LinkedHashMap<>();
@@ -73,7 +82,7 @@ public class ApiController {
     out.put("settings", settingsMap(s));
     List<Team> teamList = teams.findAllMetadata();
     out.put("teams", teamList);
-    if (u.getTeamId() != null) out.put("myRoster", rosterView(u.getTeamId()));
+    if (includeRoster && u.getTeamId() != null) out.put("myRoster", rosterView(u.getTeamId()));
     out.put("currentDraftTeam", draft.currentTeam(teamList, picks.count(), s));
     return out;
   }

@@ -83,15 +83,14 @@ public class LeagueNotificationController {
     }
 
     int week = league.getCurrentWeek();
-    if (SeasonCalendar.week(week).lineupRequired()
-        && matchups.findByWeekOrderByIdAsc(week).stream()
-            .anyMatch(m -> teamId.equals(m.getHomeTeamId()) || teamId.equals(m.getAwayTeamId()))
-        && submissions.findByTeamIdAndWeek(teamId, week).isEmpty()
-        && league.getLineupDeadline() != null) {
+    if (SeasonCalendar.week(week).lineupRequired() && league.getLineupDeadline() != null) {
       // League deadlines are entered in the commissioner's Eastern local time.
       LocalDateTime now = LocalDateTime.now(ZoneId.of("America/New_York"));
       Duration left = Duration.between(now, league.getLineupDeadline());
-      if (!left.isNegative() && left.compareTo(Duration.ofHours(24)) <= 0)
+      if (!left.isNegative()
+          && left.compareTo(Duration.ofHours(24)) <= 0
+          && matchups.existsForTeamAndWeek(teamId, week)
+          && !submissions.existsByTeamIdAndWeek(teamId, week))
         out.add(
             new Notice(
                 "lineup:" + week,
@@ -102,21 +101,8 @@ public class LeagueNotificationController {
                 "lineup"));
     }
 
-    List<FreeAgentBid> won = bids.findByTeamIdAndStatusOrderByCreatedAtDesc(teamId, BidStatus.WON);
-    Set<Long> ids =
-        won.stream()
-            .map(FreeAgentBid::getWantedPokemonId)
-            .collect(java.util.stream.Collectors.toSet());
-    Map<Long, String> names =
-        ids.isEmpty()
-            ? Map.of()
-            : pokemon.findNamesByIdIn(ids).stream()
-                .collect(
-                    java.util.stream.Collectors.toMap(
-                        PokemonRepository.Name::getId, PokemonRepository.Name::getName));
-    for (FreeAgentBid bid : won) {
-      if (bid.getStatus() != BidStatus.WON) continue;
-      String name = names.getOrDefault(bid.getWantedPokemonId(), "your selected Pokémon");
+    for (var bid : bids.findWonNotices(teamId, BidStatus.WON)) {
+      String name = bid.getPokemonName() == null ? "your selected Pokémon" : bid.getPokemonName();
       out.add(
           new Notice(
               "faab:" + bid.getId(),

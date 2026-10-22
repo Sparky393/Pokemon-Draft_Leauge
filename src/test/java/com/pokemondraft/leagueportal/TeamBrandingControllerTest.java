@@ -32,6 +32,16 @@ class TeamBrandingControllerTest {
     when(auth.current(session)).thenReturn(new AppUser("Bingus", "secret", Role.COACH, 1L));
     when(teams.findById(1L)).thenReturn(Optional.of(mine));
     when(teams.findMetadataById(1L)).thenReturn(Optional.of(mine));
+    var metadata = mock(TeamRepository.LogoMetadata.class);
+    when(metadata.getLogoVersion()).thenAnswer(inv -> mine.getLogoVersion());
+    when(metadata.getLogoContentType()).thenAnswer(inv -> mine.getLogoContentType());
+    when(metadata.getPresent()).thenAnswer(inv -> mine.getLogoBase64() != null);
+    when(teams.findLogoMetadata(1L)).thenReturn(Optional.of(metadata));
+    var image = mock(TeamRepository.LogoImage.class);
+    when(image.getLogoVersion()).thenAnswer(inv -> mine.getLogoVersion());
+    when(image.getLogoContentType()).thenAnswer(inv -> mine.getLogoContentType());
+    when(image.getLogoBase64()).thenAnswer(inv -> mine.getLogoBase64());
+    when(teams.findLogoImage(1L)).thenReturn(Optional.of(image));
     when(teams.findById(2L)).thenReturn(Optional.of(other));
     when(teams.existsByNameIgnoreCaseAndIdNot("wide right", 1L)).thenReturn(true);
     when(teams.save(any(Team.class))).thenAnswer(invocation -> invocation.getArgument(0));

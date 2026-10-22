@@ -25,7 +25,7 @@ class ScheduleServiceTest {
     Matchup match = new Matchup(1, 1L, 2L);
     when(matchups.findById(5L)).thenReturn(Optional.of(match));
     when(matchups.findAll()).thenReturn(List.of(match));
-    when(teams.findAll()).thenReturn(List.of(home, away));
+    when(teams.findAllMetadata()).thenReturn(List.of(home, away));
     schedule.setResult(5L, 2, 1);
     assertTrue(match.isPlayed());
     assertEquals(1, home.getWins());
@@ -71,7 +71,7 @@ class ScheduleServiceTest {
     Matchup m = new Matchup(2, 1L, 2L);
     when(matchups.findById(2L)).thenReturn(Optional.of(m));
     when(matchups.findAll()).thenReturn(List.of(m));
-    when(teams.findAll()).thenReturn(List.of(home, away));
+    when(teams.findAllMetadata()).thenReturn(List.of(home, away));
     assertThrows(
         org.springframework.web.server.ResponseStatusException.class,
         () -> service.setResult(2L, 3, 1));

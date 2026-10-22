@@ -39,7 +39,7 @@ public class ScheduleService {
 
   @Transactional
   public void syncOfficialSchedule() {
-    List<Team> currentTeams = teams.findAll();
+    List<Team> currentTeams = teams.findAllMetadata();
     Map<Integer, Team> bySlot = resolveOfficialTeams(currentTeams);
     if (bySlot.size() != 16) {
       log.warn(
@@ -146,7 +146,7 @@ public class ScheduleService {
       Team team = entry.getValue();
       if (!entry.getKey().equals(team.getOfficialSlot())) {
         team.setOfficialSlot(entry.getKey());
-        teams.save(team);
+        teams.updateOfficialSlot(team.getId(), entry.getKey());
       }
     }
     return resolved;
@@ -206,7 +206,7 @@ public class ScheduleService {
 
   @Transactional
   public void recalculateStandings() {
-    List<Team> all = teams.findAll();
+    List<Team> all = teams.findAllMetadata();
     Map<Long, Team> map = new HashMap<>();
     for (Team t : all) {
       t.setWins(0);
@@ -233,7 +233,8 @@ public class ScheduleService {
         h.setLosses(h.getLosses() + 1);
       }
     }
-    teams.saveAll(all);
+    for (Team t : all)
+      teams.updateStandings(t.getId(), t.getWins(), t.getLosses(), t.getDifferential());
   }
 
   /** Only completed, correctly scheduled regular-season games qualify teams for playoffs. */

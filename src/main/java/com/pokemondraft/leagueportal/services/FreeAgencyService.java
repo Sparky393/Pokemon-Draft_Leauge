@@ -128,15 +128,12 @@ public class FreeAgencyService {
     return waiverStatus(settings.findById(1L).orElseGet(LeagueSettings::new)).reason();
   }
 
-  private void requireWindow() {
-    String reason = waiverClosedReason();
-    if (reason != null) throw bad(reason);
-  }
-
   @Transactional
   public FreeAgentBid submitBid(Long teamId, Long wanted, Long drop, int amount) {
-    settings.lockForDraft(); // Serialize concurrent FAAB requests through the existing league row.
-    requireWindow();
+    LeagueSettings league =
+        settings.lockForDraft().orElseGet(() -> settings.findById(1L).orElseThrow());
+    String reason = waiverStatus(league).reason();
+    if (reason != null) throw bad(reason);
     Team t = teams.findById(teamId).orElseThrow();
     if (t.getFaBudget() <= 0)
       throw bad("You have $0 FAAB remaining. You cannot submit another bid.");
@@ -189,8 +186,10 @@ public class FreeAgencyService {
   /** Withdraw only your own pending bid before processing begins. */
   @Transactional
   public void cancelBid(Long teamId, Long bidId) {
-    settings.lockForDraft();
-    requireWindow();
+    LeagueSettings league =
+        settings.lockForDraft().orElseGet(() -> settings.findById(1L).orElseThrow());
+    String reason = waiverStatus(league).reason();
+    if (reason != null) throw bad(reason);
     FreeAgentBid bid =
         bids.findById(bidId)
             .orElseThrow(
@@ -208,13 +207,15 @@ public class FreeAgencyService {
 
   @Transactional
   public Map<String, Object> processBids() {
-    settings.lockForDraft();
+    LeagueSettings league =
+        settings.lockForDraft().orElseGet(() -> settings.findById(1L).orElseThrow());
+    int processed = waiverPeriodsProcessed();
     // Commissioner processes only after bidding closes; allow overdue processing
     // so missing the end-of-day target cannot permanently strand a period.
-    if (waiverClosedForProcessing())
+    if (waiverClosedForProcessing(league, processed))
       throw bad(
           "FAAB processing is only available after 7:00 PM Eastern on "
-              + (waiverPeriodsProcessed() == 0 ? "November 28" : "December 1")
+              + (processed == 0 ? "November 28" : "December 1")
               + ".");
     List<FreeAgentBid> pending = bids.findByStatus(BidStatus.PENDING);
     Map<Long, List<FreeAgentBid>> groups = new LinkedHashMap<>();
@@ -287,20 +288,17 @@ public class FreeAgencyService {
       }
       bids.saveAll(group);
     }
-    int period = waiverPeriodsProcessed() + 1;
+    int period = processed + 1;
     transactions.save(
         new TransactionRecord(
             "WAIVER_PERIOD_PROCESSED",
             "Week 4 waiver period " + period + " processed. Winners: " + winners));
-    LeagueSettings settingsRow = settings.findById(1L).orElseThrow();
-    settingsRow.setWaiverProcessed(period >= 2);
-    settings.save(settingsRow);
+    league.setWaiverProcessed(period >= 2);
+    settings.save(league);
     return Map.of("winners", winners, "wheels", wheels, "period", period);
   }
 
-  private boolean waiverClosedForProcessing() {
-    LeagueSettings league = settings.findById(1L).orElseGet(LeagueSettings::new);
-    int period = waiverPeriodsProcessed();
+  private boolean waiverClosedForProcessing(LeagueSettings league, int period) {
     if (league.getCurrentWeek() != 4 || league.isWaiverProcessed() || period >= 2) return true;
     List<Matchup> games = matchups.findByWeekOrderByIdAsc(3);
     return games.size() != 8

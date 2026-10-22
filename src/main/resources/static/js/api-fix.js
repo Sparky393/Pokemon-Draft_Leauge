@@ -51,7 +51,7 @@ function apiErrorMessage(status, data) {
   }
   return fallback[status] || `Request failed (${status}). Please try again.`;
 }
-api = async function (url, options = {}) {
+const requestApi = async function (url, options = {}) {
   const opts = {
     ...options,
     headers: {
@@ -82,4 +82,30 @@ api = async function (url, options = {}) {
   }
   if (!res.ok) throw new Error(apiErrorMessage(res.status, data));
   return data;
+};
+
+// Share only requests still in flight, never completed responses or mutation results.
+const pendingApiReads = new Map();
+api = async function (url, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+  if (method !== "GET") {
+    pendingApiReads.clear();
+    try {
+      return await requestApi(url, options);
+    } finally {
+      pendingApiReads.clear();
+    }
+  }
+  // Explicit options can carry headers/signals with distinct semantics.
+  if (Object.keys(options).length) return requestApi(url, options);
+  let pending = pendingApiReads.get(url);
+  if (!pending) {
+    pending = requestApi(url);
+    pendingApiReads.set(url, pending);
+  }
+  try {
+    return structuredClone(await pending);
+  } finally {
+    if (pendingApiReads.get(url) === pending) pendingApiReads.delete(url);
+  }
 };

@@ -56,7 +56,7 @@ public class LeagueFlowController {
     int week = s.getCurrentWeek();
     boolean required =
         SeasonCalendar.week(week).lineupRequired() && lineups.hasMatchup(u.getTeamId(), week);
-    if (required) lineups.finalizeExpired(week);
+    if (required) lineups.finalizeExpired(week, s);
     Map<String, Object> m = new LinkedHashMap<>();
     m.put("week", week);
     m.put("weekLabel", SeasonCalendar.week(week).label());

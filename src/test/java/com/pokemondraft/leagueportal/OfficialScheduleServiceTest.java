@@ -32,7 +32,6 @@ class OfficialScheduleServiceTest {
       team.setWins(100 - slot);
       teamRows.add(team);
     }
-    when(teams.findAll()).thenAnswer(inv -> new ArrayList<>(teamRows));
     when(teams.findAllMetadata()).thenAnswer(inv -> new ArrayList<>(teamRows));
     when(teams.findByDivision("A"))
         .thenAnswer(

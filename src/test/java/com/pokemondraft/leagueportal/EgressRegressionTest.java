@@ -64,6 +64,186 @@ class EgressRegressionTest {
   @Autowired com.pokemondraft.leagueportal.controllers.ApiController api;
   @Autowired WeeklyLineupService lineups;
   @Autowired TransactionHistoryService history;
+  @Autowired ScheduleService schedule;
+
+  @Test
+  @Transactional
+  void notificationReadsStayNarrowAndDeadlineAlertsRemainFresh() throws Exception {
+    bids.deleteAllInBatch();
+    submissions.deleteAllInBatch();
+    var won = new FreeAgentBid(1L, pokemon.findAllByOrderByNameAsc().getFirst().getId(), null, 1);
+    won.setStatus(BidStatus.WON);
+    bids.saveAndFlush(won);
+    var league = settings.findById(1L).orElseThrow();
+    league.setDraftOpen(false);
+    league.setCurrentWeek(1);
+    league.setLineupDeadline(LocalDateTime.now(ZoneId.of("America/New_York")).plusDays(2));
+    settings.saveAndFlush(league);
+    MockHttpSession coach = session("coach1");
+    em.clear();
+    SqlCapture.queries.clear();
+    mvc.perform(get("/api/notifications").session(coach))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].title").value("FAAB bid won!"));
+    assertEquals(
+        3,
+        SqlCapture.queries.stream().filter(q -> q.startsWith("select ")).count(),
+        "Far-away deadlines need only identity, settings, and a narrow won-notice query");
+    league = settings.findById(1L).orElseThrow();
+    league.setLineupDeadline(LocalDateTime.now(ZoneId.of("America/New_York")).plusHours(2));
+    settings.saveAndFlush(league);
+    mvc.perform(get("/api/notifications").session(coach))
+        .andExpect(status().isOk())
+        .andExpect(
+            jsonPath("$[*].title")
+                .value(org.hamcrest.Matchers.hasItem("Your Week 1 lineup is due soon")));
+    submissions.saveAndFlush(new WeeklySubmission(1L, 1, "1,2,3,4,5,6"));
+    mvc.perform(get("/api/notifications").session(coach))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1));
+    won.setStatus(BidStatus.LOST);
+    bids.saveAndFlush(won);
+    mvc.perform(get("/api/notifications").session(coach))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(0));
+  }
+
+  @Test
+  @Transactional
+  void resultUpdatesExcludeLogosAndPreserveBrandingAndBudgets() {
+    Team before = teams.findById(1L).orElseThrow();
+    String logo = before.getLogoBase64();
+    String name = before.getName();
+    int budget = before.getFaBudget();
+    Matchup game = matchups.findForTeamAndWeek(1L, 1).getFirst();
+    em.flush();
+    em.clear();
+    SqlCapture.queries.clear();
+    schedule.setResult(game.getId(), 2, 1);
+    assertEquals(0, logoPayloadSelects(), "Scoring must not read any logo bytes");
+    em.clear();
+    Team scored = teams.findById(1L).orElseThrow();
+    assertEquals(logo, scored.getLogoBase64());
+    assertEquals(name, scored.getName());
+    assertEquals(budget, scored.getFaBudget());
+    assertEquals(game.getHomeTeamId().equals(1L) ? 1 : -1, scored.getDifferential());
+    em.clear();
+    SqlCapture.queries.clear();
+    schedule.clearResult(game.getId());
+    assertEquals(0, logoPayloadSelects());
+    em.clear();
+    assertEquals(0, teams.findById(1L).orElseThrow().getDifferential());
+  }
+
+  @Test
+  @Transactional
+  void logoCacheChecksVersionAndAuthenticationBeforeReturningBytes() throws Exception {
+    MockHttpSession coach = session("coach1");
+    byte[] first = {1, 2, 3}, second = {4, 5, 6};
+    teams.updateLogo(1L, Base64.getEncoder().encodeToString(first), "image/png", 1001L);
+    mvc.perform(get("/api/teams/1/logo").session(coach))
+        .andExpect(status().isOk())
+        .andExpect(content().bytes(first));
+    SqlCapture.queries.clear();
+    mvc.perform(get("/api/teams/1/logo").session(coach))
+        .andExpect(status().isOk())
+        .andExpect(content().bytes(first));
+    assertEquals(0, logoPayloadSelects(), "Warm image request reads metadata only");
+    // Simulate an upload handled by a different Render instance.
+    teams.updateLogo(1L, Base64.getEncoder().encodeToString(second), "image/png", 1002L);
+    mvc.perform(get("/api/teams/1/logo").session(coach))
+        .andExpect(status().isOk())
+        .andExpect(content().bytes(second));
+    mvc.perform(get("/api/teams/1/logo")).andExpect(status().isUnauthorized());
+    teams.updateLogo(1L, null, null, 1003L);
+    mvc.perform(get("/api/teams/1/logo").session(coach)).andExpect(status().isNotFound());
+  }
+
+  @Test
+  @Transactional
+  void lightweightDashboardPreservesDefaultResponseAndSkipsUnusedRoster() throws Exception {
+    MockHttpSession coach = session("coach1");
+    mvc.perform(get("/api/dashboard").session(coach))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.myRoster").isArray());
+    em.clear();
+    SqlCapture.queries.clear();
+    mvc.perform(get("/api/dashboard/view").session(coach))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.myRoster").doesNotExist())
+        .andExpect(jsonPath("$.teams.length()").value(16))
+        .andExpect(jsonPath("$.user.username").value("coach1"))
+        .andExpect(jsonPath("$.settings").exists());
+    assertTrue(SqlCapture.queries.stream().noneMatch(q -> q.contains("from roster_entry")));
+    assertEquals(
+        5,
+        SqlCapture.queries.stream().filter(q -> q.startsWith("select ")).count(),
+        "Home omits the two unused roster/Pokemon reads from the seven-query dashboard");
+  }
+
+  @Test
+  @Transactional
+  void largeHistoryCachesChunksAndImmediatelyReflectsAppendDeleteAndReset() {
+    transactions.deleteAllInBatch();
+    for (int i = 0; i < 5200; i++)
+      transactions.save(new TransactionRecord("TEST_HISTORY", "History " + i));
+    transactions.flush();
+    assertEquals(5200, history.history().size());
+    SqlCapture.queries.clear();
+    assertEquals(5200, history.history().size());
+    assertEquals(
+        1,
+        SqlCapture.queries.stream().filter(q -> q.startsWith("select ")).count(),
+        "History over the previous 5000-row limit still uses a tiny warm revision");
+    TransactionRecord appended =
+        transactions.saveAndFlush(new TransactionRecord("TEST_HISTORY", "Appended"));
+    SqlCapture.queries.clear();
+    var fresh = history.history();
+    assertEquals(5201, fresh.size());
+    assertEquals(appended.getId(), fresh.getFirst().id());
+    long payloadReads =
+        SqlCapture.queries.stream()
+            .filter(q -> q.startsWith("select ") && q.contains(".description"))
+            .count();
+    assertTrue(payloadReads <= 2, "Append reloads at most the changed/new ID chunks");
+    transactions.deleteById(fresh.getLast().id());
+    transactions.flush();
+    assertEquals(5200, history.history().size());
+    transactions.deleteAllInBatch();
+    assertTrue(history.history().isEmpty());
+  }
+
+  @Test
+  @Transactional
+  void automaticLineupsBatchAllMissingTeamsAndKeepSelectionsStable() {
+    submissions.deleteAllInBatch();
+    var league = settings.findById(1L).orElseThrow();
+    league.setCurrentWeek(2);
+    league.setLineupDeadline(LocalDateTime.now(ZoneId.of("America/New_York")).minusMinutes(1));
+    var owned = roster.findByTeamId(1L).stream().map(RosterEntry::getPokemonId).sorted().toList();
+    List<Long> reversed = new ArrayList<>(owned);
+    Collections.reverse(reversed);
+    submissions.saveAndFlush(
+        new WeeklySubmission(
+            1L,
+            1,
+            reversed.stream()
+                .map(String::valueOf)
+                .collect(java.util.stream.Collectors.joining(","))));
+    settings.flush();
+    em.clear();
+    SqlCapture.queries.clear();
+    lineups.finalizeExpired(2);
+    long reads = SqlCapture.queries.stream().filter(q -> q.startsWith("select ")).count();
+    assertTrue(reads <= 5, "All 16 automatic lineups use five batched reads");
+    var rows = submissions.findByWeek(2);
+    assertEquals(16, rows.size());
+    assertTrue(rows.stream().allMatch(WeeklySubmission::isAutomatic));
+    assertEquals(
+        reversed.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(",")),
+        submissions.findByTeamIdAndWeek(1L, 2).orElseThrow().getPokemonIdsCsv());
+  }
 
   private MockHttpSession session(String username) {
     MockHttpSession session = new MockHttpSession();
