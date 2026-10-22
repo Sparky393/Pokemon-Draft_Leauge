@@ -46,7 +46,31 @@ try {
   await page.locator("#login-password").fill("manager");
   await page.locator("#login-button").click();
   await page.locator("#page-home .page-hero").waitFor();
-  assert.equal(count("/api/dashboard"), 1, "Login must fetch one dashboard");
+  assert.equal(
+    count("/api/dashboard/view"),
+    1,
+    "Login must fetch one dashboard",
+  );
+  const rosterLoads = count("/api/rosters");
+  await page.evaluate(() =>
+    Promise.all([
+      showPage("rosters"),
+      showPage("rosters"),
+      showPage("rosters"),
+    ]),
+  );
+  assert.equal(
+    count("/api/rosters") - rosterLoads,
+    1,
+    "Repeated concurrent navigation must share one page load",
+  );
+  await page.locator("#roster-team").waitFor();
+  await page.evaluate(() => showPage("rosters"));
+  assert.equal(
+    count("/api/rosters") - rosterLoads,
+    2,
+    "A later deliberate page refresh still fetches fresh data",
+  );
   const beforeDraft = count("/api/draft");
   await navigate("draft");
   await page.locator(".draft-budget-panel").waitFor();

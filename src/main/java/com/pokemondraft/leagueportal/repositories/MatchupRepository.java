@@ -9,6 +9,11 @@ public interface MatchupRepository extends JpaRepository<Matchup, Long> {
 
   long countByPlayedTrue();
 
+  @org.springframework.data.jpa.repository.Query(
+      "select count(m) > 0 from Matchup m where m.week = :week and (m.homeTeamId = :teamId or"
+          + " m.awayTeamId = :teamId)")
+  boolean existsForTeamAndWeek(Long teamId, int week);
+
   List<Matchup> findByWeekOrderByIdAsc(int week);
 
   @org.springframework.data.jpa.repository.Query(

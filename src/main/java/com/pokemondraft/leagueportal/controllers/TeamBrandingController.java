@@ -31,6 +31,54 @@ public class TeamBrandingController {
   private static final long MAX_IMAGE_BYTES = 1024 * 1024;
   private static final int MAX_DIMENSION = 2048;
 
+  private record LogoKey(Long teamId, Long version, String contentType) {}
+
+  private record LogoBytes(String contentType, byte[] bytes) {}
+
+  // Bounded across all teams/versions, including unusual imported databases.
+  private final java.util.LinkedHashMap<LogoKey, LogoBytes> logoCache =
+      new java.util.LinkedHashMap<>(16, 0.75f, true);
+  private long cachedBytes;
+
+  private synchronized void invalidateLogo(Long id) {
+    var entries = logoCache.entrySet().iterator();
+    while (entries.hasNext()) {
+      var entry = entries.next();
+      if (entry.getKey().teamId().equals(id)) {
+        cachedBytes -= entry.getValue().bytes().length;
+        entries.remove();
+      }
+    }
+  }
+
+  private synchronized LogoBytes cachedLogo(Long id, TeamRepository.LogoMetadata metadata) {
+    var key = new LogoKey(id, metadata.getLogoVersion(), metadata.getLogoContentType());
+    var cached = logoCache.get(key);
+    if (cached != null) return cached;
+    var image =
+        teams
+            .findLogoImage(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team not found"));
+    if (image.getLogoBase64() == null || image.getLogoContentType() == null)
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Team has no logo");
+    var value =
+        new LogoBytes(
+            image.getLogoContentType(), Base64.getDecoder().decode(image.getLogoBase64()));
+    // Use the version belonging to the bytes even if an upload races this request.
+    key = new LogoKey(id, image.getLogoVersion(), image.getLogoContentType());
+    if (value.bytes().length <= MAX_IMAGE_BYTES) {
+      invalidateLogo(id);
+      logoCache.put(key, value);
+      cachedBytes += value.bytes().length;
+      while (logoCache.size() > 32 || cachedBytes > 16L * MAX_IMAGE_BYTES) {
+        var oldest = logoCache.entrySet().iterator();
+        cachedBytes -= oldest.next().getValue().bytes().length;
+        oldest.remove();
+      }
+    }
+    return value;
+  }
+
   private final AuthService auth;
   private final TeamRepository teams;
 
@@ -109,6 +157,7 @@ public class TeamBrandingController {
     team.setLogoVersion(System.currentTimeMillis());
     teams.updateLogo(
         team.getId(), team.getLogoBase64(), team.getLogoContentType(), team.getLogoVersion());
+    invalidateLogo(team.getId());
     return team;
   }
 
@@ -119,22 +168,24 @@ public class TeamBrandingController {
     team.setLogoContentType(null);
     team.setLogoVersion(System.currentTimeMillis());
     teams.updateLogo(team.getId(), null, null, team.getLogoVersion());
+    invalidateLogo(team.getId());
     return team;
   }
 
   @GetMapping("/{id}/logo")
   public ResponseEntity<byte[]> logo(@PathVariable Long id, HttpSession session) {
     auth.current(session);
-    Team team =
+    var metadata =
         teams
-            .findById(id)
+            .findLogoMetadata(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team not found"));
-    if (team.getLogoBase64() == null || team.getLogoContentType() == null)
+    if (!metadata.getPresent() || metadata.getLogoContentType() == null)
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Team has no logo");
+    var image = cachedLogo(id, metadata);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.maxAge(java.time.Duration.ofDays(7)).cachePrivate())
-        .contentType(MediaType.parseMediaType(team.getLogoContentType()))
-        .body(Base64.getDecoder().decode(team.getLogoBase64()));
+        .contentType(MediaType.parseMediaType(image.contentType()))
+        .body(image.bytes());
   }
 
   private static String imageType(byte[] b) {

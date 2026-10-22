@@ -141,7 +141,6 @@
           body: { password: phrase.value },
         });
         toast("League reset to its pre-draft state");
-        await refreshBase();
         await renderManager();
       } catch (error) {
         toast(error.message, true);

@@ -54,7 +54,7 @@ async function boot() {
 }
 async function enterApp() {
   $("#login-screen").classList.add("hidden");
-  const dash = await api("/api/dashboard");
+  const dash = await api("/api/dashboard/view");
   state.user = dash.user;
   state.teams = dash.teams;
   state.settings = dash.settings;
@@ -119,7 +119,24 @@ $$("[data-page]").forEach((b) =>
   b.addEventListener("click", () => showPage(b.dataset.page)),
 );
 
-async function showPage(page, initialDashboard) {
+let pendingPageLoad = null;
+let pendingPageName = null;
+function showPage(page, initialDashboard) {
+  if (page === "freeagency" && state.user?.role === "MANAGER") page = "manager";
+  if (state.page === page && pendingPageName === page && pendingPageLoad)
+    return pendingPageLoad;
+  pendingPageName = page;
+  const load = renderPage(page, initialDashboard);
+  pendingPageLoad = load;
+  return load.finally(() => {
+    if (pendingPageLoad === load) {
+      pendingPageLoad = null;
+      pendingPageName = null;
+    }
+  });
+}
+
+async function renderPage(page, initialDashboard) {
   if (page === "freeagency" && state.user?.role === "MANAGER") page = "manager";
   state.page = page;
   $$(".page").forEach((p) => p.classList.add("hidden"));
@@ -151,7 +168,7 @@ async function refreshBase() {
 }
 
 async function renderHome() {
-  const d = await api("/api/dashboard");
+  const d = await api("/api/dashboard/view");
   state.teams = d.teams;
   state.settings = d.settings;
   const myTeam = state.user.teamId

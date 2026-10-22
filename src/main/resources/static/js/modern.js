@@ -7,7 +7,7 @@ const hero = (label, title, copy, actions = "") =>
   `<div class="page-hero"><div><div class="eyebrow">${label}</div><h1>${title}</h1><p class="muted">${copy}</p></div>${actions}</div>`;
 
 renderHome = async function (initialDashboard) {
-  const d = initialDashboard || (await api("/api/dashboard"));
+  const d = initialDashboard || (await api("/api/dashboard/view"));
   state.teams = d.teams;
   state.settings = d.settings;
   const my = state.user.teamId

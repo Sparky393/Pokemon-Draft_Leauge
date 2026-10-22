@@ -37,7 +37,9 @@ jobs:
       - name: Test navigation and vertical layout on mobile and desktop
         run: node tests/mobile-smoke.mjs
       - name: Verify API request reuse and draft polling
-        run: node tests/egress-browser.mjs
+        run: |
+          node tests/api-request-dedup.mjs
+          node tests/egress-browser.mjs
       - name: Upload screenshots and logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
