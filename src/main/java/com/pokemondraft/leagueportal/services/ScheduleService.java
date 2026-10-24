@@ -396,6 +396,16 @@ public class ScheduleService {
     List<Team> teamRows = teams.findAllMetadata();
     List<Matchup> all = new ArrayList<>(matchups.findAll());
     syncPlayoffs(teamRows, all);
+    return bracketView(teamRows, all);
+  }
+
+  /** Compute the public bracket without creating/updating playoff fixtures. */
+  @Transactional(readOnly = true)
+  public Map<String, Object> playoffBracketReadOnly() {
+    return bracketView(teams.findAllMetadata(), matchups.findAll());
+  }
+
+  private Map<String, Object> bracketView(List<Team> teamRows, List<Matchup> all) {
     boolean ready = isRegularSeasonComplete(all);
     Map<Long, String> names = new HashMap<>();
     for (Team t : teamRows) names.put(t.getId(), t.getName());

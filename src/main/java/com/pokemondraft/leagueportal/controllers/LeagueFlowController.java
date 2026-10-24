@@ -88,7 +88,7 @@ public class LeagueFlowController {
 
   @GetMapping("/calendar")
   public List<Map<String, Object>> calendar(HttpSession session) {
-    auth.current(session);
+    auth.viewer(session);
     return SeasonCalendar.weekDetails();
   }
 
@@ -97,7 +97,7 @@ public class LeagueFlowController {
       HttpSession session,
       @RequestParam(required = false) Integer week,
       @RequestParam(required = false) Long teamId) {
-    auth.current(session);
+    auth.viewer(session);
     List<Matchup> games = matchups.findPublished(week, teamId);
     Set<Long> teamIds = new HashSet<>();
     for (Matchup game : games) {
@@ -108,7 +108,10 @@ public class LeagueFlowController {
     if (!teamIds.isEmpty())
       for (TeamRepository.Name t : teams.findNamesByIdIn(teamIds))
         names.put(t.getId(), t.getName());
-    Map<Long, Map<String, Object>> lineupsByGame = lineups.matchupLineupsBatch(games);
+    Map<Long, Map<String, Object>> lineupsByGame =
+        auth.isGuest(session)
+            ? lineups.matchupLineupsBatchReadOnly(games)
+            : lineups.matchupLineupsBatch(games);
     List<Map<String, Object>> out = new ArrayList<>();
     for (Matchup x : games) {
       Map<String, Object> m = new LinkedHashMap<>();

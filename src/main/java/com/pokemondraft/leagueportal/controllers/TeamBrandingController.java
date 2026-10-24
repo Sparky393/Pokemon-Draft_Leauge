@@ -174,7 +174,7 @@ public class TeamBrandingController {
 
   @GetMapping("/{id}/logo")
   public ResponseEntity<byte[]> logo(@PathVariable Long id, HttpSession session) {
-    auth.current(session);
+    auth.viewer(session);
     var metadata =
         teams
             .findLogoMetadata(id)

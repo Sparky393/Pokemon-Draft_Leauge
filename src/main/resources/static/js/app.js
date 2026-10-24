@@ -68,6 +68,13 @@ async function enterApp() {
   document
     .querySelector('[data-page="freeagency"]')
     ?.classList.toggle("hidden", state.user.role === "MANAGER");
+  const guest = state.user.role === "GUEST";
+  ["lineup", "freeagency", "account"].forEach((page) => {
+    document.querySelector(`[data-page="${page}"]`)?.classList.toggle(
+      "hidden", guest || (page === "freeagency" && state.user.role === "MANAGER"));
+  });
+  document.querySelector(".league-tool-links")?.classList.toggle("hidden", guest);
+  $("#logout-button").textContent = guest ? "Exit Guest Mode / Sign In" : "Log Out";
   // Apply role-based navigation before allowing the app to become visible.
   $("#app").classList.remove("hidden");
   await showPage("home", dash);
@@ -97,6 +104,20 @@ $("#login-button").addEventListener("click", async () => {
       method: "POST",
       body: { username, password },
     });
+    await enterApp();
+  } catch (error) {
+    loginFeedback.textContent = error.message;
+    loginFeedback.classList.remove("hidden");
+  } finally {
+    button.disabled = false;
+  }
+});
+$("#guest-button").addEventListener("click", async () => {
+  const button = $("#guest-button");
+  button.disabled = true;
+  loginFeedback.classList.add("hidden");
+  try {
+    state.user = await api("/api/auth/guest", { method: "POST" });
     await enterApp();
   } catch (error) {
     loginFeedback.textContent = error.message;
@@ -137,6 +158,8 @@ function showPage(page, initialDashboard) {
 }
 
 async function renderPage(page, initialDashboard) {
+  if (state.user?.role === "GUEST" && ["lineup", "freeagency", "manager", "account"].includes(page))
+    page = "home";
   if (page === "freeagency" && state.user?.role === "MANAGER") page = "manager";
   state.page = page;
   $$(".page").forEach((p) => p.classList.add("hidden"));
@@ -155,6 +178,10 @@ async function renderPage(page, initialDashboard) {
     if (page === "freeagency") await renderFreeAgency("bids");
     if (page === "manager") await renderManager();
     if (page === "account") await renderAccount();
+    if (page === "transactions") {
+      const list = await api("/api/transactions");
+      $("#page-transactions").innerHTML = `<h1>Transaction History</h1><div class="card">${list.map((t) => `<p><strong>${esc(t.type)}</strong> · ${esc(t.createdAt)}<br>${esc(t.description)}</p>`).join("") || '<p class="muted">No transactions yet.</p>'}</div>`;
+    }
   } catch (e) {
     $(`#page-${page}`).innerHTML =
       `<div class="card"><h2>Page error</h2><p>${esc(e.message)}</p></div>`;

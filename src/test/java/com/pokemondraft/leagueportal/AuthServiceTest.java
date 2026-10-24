@@ -38,6 +38,38 @@ class AuthServiceTest {
   }
 
   @Test
+  void guestIdentityNeverReadsOrCreatesAnAccountAndCannotUseAccountHelpers() {
+    session.setAttribute(AuthService.SESSION_USER_ID, manager.getId());
+    var viewer = auth.enterGuest(session);
+    assertEquals("GUEST", viewer.role());
+    assertNull(viewer.id());
+    assertNull(viewer.teamId());
+    assertNull(session.getAttribute(AuthService.SESSION_USER_ID));
+    // Even a stale account ID cannot grant privileges while the guest marker exists.
+    session.setAttribute(AuthService.SESSION_USER_ID, manager.getId());
+    assertEquals(HttpStatus.FORBIDDEN,
+        assertThrows(ResponseStatusException.class, () -> auth.current(session)).getStatusCode());
+    assertEquals(HttpStatus.FORBIDDEN,
+        assertThrows(ResponseStatusException.class, () -> auth.manager(session)).getStatusCode());
+    assertEquals(HttpStatus.FORBIDDEN,
+        assertThrows(ResponseStatusException.class, () -> auth.teamId(session)).getStatusCode());
+    assertEquals(HttpStatus.FORBIDDEN,
+        assertThrows(ResponseStatusException.class, () -> auth.changePassword(session, "old", "newPassword"))
+            .getStatusCode());
+    verifyNoInteractions(users);
+  }
+
+  @Test
+  void successfulCoachLoginLeavesGuestModeAndKeepsItsTeam() {
+    auth.enterGuest(session);
+    AppUser loggedIn = auth.login("coach1", "password", session);
+    assertFalse(auth.isGuest(session));
+    assertEquals(1L, loggedIn.getTeamId());
+    assertEquals(Role.COACH, loggedIn.getRole());
+    assertEquals(loggedIn.getId(), session.getAttribute(AuthService.SESSION_USER_ID));
+  }
+
+  @Test
   void loginUpgradesLegacyPasswordToHash() {
     auth.login("coach1", "password", session);
     assertNotEquals("password", coach.getPassword());

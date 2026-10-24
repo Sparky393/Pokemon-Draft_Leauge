@@ -30,7 +30,7 @@ public class LeagueAdministrationController {
 
   @GetMapping("/api/weeks/locks")
   public Map<Integer, Boolean> weekLocks(HttpSession session) {
-    auth.current(session);
+    auth.viewer(session);
     return weekLocks.statuses();
   }
 

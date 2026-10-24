@@ -97,7 +97,7 @@
   }
 
   async function checkNotices() {
-    if (!state.user || document.hidden || checkingNotices) return;
+    if (!state.user || state.user.role === "GUEST" || document.hidden || checkingNotices) return;
     checkingNotices = true;
     try {
       const next = await api("/api/notifications");

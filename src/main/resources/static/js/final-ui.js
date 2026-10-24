@@ -188,6 +188,14 @@ function showPokemonDetails(p) {
     paint();
   });
 }
+function pokemonSearchNames(p) {
+  return [p.name, ...megaFormsFor(p.name).map(megaLabel)];
+}
+function pokemonFilterAbilities(p, meta) {
+  const yAbilities = typeof MEGA_Y_METADATA === "undefined" ? [] :
+    megaFormsFor(p.name).flatMap((slug) => MEGA_Y_METADATA[slug]?.abilities || []);
+  return [...(meta?.abilities || []), ...yAbilities];
+}
 function finalFilterBar(prefix, showBst = true) {
   return `<div class="pokemon-filters"><div class="filter-field wide"><label>Pokémon</label><input id="${prefix}-search" placeholder="Search Pokémon..."></div><div class="filter-field"><label>Sort</label><select id="${prefix}-sort"><option value="name">Name A–Z</option><option value="price-low">Price Low → High</option><option value="price-high">Price High → Low</option>${showBst ? '<option value="bst-high">BST High → Low</option><option value="bst-low">BST Low → High</option>' : ""}</select></div><div class="filter-field"><label>Mega</label><select id="${prefix}-mega"><option value="all">All Pokémon</option><option value="mega">Has Mega Evolution</option></select></div><div class="filter-field"><label>Move</label><input id="${prefix}-move" list="${prefix}-move-list" placeholder="Type a move..."><datalist id="${prefix}-move-list"></datalist></div><div class="filter-field"><label>Ability</label><input id="${prefix}-ability" list="${prefix}-ability-list" placeholder="Type an ability..."><datalist id="${prefix}-ability-list"></datalist></div><button type="button" class="secondary" id="${prefix}-clear">Clear</button></div>`;
 }
@@ -201,7 +209,7 @@ async function wireFinalFilters(prefix, source, draw) {
     const rows = [];
     for (const p of source) {
       if (
-        !p.name.toLowerCase().includes(q) ||
+        !pokemonSearchNames(p).some((name) => name.toLowerCase().includes(q)) ||
         (mega === "mega" && !megaFormsFor(p.name).length)
       )
         continue;
@@ -213,7 +221,7 @@ async function wireFinalFilters(prefix, source, draw) {
         continue;
       if (
         ability &&
-        !m.abilities.some((x) => x.toLowerCase().includes(ability))
+        !pokemonFilterAbilities(p, m).some((x) => x.toLowerCase().includes(ability))
       )
         continue;
       rows.push({ p, m });
@@ -254,7 +262,7 @@ async function wireFinalFilters(prefix, source, draw) {
         const p = source[i++],
           m = await getPokemonMeta(p.name);
         m.moves.forEach((x) => moves.add(x));
-        m.abilities.forEach((x) => abilities.add(x));
+        pokemonFilterAbilities(p, m).forEach((x) => abilities.add(x));
       }
     }
     await Promise.all(Array.from({ length: 8 }, worker));

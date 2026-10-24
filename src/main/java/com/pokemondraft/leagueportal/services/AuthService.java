@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class AuthService {
   public static final String SESSION_USER_ID = "userId";
+  public static final String SESSION_GUEST = "guestViewer";
   private final AppUserRepository users;
   private static final int MAX_FAILURES = 6;
   private static final long WINDOW_MILLIS = 10 * 60 * 1000;
@@ -80,6 +81,7 @@ public class AuthService {
       user.setPassword(encoder.encode(password));
       users.save(user);
     }
+    session.removeAttribute(SESSION_GUEST);
     session.setAttribute(SESSION_USER_ID, user.getId());
     return user;
   }
@@ -146,7 +148,27 @@ public class AuthService {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be 8–72 characters");
   }
 
+  /** Guest identity lives only in the HTTP session, never in app_users or a team. */
+  public com.pokemondraft.leagueportal.dto.UserDto enterGuest(HttpSession session) {
+    session.removeAttribute(SESSION_USER_ID);
+    session.setAttribute(SESSION_GUEST, Boolean.TRUE);
+    return viewer(session);
+  }
+
+  public boolean isGuest(HttpSession session) {
+    return session != null && Boolean.TRUE.equals(session.getAttribute(SESSION_GUEST));
+  }
+
+  /** Only explicitly public read handlers use this; current() still requires an account. */
+  public com.pokemondraft.leagueportal.dto.UserDto viewer(HttpSession session) {
+    if (isGuest(session))
+      return new com.pokemondraft.leagueportal.dto.UserDto(null, "Guest", "GUEST", null);
+    return com.pokemondraft.leagueportal.mapper.LeagueMapper.user(current(session));
+  }
+
   public AppUser current(HttpSession session) {
+    if (isGuest(session))
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Guest access is read-only");
     Object id = session.getAttribute(SESSION_USER_ID);
     if (id == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please log in");
     return users
@@ -155,6 +177,8 @@ public class AuthService {
   }
 
   private AppUser currentWithPassword(HttpSession session) {
+    if (isGuest(session))
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Guests do not have an account");
     Object id = session.getAttribute(SESSION_USER_ID);
     if (id == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please log in");
     return users

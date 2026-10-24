@@ -75,21 +75,21 @@ public class ApiController {
   }
 
   private Map<String, Object> dashboard(HttpSession session, boolean includeRoster) {
-    AppUser u = auth.current(session);
-    LeagueSettings s = settings();
+    UserDto u = auth.viewer(session);
+    LeagueSettings s = viewerSettings(session);
     Map<String, Object> out = new LinkedHashMap<>();
-    out.put("user", LeagueMapper.user(u));
+    out.put("user", u);
     out.put("settings", settingsMap(s));
     List<Team> teamList = teams.findAllMetadata();
     out.put("teams", teamList);
-    if (includeRoster && u.getTeamId() != null) out.put("myRoster", rosterView(u.getTeamId()));
+    if (includeRoster && u.teamId() instanceof Long teamId) out.put("myRoster", rosterView(teamId));
     out.put("currentDraftTeam", draft.currentTeam(teamList, picks.count(), s));
     return out;
   }
 
   @GetMapping("/teams")
   public List<Team> teams(HttpSession session) {
-    auth.current(session);
+    auth.viewer(session);
     return teams.findAllMetadata().stream()
         .sorted(Comparator.comparing(Team::getDivision).thenComparingInt(Team::getDraftPosition))
         .toList();
@@ -139,13 +139,13 @@ public class ApiController {
 
   @GetMapping("/pokemon")
   public List<Pokemon> allPokemon(HttpSession session) {
-    auth.current(session);
+    auth.viewer(session);
     return pokemon.findAllByOrderByNameAsc();
   }
 
   @GetMapping("/pokemon/free-agents")
   public List<Pokemon> freeAgents(HttpSession session) {
-    auth.current(session);
+    auth.viewer(session);
     return pokemon.findByDraftedFalseOrderByNameAsc();
   }
 
@@ -169,7 +169,7 @@ public class ApiController {
 
   @GetMapping("/rosters")
   public List<TeamRosterDto> rosters(HttpSession session) {
-    auth.current(session);
+    auth.viewer(session);
     Map<Long, List<RosterPokemonDto>> members = rosterViews(roster.findAll());
     return teams.findAllMetadata().stream()
         .sorted(Comparator.comparing(Team::getName))
@@ -179,15 +179,15 @@ public class ApiController {
 
   @GetMapping("/rosters/{teamId}")
   public List<RosterPokemonDto> roster(@PathVariable Long teamId, HttpSession session) {
-    auth.current(session);
+    auth.viewer(session);
     return rosterView(teamId);
   }
 
   @GetMapping("/draft")
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public Map<String, Object> draftState(HttpSession session) {
-    auth.current(session);
-    LeagueSettings league = settings();
+    auth.viewer(session);
+    LeagueSettings league = viewerSettings(session);
     List<Team> teamRows = teams.findAllMetadata();
     List<DraftPick> pickRows = picks.findAllByOrderByOverallPickAsc();
     Map<Long, String> names =
@@ -217,7 +217,7 @@ public class ApiController {
   @GetMapping("/draft/status")
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public Map<String, Object> draftStatus(HttpSession session) {
-    auth.current(session);
+    auth.viewer(session);
     LeagueSettingsRepository.DraftFlags league = settingsRepo.findDraftFlagsById(1L).orElseThrow();
     DraftPickRepository.Status status = picks.status();
     long count = status.getPickCount();
@@ -239,7 +239,7 @@ public class ApiController {
   @GetMapping("/draft/idle-status")
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public Map<String, String> idleDraftStatus(HttpSession session) {
-    auth.current(session);
+    auth.viewer(session);
     var status = settingsRepo.idleStatus().orElseThrow();
     Map<Long, Integer> order = new HashMap<>();
     // Order can only be edited before the first pick. Include it in the revision
@@ -292,7 +292,7 @@ public class ApiController {
 
   @GetMapping("/standings")
   public Map<String, Object> standings(HttpSession session) {
-    auth.current(session);
+    auth.viewer(session);
     Map<String, List<Team>> divisions = schedule.standings();
     return Map.of(
         "A",
@@ -300,12 +300,12 @@ public class ApiController {
         "B",
         divisions.get("B"),
         "seedModeEnabled",
-        settings().isPlayoffSeedModeEnabled());
+        viewerSettings(session).isPlayoffSeedModeEnabled());
   }
 
   @GetMapping("/schedule")
   public List<MatchupDto> schedule(HttpSession session) {
-    auth.current(session);
+    auth.viewer(session);
     Map<Long, String> names = teamNames();
     return matchups.findPublished(null, null).stream()
         .map(m -> LeagueMapper.matchup(m, names))
@@ -314,8 +314,8 @@ public class ApiController {
 
   @GetMapping("/playoffs")
   public Map<String, Object> playoffs(HttpSession session) {
-    auth.current(session);
-    return schedule.playoffBracket();
+    auth.viewer(session);
+    return auth.isGuest(session) ? schedule.playoffBracketReadOnly() : schedule.playoffBracket();
   }
 
   // The season uses a published fixture list. Schedule regeneration and
@@ -454,14 +454,14 @@ public class ApiController {
 
   @GetMapping("/transactions")
   public List<TransactionHistoryService.Entry> transactions(HttpSession session) {
-    auth.current(session);
+    auth.viewer(session);
     return history.history();
   }
 
   @GetMapping("/settings")
   public Map<String, Object> settingsGet(HttpSession session) {
-    auth.current(session);
-    return settingsMap(settings());
+    auth.viewer(session);
+    return settingsMap(viewerSettings(session));
   }
 
   public record SettingsUpdate(
@@ -508,6 +508,12 @@ public class ApiController {
 
   private LeagueSettings settings() {
     return settingsRepo.findById(1L).orElseGet(() -> settingsRepo.save(new LeagueSettings()));
+  }
+
+  private LeagueSettings viewerSettings(HttpSession session) {
+    return auth.isGuest(session)
+        ? settingsRepo.findById(1L).orElseGet(LeagueSettings::new)
+        : settings();
   }
 
   private Map<String, Object> settingsMap(LeagueSettings s) {

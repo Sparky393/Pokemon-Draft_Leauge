@@ -27,6 +27,13 @@ public class AuthController {
     return LeagueMapper.authUser(user);
   }
 
+  @PostMapping("/guest")
+  public UserDto guest(HttpSession session, HttpServletRequest request) {
+    UserDto viewer = auth.enterGuest(session);
+    request.changeSessionId();
+    return viewer;
+  }
+
   public record ChangePasswordRequest(String currentPassword, String newPassword) {}
 
   @PostMapping("/change-password")
@@ -56,6 +63,6 @@ public class AuthController {
 
   @GetMapping("/me")
   public UserDto me(HttpSession session) {
-    return LeagueMapper.authUser(auth.current(session));
+    return auth.isGuest(session) ? auth.viewer(session) : LeagueMapper.authUser(auth.current(session));
   }
 }

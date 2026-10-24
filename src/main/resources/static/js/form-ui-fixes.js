@@ -40,9 +40,30 @@ const Z_MEGA_SLUGS = {
 };
 const PALAFIN_HERO_SLUG = "palafin-hero";
 
+// Verified against Pokémon Showdown's data/pokedex.ts and PokeAPI's form IDs.
+// Display-only forms: these never create separate draft slots or database rows.
+const MEGA_Y_METADATA = {
+  "charizard-mega-y": {
+    types: ["Fire", "Flying"], abilities: ["Drought"],
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10035.png",
+    values: [78, 104, 78, 159, 115, 100],
+  },
+  "raichu-mega-y": {
+    types: ["Electric"], abilities: ["No Guard"],
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10305.png",
+    values: [60, 100, 55, 160, 80, 130],
+  },
+};
+
 /* PokeAPI may lag newly released Champions/Z-A Mega forms, so keep a local fallback for Mega Meowstic. */
 const oldFetchMetaBySlug = fetchMetaBySlug;
 fetchMetaBySlug = async function (slug) {
+  const known = MEGA_Y_METADATA[slug];
+  if (known) return {
+    image: known.image, types: [...known.types], abilities: [...known.abilities], moves: [],
+    stats: ["Hp", "Attack", "Defense", "Special Attack", "Special Defense", "Speed"]
+      .map((name, i) => ({ name, value: known.values[i] })),
+  };
   const found = await oldFetchMetaBySlug(slug);
   if (found) return found;
   if (slug === "meowstic-mega")
@@ -62,7 +83,7 @@ fetchMetaBySlug = async function (slug) {
   return null;
 };
 
-/* Keep normal Mega and Z Mega as separate buttons instead of cycling through both. */
+/* M cycles base → X → Y → base; Z Mega and Hero keep their existing controls. */
 showPokemonDetails = function (p) {
   getPokemonFullMeta(p.name).then((base) => {
     document.querySelector(".pokemon-detail-overlay")?.remove();
@@ -71,13 +92,16 @@ showPokemonDetails = function (p) {
       MEOWSTIC_MEGA_SLUGS[p.name] ||
       allForms.find((slug) => !slug.endsWith("-mega-z")) ||
       null;
+    const yMega = allForms.find((slug) => slug.endsWith("-mega-y")) || null;
     const zMega = Z_MEGA_SLUGS[p.name] || null;
     const hasHero = p.name === "Palafin";
     const overlay = document.createElement("div");
     overlay.className = "pokemon-detail-overlay";
     let active = "base";
+    let paintRevision = 0;
 
     const paint = async () => {
+      const revision = ++paintRevision;
       let meta = base,
         title = p.name,
         badge = "",
@@ -96,6 +120,17 @@ showPokemonDetails = function (p) {
             "Mega data is not available from the Pokémon data service yet.",
             true,
           );
+          active = "base";
+        }
+      } else if (active === "y" && yMega) {
+        const ym = await fetchMetaBySlug(yMega);
+        if (ym) {
+          meta = ym;
+          title = megaLabel(yMega);
+          badge = "MEGA Y";
+          eyebrow = "Mega Evolution";
+        } else {
+          toast("Mega Y data is not available from the Pokémon data service yet.", true);
           active = "base";
         }
       } else if (active === "z" && zMega) {
@@ -128,10 +163,11 @@ showPokemonDetails = function (p) {
         }
       }
 
+      if (revision !== paintRevision) return;
       const controls = [];
       if (normalMega)
         controls.push(
-          `<button class="mega-toggle ${active === "mega" ? "active" : ""}" data-form="mega" title="${active === "mega" ? "Return to base form" : "View Mega Evolution"}" aria-label="Toggle Mega Evolution"><span class="mega-symbol">M</span></button>`,
+          `<button class="mega-toggle ${active === "mega" || active === "y" ? "active" : ""}" data-form="mega" title="${yMega ? (active === "mega" ? "View Mega Y Evolution" : active === "y" ? "Return to base form" : "View Mega X Evolution") : active === "mega" ? "Return to base form" : "View Mega Evolution"}" aria-label="Toggle Mega Evolution"><span class="mega-symbol">M</span></button>`,
         );
       if (zMega)
         controls.push(
@@ -142,14 +178,16 @@ showPokemonDetails = function (p) {
           `<button class="mega-toggle hero-toggle ${active === "hero" ? "active" : ""}" data-form="hero" title="${active === "hero" ? "Return to Zero Form" : "Zero to Hero"}" aria-label="Toggle Palafin Hero Form"><span class="mega-symbol">H</span></button>`,
         );
 
-      overlay.innerHTML = `<div class="pokemon-detail-card"><button class="detail-close" aria-label="Close">×</button>${controls.join("")}<div class="detail-art">${meta.image ? `<img src="${meta.image}" alt="${esc(title)}">` : ""}</div><div class="detail-info"><div class="eyebrow">${eyebrow}</div><h2>${esc(title)}</h2><div class="detail-badges"><span>$${p.price ?? 0}</span><span>BST ${bstOf(meta) || "—"}</span>${badge ? `<span>${badge}</span>` : ""}</div><p><strong>Abilities:</strong> ${meta.abilities?.length ? meta.abilities.join(" · ") : "Unknown"}</p><div class="stat-list">${(meta.stats || []).map((s) => `<div><span>${esc(s.name)}</span><strong>${s.value}</strong></div>`).join("") || '<p class="muted">Stats unavailable.</p>'}</div></div></div>`;
+      overlay.innerHTML = `<div class="pokemon-detail-card"><button class="detail-close" aria-label="Close">×</button>${controls.join("")}<div class="detail-art">${meta.image ? `<img src="${meta.image}" alt="${esc(title)}">` : ""}</div><div class="detail-info"><div class="eyebrow">${eyebrow}</div><h2>${esc(title)}</h2><div class="detail-badges"><span>$${p.price ?? 0}</span><span>BST ${bstOf(meta) || "—"}</span>${badge ? `<span>${badge}</span>` : ""}</div>${meta.types?.length ? `<p><strong>Type:</strong> ${meta.types.map(esc).join(" / ")}</p>` : ""}<p><strong>Abilities:</strong> ${meta.abilities?.length ? meta.abilities.join(" · ") : "Unknown"}</p><div class="stat-list">${(meta.stats || []).map((s) => `<div><span>${esc(s.name)}</span><strong>${s.value}</strong></div>`).join("") || '<p class="muted">Stats unavailable.</p>'}</div></div></div>`;
       overlay.querySelector(".detail-close").onclick = () => overlay.remove();
       overlay.querySelectorAll("[data-form]").forEach(
         (btn) =>
           (btn.onclick = async (e) => {
             e.stopPropagation();
             const requested = btn.dataset.form;
-            active = active === requested ? "base" : requested;
+            active = requested === "mega" && yMega
+              ? active === "mega" ? "y" : active === "y" ? "base" : "mega"
+              : active === requested ? "base" : requested;
             await paint();
           }),
       );

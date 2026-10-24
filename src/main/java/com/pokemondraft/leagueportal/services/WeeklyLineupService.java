@@ -170,6 +170,12 @@ public class WeeklyLineupService {
   public Map<Long, Map<String, Object>> matchupLineupsBatch(List<Matchup> games) {
     LeagueSettings s = settings.findById(1L).orElse(null);
     if (s != null) finalizeExpired(s.getCurrentWeek(), s);
+    return matchupLineupsBatchReadOnly(games);
+  }
+
+  /** Public viewers must never trigger automatic lineup writes on a GET. */
+  @Transactional(readOnly = true)
+  public Map<Long, Map<String, Object>> matchupLineupsBatchReadOnly(List<Matchup> games) {
     if (games.isEmpty()) return Map.of();
     List<Long> gameIds = games.stream().map(Matchup::getId).filter(Objects::nonNull).toList();
     Map<String, WeeklySubmission> submitted = new HashMap<>();
