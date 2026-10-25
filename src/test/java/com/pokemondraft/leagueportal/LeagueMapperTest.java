@@ -37,6 +37,15 @@ class LeagueMapperTest {
   }
 
   @Test
+  void draftPickCarriesTheRecordedPokemonPriceWithoutAnInventedZero() {
+    DraftPick pick = new DraftPick(1, 1, 1L, 445L);
+    DraftPickDto priced = LeagueMapper.draftPick(pick, Map.of(1L, "Team"), Map.of(445L, "Garchomp"), Map.of(445L, 18));
+    assertEquals(18, priced.price());
+    assertEquals("Garchomp", priced.pokemonName());
+    assertNull(LeagueMapper.draftPick(pick, Map.of(), Map.of(), Map.of()).price());
+  }
+
+  @Test
   void mapsScheduleNamesAndNullableScores() {
     Matchup matchup = new Matchup(1, 1L, 2L);
     MatchupDto dto = LeagueMapper.matchup(matchup, Map.of(1L, "Team 1", 2L, "Team 2"));

@@ -21,14 +21,15 @@ public final class LeagueMapper {
   }
 
   public static DraftPickDto draftPick(
-      DraftPick pick, Map<Long, String> teamNames, Map<Long, String> pokemonNames) {
+      DraftPick pick, Map<Long, String> teamNames, Map<Long, String> pokemonNames, Map<Long, Integer> prices) {
     return new DraftPickDto(
         pick.getOverallPick(),
         pick.getRoundNumber(),
         pick.getTeamId(),
         teamNames.get(pick.getTeamId()),
         pick.getPokemonId(),
-        pokemonNames.get(pick.getPokemonId()));
+        pokemonNames.getOrDefault(pick.getPokemonId(), "Unknown"),
+        prices.get(pick.getPokemonId()));
   }
 
   public static MatchupDto matchup(Matchup matchup, Map<Long, String> teamNames) {

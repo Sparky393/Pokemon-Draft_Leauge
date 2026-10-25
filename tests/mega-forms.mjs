@@ -8,6 +8,7 @@ let overlay;
 const base = { image: "base.png", abilities: ["Static"], moves: [], stats: [{ name: "Hp", value: 60 }] };
 const context = vm.createContext({
   pokemonMetaCache: new Map(),
+  pokemonPriceText: (price) => price == null ? "Price unavailable" : `$${price}`,
   pokeSlug: (name) => name.toLowerCase(),
   prettyPokeText: (s) => s.split("-").map((x) => x[0]?.toUpperCase() + x.slice(1)).join(" "),
   getPokemonMeta: async () => base,

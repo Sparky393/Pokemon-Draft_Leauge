@@ -114,9 +114,12 @@ async function getPokemonMeta(name) {
     return { image: "", abilities: [], moves: [], stats: [] };
   }
 }
+function pokemonPriceText(price) {
+  return price == null ? "Price unavailable" : `$${price}`;
+}
 function pokemonCard(p, extra = "") {
   const id = p.pokemonId ?? p.id;
-  return `<button type="button" class="pokemon-card ${extra}" data-pokemon-id="${id}" data-pokemon-name="${esc(p.name)}"><div class="pokemon-art"><div class="poke-loader">•••</div><img alt="${esc(p.name)}" loading="lazy"></div><div class="pokemon-card-body"><strong>${esc(p.name)}</strong>${p.price !== undefined ? `<span class="price-badge">$${p.price}</span>` : ""}<div class="poke-meta muted"></div></div></button>`;
+  return `<button type="button" class="pokemon-card ${extra}" data-pokemon-id="${id}" data-pokemon-name="${esc(p.name)}"><div class="pokemon-art"><div class="poke-loader">•••</div><img alt="${esc(p.name)}" loading="lazy"></div><div class="pokemon-card-body"><strong>${esc(p.name)}</strong>${p.price != null ? `<span class="price-badge">$${p.price}</span>` : ""}<div class="poke-meta muted"></div></div></button>`;
 }
 async function hydratePokemonCards(root = document) {
   const cards = [...root.querySelectorAll(".pokemon-card")];

@@ -22,5 +22,15 @@ public interface PokemonRepository extends JpaRepository<Pokemon, Long> {
     String getName();
   }
 
+  interface DraftDetails {
+    Long getId();
+
+    String getName();
+
+    int getPrice();
+  }
+
+  List<DraftDetails> findDraftDetailsByIdIn(java.util.Collection<Long> ids);
+
   List<Name> findNamesByIdIn(java.util.Collection<Long> ids);
 }

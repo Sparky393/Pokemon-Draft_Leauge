@@ -1,3 +1,44 @@
+// Keep the same price/name object for the board card and its details popup.
+function draftBoardPokemon(pick) {
+  return { id: pick.pokemonId, name: pick.pokemonName, price: pick.price };
+}
+
+function wireDraftBoardScrolling(board) {
+  const scroller = board.querySelector(".draft-board-scroll");
+  const position = board.querySelector(".draft-board-position");
+  const arrows = [...board.querySelectorAll("[data-draft-scroll]")];
+  if (!scroller || !position) return () => {};
+  const update = () => {
+    const max = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+    position.max = String(max);
+    position.value = String(scroller.scrollLeft);
+    position.disabled = max === 0;
+    position.setAttribute("aria-valuetext", max ? `${Math.round(100 * scroller.scrollLeft / max)}% across the draft board` : "All columns visible");
+    arrows.forEach((arrow) => {
+      arrow.disabled = Number(arrow.dataset.draftScroll) < 0 ? scroller.scrollLeft <= 0 : scroller.scrollLeft >= max - 1;
+    });
+  };
+  const move = () => { scroller.scrollLeft = Number(position.value); update(); };
+  position.addEventListener("input", move);
+  scroller.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  const clicks = arrows.map((arrow) => {
+    const click = () => scroller.scrollBy({ left: Number(arrow.dataset.draftScroll) * scroller.clientWidth * .8, behavior: "smooth" });
+    arrow.addEventListener("click", click);
+    return click;
+  });
+  const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+  observer?.observe(scroller);
+  update();
+  return () => {
+    observer?.disconnect();
+    position.removeEventListener("input", move);
+    scroller.removeEventListener("scroll", update);
+    window.removeEventListener("resize", update);
+    arrows.forEach((arrow, i) => arrow.removeEventListener("click", clicks[i]));
+  };
+}
+
 /* A live, snake-order draft board at the top of the Draft Room. */
 (() => {
   let lastSignature = null;
@@ -5,6 +46,7 @@
   let draftOpen = true;
   let draftFinalized = false;
   let idleRevision = null;
+  let disposeScrolling = () => {};
   const originalRenderDraft = window.renderDraft;
 
   function buildBoard(d) {
@@ -14,7 +56,6 @@
     const count = teams.length;
     const rounds = 10;
     const picks = new Map(d.picks.map((p) => [Number(p.overallPick), p]));
-    const pokemonById = new Map(d.available.map((p) => [p.id, p]));
     const currentPick = d.picks.length + 1;
 
     const headers = teams
@@ -44,13 +85,7 @@
             : onClock
               ? "draft-cell-current"
               : "draft-cell-empty";
-          const pokemon = pick
-            ? {
-                ...pokemonById.get(pick.pokemonId),
-                id: pick.pokemonId,
-                name: pick.pokemonName,
-              }
-            : null;
+          const pokemon = pick ? draftBoardPokemon(pick) : null;
           const content = pokemon
             ? pokemonCard(pokemon, "draft-board-pokemon")
             : onClock
@@ -78,6 +113,12 @@
         </div>
         <span class="pool-count">${d.picks.length}/${count * rounds} picks</span>
       </div>
+      <div class="draft-scroll-controls">
+        <button type="button" class="secondary" data-draft-scroll="-1" aria-label="Scroll draft board left">←</button>
+        <input class="draft-board-position" type="range" min="0" max="0" value="0" step="1" aria-label="Scroll draft board horizontally">
+        <button type="button" class="secondary" data-draft-scroll="1" aria-label="Scroll draft board right">→</button>
+      </div>
+      <p class="muted draft-scroll-hint">Drag the slider to see more teams. Team headers stay visible while you scroll through rounds.</p>
       <div class="draft-board-scroll" role="region" aria-label="Live snake draft board" tabindex="0">
         <table class="draft-snake-table">
           <thead><tr><th scope="col">Round</th>${headers}</tr></thead>
@@ -88,6 +129,9 @@
   }
 
   window.renderDraft = async function (snapshot) {
+    const previous = document.querySelector(".draft-board-scroll");
+    const scroll = { left: previous?.scrollLeft || 0, top: previous?.scrollTop || 0 };
+    disposeScrolling();
     const d = snapshot || (await api("/api/draft"));
     await originalRenderDraft(d);
     draftOpen = d.settings.draftOpen;
@@ -122,13 +166,19 @@
     else page.insertAdjacentHTML("afterbegin", buildBoard(d));
 
     const board = page.querySelector(".live-draft-board");
+    if (board) {
+      const scroller = board.querySelector(".draft-board-scroll");
+      scroller.scrollLeft = scroll.left;
+      scroller.scrollTop = scroll.top;
+      disposeScrolling = wireDraftBoardScrolling(board);
+    }
     board?.querySelectorAll(".draft-board-pokemon").forEach((card) => {
       card.addEventListener("click", () => {
         const pick = d.picks.find(
           (p) => String(p.pokemonId) === card.dataset.pokemonId,
         );
         if (pick)
-          showPokemonDetails({ id: pick.pokemonId, name: pick.pokemonName });
+          showPokemonDetails(draftBoardPokemon(pick));
       });
     });
     if (board) hydratePokemonCards(board);

@@ -568,9 +568,15 @@ public class ApiController {
   }
 
   private List<DraftPickDto> pickViews(List<DraftPick> rows, Map<Long, String> tn) {
-    Map<Long, String> pn =
-        pokemonNames(rows.stream().map(DraftPick::getPokemonId).collect(Collectors.toSet()));
-    return rows.stream().map(p -> LeagueMapper.draftPick(p, tn, pn)).toList();
+    Set<Long> ids = rows.stream().map(DraftPick::getPokemonId).collect(Collectors.toSet());
+    Map<Long, String> names = new HashMap<>();
+    Map<Long, Integer> prices = new HashMap<>();
+    if (!ids.isEmpty())
+      for (PokemonRepository.DraftDetails p : pokemon.findDraftDetailsByIdIn(ids)) {
+        names.put(p.getId(), p.getName());
+        prices.put(p.getId(), p.getPrice());
+      }
+    return rows.stream().map(p -> LeagueMapper.draftPick(p, tn, names, prices)).toList();
   }
 
   private Map<String, Object> submissionView(

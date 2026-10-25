@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="/css/form-feedback.css?v=1" />
     <link rel="stylesheet" href="/css/league-extras.css?v=2" />
     <link rel="stylesheet" href="/css/mobile-experience.css?v=2" />
+    <link rel="stylesheet" href="/css/draft-experience.css?v=1" />
     <!-- deployment persistence test -->
   </head>
   <body>
@@ -29,8 +30,10 @@
       </div>
     </div>
     <div id="app" class="app hidden">
-      <aside class="sidebar">
-        <div class="brand">Draft League</div>
+      <aside class="sidebar" id="league-sidebar">
+        <div class="sidebar-topbar"><div class="brand">Draft League</div>
+          <button id="sidebar-toggle" class="secondary sidebar-toggle" type="button" aria-controls="league-sidebar" aria-expanded="true" aria-label="Collapse navigation" title="Collapse navigation">‹</button>
+        </div>
         <div id="whoami" class="whoami"></div>
         <nav>
           <button data-page="home">Home</button
@@ -50,6 +53,7 @@
         <button id="logout-button" class="logout">Log Out</button>
       </aside>
       <main class="content">
+        <button id="sidebar-open" class="secondary sidebar-open" type="button" aria-controls="league-sidebar" aria-expanded="false" hidden>☰ Show navigation</button>
         <section id="page-home" class="page"></section>
         <section id="page-draft" class="page hidden"></section>
         <section id="page-rosters" class="page hidden"></section>
@@ -66,17 +70,18 @@
     <script src="/js/app.js?v=guest-mega-y1"></script>
     <script src="/js/api-fix.js?v=egress2"></script>
     <script src="/js/modern.js?v=egress2"></script>
-    <script src="/js/pokemon-ui.js?v=30"></script>
-    <script src="/js/final-ui.js?v=guest-mega-y1"></script>
+    <script src="/js/pokemon-ui.js?v=draft-layout1"></script>
+    <script src="/js/final-ui.js?v=draft-layout1"></script>
     <script src="/js/testing-ui.js?v=egress2"></script>
     <script src="/js/faab-ui.js?v=32"></script>
     <script src="/js/league-fixes.js?v=30"></script>
-    <script src="/js/form-ui-fixes.js?v=guest-mega-y1"></script>
-    <script src="/js/draft-live.js?v=egress1"></script>
+    <script src="/js/form-ui-fixes.js?v=draft-layout1"></script>
+    <script src="/js/draft-live.js?v=draft-layout1"></script>
     <script src="/js/account-ui.js?v=35"></script>
     <script src="/js/season-ui.js?v=playoff-seeds1"></script>
     <script src="/js/team-branding.js?v=1"></script>
     <script src="/js/league-extras.js?v=guest-mega-y1"></script>
     <script src="/js/commissioner-reminders.js?v=2"></script>
+    <script src="/js/navigation-ui.js?v=1"></script>
   </body>
 </html>

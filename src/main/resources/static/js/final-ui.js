@@ -171,7 +171,7 @@ function showPokemonDetails(p) {
           formIndex = -1;
         }
       }
-      overlay.innerHTML = `<div class="pokemon-detail-card"><button class="detail-close" aria-label="Close">×</button>${forms.length ? `<button class="mega-toggle ${isMega ? "active" : ""}" title="${isMega ? "Return to base form" : "View Mega Evolution"}" aria-label="Toggle Mega Evolution"><span class="mega-symbol">M</span>${forms.length > 1 ? `<small>${isMega ? formIndex + 1 : ""}</small>` : ""}</button>` : ""}<div class="detail-art">${meta.image ? `<img src="${meta.image}" alt="${esc(title)}">` : ""}</div><div class="detail-info"><div class="eyebrow">${isMega ? "Mega Evolution" : "Pokémon Details"}</div><h2>${esc(title)}</h2><div class="detail-badges"><span>$${p.price ?? 0}</span><span>BST ${bstOf(meta) || "—"}</span>${isMega ? "<span>MEGA</span>" : ""}</div><p><strong>Abilities:</strong> ${meta.abilities?.length ? meta.abilities.join(" · ") : "Unknown"}</p><div class="stat-list">${(meta.stats || []).map((s) => `<div><span>${esc(s.name)}</span><strong>${s.value}</strong></div>`).join("") || '<p class="muted">Stats unavailable.</p>'}</div></div></div>`;
+      overlay.innerHTML = `<div class="pokemon-detail-card"><button class="detail-close" aria-label="Close">×</button>${forms.length ? `<button class="mega-toggle ${isMega ? "active" : ""}" title="${isMega ? "Return to base form" : "View Mega Evolution"}" aria-label="Toggle Mega Evolution"><span class="mega-symbol">M</span>${forms.length > 1 ? `<small>${isMega ? formIndex + 1 : ""}</small>` : ""}</button>` : ""}<div class="detail-art">${meta.image ? `<img src="${meta.image}" alt="${esc(title)}">` : ""}</div><div class="detail-info"><div class="eyebrow">${isMega ? "Mega Evolution" : "Pokémon Details"}</div><h2>${esc(title)}</h2><div class="detail-badges"><span>${pokemonPriceText(p.price)}</span><span>BST ${bstOf(meta) || "—"}</span>${isMega ? "<span>MEGA</span>" : ""}</div><p><strong>Abilities:</strong> ${meta.abilities?.length ? meta.abilities.join(" · ") : "Unknown"}</p><div class="stat-list">${(meta.stats || []).map((s) => `<div><span>${esc(s.name)}</span><strong>${s.value}</strong></div>`).join("") || '<p class="muted">Stats unavailable.</p>'}</div></div></div>`;
       overlay.querySelector(".detail-close").onclick = () => overlay.remove();
       const mega = overlay.querySelector(".mega-toggle");
       if (mega)
@@ -289,12 +289,12 @@ renderStandings = async function () {
 };
 renderDraft = async function (snapshot) {
   const d = snapshot || (await api("/api/draft")),
-    canPick =
+    canPick = d.settings.draftOpen && !d.settings.draftFinalized && (
       state.user.role === "MANAGER" ||
-      (d.currentTeam && d.currentTeam.id === state.user.teamId);
+      (state.user.role === "COACH" && d.currentTeam && d.currentTeam.id === state.user.teamId));
   let chosen = null;
   $("#page-draft").innerHTML =
-    `<div class="section-title"><div><h1>Draft Room</h1><p class="muted">10 rounds · ${d.settings.snakeDraft ? "snake" : "linear"} draft</p></div>${state.user.role === "MANAGER" ? '<button id="undo-pick" class="danger">Undo Last Pick</button>' : ""}</div><div class="card on-clock"><div><span class="eyebrow">ON THE CLOCK</span><h2>${d.currentTeam ? teamBrand(d.currentTeam, "md") : "Draft complete"}</h2></div><button id="make-pick" class="primary" ${canPick ? "" : "disabled"}>Draft Selected Pokémon</button></div><div class="card"><div class="section-title"><div><h2>Available Pokémon</h2><p class="muted">Click a Pokémon to select it and open its stats.</p></div><span class="pool-count">${d.available.length} Pokémon left</span></div>${finalFilterBar("draft", true)}<p id="draft-selection" class="selection-status muted">Select a Pokémon card.</p><div id="draft-grid" class="pokemon-card-grid"></div></div><div class="card"><h2>Draft Board</h2><div class="table-wrap"><table><thead><tr><th>Pick</th><th>Round</th><th>Team</th><th>Pokémon</th></tr></thead><tbody>${d.picks.map((p) => `<tr><td>${p.overallPick}</td><td>${p.round}</td><td>${teamBrand(p.teamId)}</td><td>${esc(p.pokemonName)}</td></tr>`).join("") || '<tr><td colspan="4">No picks yet</td></tr>'}</tbody></table></div></div>`;
+    `<div class="section-title"><div><h1>Draft Room</h1><p class="muted">10 rounds · ${d.settings.snakeDraft ? "snake" : "linear"} draft</p></div>${state.user.role === "MANAGER" ? '<button id="undo-pick" class="danger">Undo Last Pick</button>' : ""}</div><div class="card on-clock"><div><span class="eyebrow">ON THE CLOCK</span><h2>${d.currentTeam ? teamBrand(d.currentTeam, "md") : "Draft complete"}</h2></div><div class="draft-pick-action"><span id="draft-action-selection" class="muted" role="status" aria-live="polite">No Pokémon selected</span><button id="make-pick" class="primary" disabled>Draft Selected Pokémon</button></div></div><div class="card"><div class="section-title"><div><h2>Available Pokémon</h2><p class="muted">Click a Pokémon to select it and open its stats.</p></div><span class="pool-count">${d.available.length} Pokémon left</span></div>${finalFilterBar("draft", true)}<p id="draft-selection" class="selection-status muted">Select a Pokémon card.</p><div id="draft-grid" class="pokemon-card-grid"></div></div><div class="card"><h2>Draft Board</h2><div class="table-wrap"><table><thead><tr><th>Pick</th><th>Round</th><th>Team</th><th>Pokémon</th></tr></thead><tbody>${d.picks.map((p) => `<tr><td>${p.overallPick}</td><td>${p.round}</td><td>${teamBrand(p.teamId)}</td><td>${esc(p.pokemonName)}</td></tr>`).join("") || '<tr><td colspan="4">No picks yet</td></tr>'}</tbody></table></div></div>`;
   const draw = (rows) => {
     const grid = $("#draft-grid");
     grid.innerHTML =
@@ -312,6 +312,8 @@ renderDraft = async function (snapshot) {
             .forEach((x) => x.classList.toggle("selected", x === c));
           $("#draft-selection").innerHTML =
             `Selected: <strong>${esc(p.name)}</strong> · $${p.price}`;
+          $("#draft-action-selection").textContent = `Selected: ${p.name} · $${p.price}`;
+          $("#make-pick").disabled = !canPick;
           showPokemonDetails(p);
         }),
     );
@@ -320,7 +322,9 @@ renderDraft = async function (snapshot) {
   draw(d.available);
   wireFinalFilters("draft", d.available, draw);
   $("#make-pick").onclick = async () => {
-    if (!chosen) return toast("Select a Pokémon card first", true);
+    if (!chosen || !canPick) return;
+    const button = $("#make-pick");
+    button.disabled = true;
     try {
       await api("/api/draft/pick", {
         method: "POST",
@@ -331,6 +335,7 @@ renderDraft = async function (snapshot) {
       await renderDraft();
     } catch (e) {
       toast(e.message, true);
+      button.disabled = !canPick;
     }
   };
   if ($("#undo-pick"))
