@@ -95,6 +95,7 @@ function megaLabel(slug) {
     .replace(/^(.+) Mega( X| Y| Z)?$/, "Mega $1$2");
 }
 async function fetchMetaBySlug(slug) {
+  if (globalThis.leagueSession?.isEnded()) return null;
   try {
     const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${slug}`);
     if (!r.ok) throw new Error("not found");
@@ -117,6 +118,7 @@ async function fetchMetaBySlug(slug) {
 }
 async function getPokemonFullMeta(name) {
   const base = await getPokemonMeta(name);
+  if (globalThis.leagueSession?.isEnded()) return base;
   if (base.stats && base.stats.length) return base;
   try {
     let r = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokeSlug(name)}`);
@@ -147,6 +149,7 @@ function bstOf(meta) {
 }
 function showPokemonDetails(p) {
   getPokemonFullMeta(p.name).then((base) => {
+    if (globalThis.leagueSession?.isEnded()) return;
     document.querySelector(".pokemon-detail-overlay")?.remove();
     const forms = megaFormsFor(p.name),
       overlay = document.createElement("div");

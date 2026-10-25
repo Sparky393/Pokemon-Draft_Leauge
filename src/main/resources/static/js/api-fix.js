@@ -62,28 +62,36 @@ const requestApi = async function (url, options = {}) {
   };
   if (options.body && typeof options.body !== "string")
     opts.body = JSON.stringify(options.body);
-  let res;
+  const permit = globalThis.leagueSession?.beforeRequest(url, opts);
   try {
-    res = await fetch(url, opts);
-  } catch {
-    throw new Error(
-      "Could not reach the server. Check your connection and try again.",
-    );
-  }
-  if (res.status === 204) return null;
-  const raw = await res.text();
-  let data = null;
-  if (raw) {
+    let res;
     try {
-      data = JSON.parse(raw);
+      res = await fetch(url, opts);
     } catch {
-      data = raw;
+      throw new Error(
+        "Could not reach the server. Check your connection and try again.",
+      );
     }
+    if (res.status === 204) {
+      permit?.assertCurrent();
+      return null;
+    }
+    const raw = await res.text();
+    let data = null;
+    if (raw) {
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        data = raw;
+      }
+    }
+    if (!res.ok) throw new Error(apiErrorMessage(res.status, data));
+    permit?.assertCurrent();
+    return data;
+  } finally {
+    permit?.finish();
   }
-  if (!res.ok) throw new Error(apiErrorMessage(res.status, data));
-  return data;
 };
-
 // Share only requests still in flight, never completed responses or mutation results.
 const pendingApiReads = new Map();
 api = async function (url, options = {}) {

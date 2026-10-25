@@ -77,6 +77,7 @@ function prettyPokeText(s) {
     .join(" ");
 }
 async function fetchPokemonData(slug) {
+  if (globalThis.leagueSession?.isEnded()) throw new Error("Session ended");
   const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${slug}`);
   if (!r.ok) throw new Error("not found");
   return r.json();
@@ -142,10 +143,12 @@ async function hydratePokemonCards(root = document) {
   let cursor = 0;
   async function worker() {
     while (cursor < cards.length) {
+      if (globalThis.leagueSession?.isEnded()) return;
       const card = cards[cursor++],
         m = await getPokemonMeta(card.dataset.pokemonName),
         img = card.querySelector("img"),
         loader = card.querySelector(".poke-loader");
+      if (globalThis.leagueSession?.isEnded()) return;
       if (img && m.image) {
         img.src = m.image;
         img.classList.add("loaded");

@@ -39,7 +39,9 @@ jobs:
       - name: Verify API request reuse and draft polling
         run: |
           node tests/api-request-dedup.mjs
+          node tests/session-idle.mjs
           node tests/egress-browser.mjs
+          node tests/session-idle-browser.mjs
       - name: Upload screenshots and logs on failure
         if: failure()
         uses: actions/upload-artifact@v4

@@ -97,6 +97,7 @@
   }
 
   async function checkNotices() {
+    if (globalThis.leagueSession && !leagueSession.canPoll()) return;
     if (!state.user || state.user.role === "GUEST" || document.hidden || checkingNotices) return;
     checkingNotices = true;
     try {

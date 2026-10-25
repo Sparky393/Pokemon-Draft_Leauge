@@ -639,3 +639,7 @@ tbody tr:hover {
     0 8px 25px rgba(20, 100, 200, 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.09);
 }
+
+/* Block actions briefly while a returning tab fetches current league data. */
+.session-refresh-status { position: fixed; inset: 12px 12px auto; margin: 0 auto; max-width: 32rem; z-index: 2000; padding: 12px 16px; border: 1px solid #669ac2; border-radius: 12px; background: #10243c; color: #eef7ff; text-align: center; }
+.session-refresh-status[hidden] { display: none; }

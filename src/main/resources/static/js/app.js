@@ -6,23 +6,32 @@ async function api(url, options = {}) {
   const opts = { headers: { "Content-Type": "application/json" }, ...options };
   if (options.body && typeof options.body !== "string")
     opts.body = JSON.stringify(options.body);
-  const res = await fetch(url, opts);
-  if (res.status === 204) return null;
-  let data = null;
+  const permit = globalThis.leagueSession?.beforeRequest(url, opts);
   try {
-    data = await res.json();
-  } catch {
-    data = await res.text();
+    const res = await fetch(url, opts);
+    if (res.status === 204) {
+      permit?.assertCurrent();
+      return null;
+    }
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = await res.text();
+    }
+    if (!res.ok) {
+      const msg =
+        (data && data.detail) ||
+        (data && data.message) ||
+        data ||
+        `Request failed (${res.status})`;
+      throw new Error(msg);
+    }
+    permit?.assertCurrent();
+    return data;
+  } finally {
+    permit?.finish();
   }
-  if (!res.ok) {
-    const msg =
-      (data && data.detail) ||
-      (data && data.message) ||
-      data ||
-      `Request failed (${res.status})`;
-    throw new Error(msg);
-  }
-  return data;
 }
 function toast(msg, error = false) {
   const d = document.createElement("div");
@@ -45,8 +54,17 @@ function teamName(id) {
 }
 
 async function boot() {
+  if (document.hidden) {
+    const visible = () => {
+      if (!document.hidden) { document.removeEventListener("visibilitychange", visible); boot(); }
+    };
+    document.addEventListener("visibilitychange", visible);
+    return;
+  }
+  if (globalThis.leagueSession && !leagueSession.canRestore()) return;
   try {
     state.user = await api("/api/auth/me");
+    if (globalThis.leagueSession && !leagueSession.begin(state.user)) return;
     await enterApp();
   } catch {
     $("#login-screen").classList.remove("hidden");
@@ -104,6 +122,7 @@ $("#login-button").addEventListener("click", async () => {
       method: "POST",
       body: { username, password },
     });
+    if (globalThis.leagueSession && !leagueSession.begin(state.user, true)) return;
     await enterApp();
   } catch (error) {
     loginFeedback.textContent = error.message;
@@ -118,6 +137,7 @@ $("#guest-button").addEventListener("click", async () => {
   loginFeedback.classList.add("hidden");
   try {
     state.user = await api("/api/auth/guest", { method: "POST" });
+    if (globalThis.leagueSession && !leagueSession.begin(state.user, true)) return;
     await enterApp();
   } catch (error) {
     loginFeedback.textContent = error.message;
@@ -133,8 +153,8 @@ $("#login-password").addEventListener("keydown", (e) => {
   if (e.key === "Enter") $("#login-button").click();
 });
 $("#logout-button").addEventListener("click", async () => {
-  await api("/api/auth/logout", { method: "POST" });
-  location.reload();
+  if (globalThis.leagueSession) await leagueSession.logout("You have signed out. Sign in again to continue.");
+  else { await api("/api/auth/logout", { method: "POST" }); location.reload(); }
 });
 $$("[data-page]").forEach((b) =>
   b.addEventListener("click", () => showPage(b.dataset.page)),
@@ -462,4 +482,9 @@ async function renderManager() {
   });
 }
 
+globalThis.leagueSession?.setRefresh(async () => {
+  const page = state.page;
+  await enterApp();
+  if (page !== "home" && state.user) await showPage(page);
+});
 boot();

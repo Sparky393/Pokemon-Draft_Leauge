@@ -76,6 +76,17 @@ class GuestAccessTest {
   }
 
   @Test
+  void logoutInvalidatesTheSessionWithoutReadingOrWritingTheDatabase() throws Exception {
+    MockHttpSession session = guest();
+    SqlCapture.sql.clear();
+    mvc.perform(post("/api/auth/logout").session(session)
+        .header("X-Requested-With", "XMLHttpRequest"))
+        .andExpect(status().isOk());
+    assertTrue(session.isInvalid());
+    assertTrue(SqlCapture.sql.isEmpty(), "Logout must only invalidate the HTTP session");
+  }
+
+  @Test
   void everyMappedLeagueMutationIsDeniedBeforeDatabaseAccess() throws Exception {
     MockHttpSession session = guest();
     Set<String> sessionOnly = Set.of("/api/auth/login", "/api/auth/logout", "/api/auth/guest");

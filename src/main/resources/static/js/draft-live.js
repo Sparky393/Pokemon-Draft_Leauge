@@ -186,6 +186,7 @@ function wireDraftBoardScrolling(board) {
   };
 
   async function checkDraft() {
+    if (globalThis.leagueSession && !leagueSession.canPoll()) return;
     if (
       refreshing ||
       state.page !== "draft" ||

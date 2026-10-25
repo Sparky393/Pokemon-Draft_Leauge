@@ -110,15 +110,15 @@ async function renderAccount() {
       if (file.size > 1024 * 1024) return toast("Maximum size is 1 MB", true);
       const button = $("#branding-upload");
       button.disabled = true;
+      let permit;
       try {
         const body = new FormData();
         body.append("file", file);
-        const response = await fetch("/api/teams/me/logo", {
-          method: "POST",
-          body,
-          headers: { "X-Requested-With": "XMLHttpRequest" },
-        });
+        const options = { method: "POST", body, headers: { "X-Requested-With": "XMLHttpRequest" } };
+        permit = globalThis.leagueSession?.beforeRequest("/api/teams/me/logo", options);
+        const response = await fetch("/api/teams/me/logo", options);
         const result = await response.json();
+        permit?.assertCurrent();
         if (!response.ok)
           throw new Error(apiErrorMessage(response.status, result));
         refreshTeamIdentity(result);
@@ -128,6 +128,7 @@ async function renderAccount() {
         toast(error.message, true);
         button.disabled = false;
       } finally {
+        permit?.finish();
         if (previewUrl) URL.revokeObjectURL(previewUrl);
       }
     };

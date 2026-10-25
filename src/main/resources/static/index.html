@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pokemon Draft League Portal</title>
-    <link rel="stylesheet" href="/css/style.css?v=32" />
+    <link rel="stylesheet" href="/css/style.css?v=idle1" />
     <link rel="stylesheet" href="/css/modern.css?v=30" />
     <link rel="stylesheet" href="/css/final-ui.css?v=30" />
     <link rel="stylesheet" href="/css/season.css?v=2" />
@@ -22,13 +22,15 @@
       <div class="login-card">
         <div class="eyebrow">League Portal</div>
         <h1>Pokemon Draft League</h1>
-        <p class="muted">Sign in to manage your season.</p>
+        <p class="muted">Sign in to manage your season. Automatic sign-out after 3 minutes without activity.</p>
+        <p id="session-idle-message" class="muted hidden" role="status"></p>
         <label>Username<input id="login-username" /></label
         ><label>Password<input id="login-password" type="password" /></label
         ><button id="login-button">Log In</button>
         <button id="guest-button" type="button" class="secondary">Continue as Guest</button>
       </div>
     </div>
+    <p id="session-refresh-status" class="session-refresh-status" role="status" hidden>Updating league data…</p>
     <div id="app" class="app hidden">
       <aside class="sidebar" id="league-sidebar">
         <div class="sidebar-topbar"><div class="brand">Draft League</div>
@@ -67,20 +69,21 @@
         <section id="page-account" class="page hidden"></section>
       </main>
     </div>
-    <script src="/js/app.js?v=guest-mega-y1"></script>
-    <script src="/js/api-fix.js?v=egress2"></script>
+    <script src="/js/session-idle.js?v=1"></script>
+    <script src="/js/app.js?v=idle1"></script>
+    <script src="/js/api-fix.js?v=idle1"></script>
     <script src="/js/modern.js?v=egress2"></script>
-    <script src="/js/pokemon-ui.js?v=types1"></script>
-    <script src="/js/final-ui.js?v=types1"></script>
+    <script src="/js/pokemon-ui.js?v=idle1"></script>
+    <script src="/js/final-ui.js?v=idle1"></script>
     <script src="/js/testing-ui.js?v=egress2"></script>
     <script src="/js/faab-ui.js?v=32"></script>
     <script src="/js/league-fixes.js?v=30"></script>
-    <script src="/js/form-ui-fixes.js?v=draft-layout1"></script>
-    <script src="/js/draft-live.js?v=draft-layout1"></script>
-    <script src="/js/account-ui.js?v=35"></script>
+    <script src="/js/form-ui-fixes.js?v=idle1"></script>
+    <script src="/js/draft-live.js?v=idle1"></script>
+    <script src="/js/account-ui.js?v=idle1"></script>
     <script src="/js/season-ui.js?v=playoff-seeds1"></script>
     <script src="/js/team-branding.js?v=1"></script>
-    <script src="/js/league-extras.js?v=guest-mega-y1"></script>
+    <script src="/js/league-extras.js?v=idle1"></script>
     <script src="/js/commissioner-reminders.js?v=2"></script>
     <script src="/js/navigation-ui.js?v=1"></script>
   </body>

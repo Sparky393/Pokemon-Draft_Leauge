@@ -86,6 +86,7 @@ fetchMetaBySlug = async function (slug) {
 /* M cycles base → X → Y → base; Z Mega and Hero keep their existing controls. */
 showPokemonDetails = function (p) {
   getPokemonFullMeta(p.name).then((base) => {
+    if (globalThis.leagueSession?.isEnded()) return;
     document.querySelector(".pokemon-detail-overlay")?.remove();
     const allForms = megaFormsFor(p.name);
     const normalMega =
@@ -163,6 +164,7 @@ showPokemonDetails = function (p) {
         }
       }
 
+      if (globalThis.leagueSession?.isEnded()) { overlay.remove(); return; }
       if (revision !== paintRevision) return;
       const controls = [];
       if (normalMega)
