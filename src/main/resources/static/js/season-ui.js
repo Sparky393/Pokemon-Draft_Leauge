@@ -267,7 +267,7 @@ renderPlayoffs = async function () {
         .join("")}</div></section>`;
   };
   root.innerHTML = `<div class="page-hero"><div><div class="eyebrow">Season 2 Postseason</div>
-    <h1>Playoff Bracket</h1><p class="muted">Top four from each division qualify. Kanto: 1 vs 3 and 2 vs 4. Johto: 1 vs 4 and 2 vs 3.</p></div></div>
+    <h1>Playoff Bracket</h1><p class="muted">Top four from each division qualify. Kanto: 1 vs 4 and 2 vs 3. Johto: 1 vs 4 and 2 vs 3.</p></div></div>
     <div class="card playoff-status">${
       bracket.regularSeasonComplete
         ? "<strong>Regular season complete.</strong> Quarterfinal seeds are locked in from the standings. Winners advance when results are recorded."

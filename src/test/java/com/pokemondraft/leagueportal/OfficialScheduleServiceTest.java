@@ -129,13 +129,13 @@ class OfficialScheduleServiceTest {
     // slots are 1,2,4,7; Johto slots are 3,5,6,9.
     List<Map<String, Object>> seeded = bracket();
     assertEquals(4, seeded.stream().filter(g -> Boolean.TRUE.equals(g.get("ready"))).count());
-    assertNotNull(game(14, 1L, 4L));
-    assertNotNull(game(14, 2L, 7L));
+    assertNotNull(game(14, 1L, 7L));
+    assertNotNull(game(14, 2L, 4L));
     assertNotNull(game(14, 3L, 9L));
     assertNotNull(game(14, 5L, 6L));
 
-    win(14, 1L, 4L);
-    win(14, 2L, 7L);
+    win(14, 1L, 7L);
+    win(14, 2L, 4L);
     win(14, 3L, 9L);
     win(14, 5L, 6L);
     assertEquals(6, bracket().stream().filter(g -> Boolean.TRUE.equals(g.get("ready"))).count());
@@ -158,8 +158,8 @@ class OfficialScheduleServiceTest {
       matchups.save(m);
     }
     bracket();
-    win(14, 1L, 4L);
-    win(14, 2L, 7L);
+    win(14, 1L, 7L);
+    win(14, 2L, 4L);
     win(14, 3L, 9L);
     win(14, 5L, 6L);
     bracket();
@@ -168,7 +168,7 @@ class OfficialScheduleServiceTest {
     semifinal.setHomeScore(2);
     semifinal.setAwayScore(1);
 
-    Matchup quarterfinal = game(14, 1L, 4L);
+    Matchup quarterfinal = game(14, 1L, 7L);
     quarterfinal.setPlayed(false);
     quarterfinal.setHomeScore(null);
     quarterfinal.setAwayScore(null);

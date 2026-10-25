@@ -282,25 +282,25 @@ public class ScheduleService {
     Map<String, Integer> h2h = headToHead(all);
     List<Team> a = standings("A", teamRows, h2h), b = standings("B", teamRows, h2h);
     List<BracketSlot> result = new ArrayList<>();
-    // Kanto uses 1v3 and 2v4. Johto uses 1v4 and 2v3.
+    // Both divisions use 1v4 and 2v3.
     result.add(
         new BracketSlot(
             14,
             "Kanto",
             "Quarterfinal 1",
             ready ? a.get(0).getId() : null,
-            ready ? a.get(2).getId() : null,
+            ready ? a.get(3).getId() : null,
             "1 seed",
-            "3 seed"));
+            "4 seed"));
     result.add(
         new BracketSlot(
             14,
             "Kanto",
             "Quarterfinal 2",
             ready ? a.get(1).getId() : null,
-            ready ? a.get(3).getId() : null,
+            ready ? a.get(2).getId() : null,
             "2 seed",
-            "4 seed"));
+            "3 seed"));
     result.add(
         new BracketSlot(
             14,
