@@ -12,6 +12,18 @@ export function installDraftPreview() {
     ["Palafin",964,14],["Raichu (Alolan)",10100,9],["Absol",359,8],["Meowstic (Male)",678,6],
     ["Toxtricity (Low Key)",10184,10],["Skeledirge",911,11],["Maushold",925,8],
   ];
+  const typeNames = {
+    Garchomp:["Dragon","Ground"], Charizard:["Fire","Flying"], Raichu:["Electric"], Blastoise:["Water"],
+    Venusaur:["Grass","Poison"], Dragonite:["Dragon","Flying"], Salamence:["Dragon","Flying"], Metagross:["Steel","Psychic"],
+    Lucario:["Fighting","Steel"], Gengar:["Ghost","Poison"], Alakazam:["Psychic"], Scizor:["Bug","Steel"],
+    Tyranitar:["Rock","Dark"], Gyarados:["Water","Flying"], Arcanine:["Fire"], Ninetales:["Fire"],
+    Milotic:["Water"], Togekiss:["Fairy","Flying"], Excadrill:["Ground","Steel"], Volcarona:["Bug","Fire"],
+    "Rotom Wash":["Electric","Water"], Greninja:["Water","Dark"], Mimikyu:["Ghost","Fairy"], Dragapult:["Dragon","Ghost"],
+    Meowscarada:["Grass","Dark"], Corviknight:["Flying","Steel"], Kingambit:["Dark","Steel"], Incineroar:["Fire","Dark"],
+    Primarina:["Water","Fairy"], "Basculegion (Female)":["Water","Ghost"], "Goodra (Hisuian)":["Steel","Dragon"],
+    Palafin:["Water"], "Raichu (Alolan)":["Electric","Psychic"], Absol:["Dark"], "Meowstic (Male)":["Psychic"],
+    "Toxtricity (Low Key)":["Electric","Poison"], Skeledirge:["Fire","Ghost"], Maushold:["Normal"],
+  };
   const pokemon = sample.map(([name,dex,price],i) => ({ id:i+1,name,dex,price,drafted:i<24 }));
   const teams = Array.from({length:16},(_,i) => ({id:i+1,name:["Thunderbolts","Dragon Tamers","Kanto Kings","Moonlight","Iron Wings","Ocean Guard","Flame Riders","Night Owls","Johto Giants","Mossy Rocks","Storm Watch","Crystal Crew","Silver Claws","Nova Squad","Aurora","Final Frontier"][i],coachName:`Coach ${i+1}`,division:i<8?"A":"B",draftPosition:i+1,wins:0,losses:0,differential:0,faBudget:3}));
   const settings = {leagueName:"Draft Layout Preview",currentWeek:1,regularSeasonWeeks:13,draftOpen:true,draftFinalized:false,snakeDraft:true,lineupDeadline:null,waiverWindowOpen:false,waiverClosedReason:"Mock preview: free agency is closed.",waiverPeriodsProcessed:0};
@@ -26,8 +38,8 @@ export function installDraftPreview() {
     const url=new URL(String(input),"https://draft-preview.invalid");
     if(url.hostname==="pokeapi.co") {
       const slug=decodeURIComponent(url.pathname.split("/").filter(Boolean).at(-1));
-      const p=pokemon.find(p=>p.name.toLowerCase().split(" (")[0].replaceAll(" ","-")===slug)||pokemon[0];
-      return json({sprites:{other:{"official-artwork":{front_default:`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.dex}.png`}}},abilities:[{ability:{name:p.name==="Garchomp"?"rough-skin":"sample-ability"}}],moves:[{move:{name:"protect"}}],stats:["hp","attack","defense","special-attack","special-defense","speed"].map((name,i)=>({stat:{name},base_stat:[80,100,85,90,85,100][i]}))});
+      const p=pokemon.find(p=>typeof pokeSlug==="function"&&pokeSlug(p.name)===slug)||pokemon.find(p=>p.name.toLowerCase().split(" (")[0].replaceAll(" ","-")===slug)||pokemon[0];
+      return json({types:(typeNames[p.name]||[]).map((name,i)=>({slot:i+1,type:{name:name.toLowerCase()}})),sprites:{other:{"official-artwork":{front_default:`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.dex}.png`}}},abilities:[{ability:{name:p.name==="Garchomp"?"rough-skin":"sample-ability"}}],moves:[{move:{name:"protect"}}],stats:["hp","attack","defense","special-attack","special-defense","speed"].map((name,i)=>({stat:{name},base_stat:[80,100,85,90,85,100][i]}))});
     }
     if(!url.pathname.startsWith("/api/")) return json({message:"This preview blocks server requests."},404);
     const path=url.pathname,method=options.method||"GET";

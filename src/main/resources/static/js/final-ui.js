@@ -197,15 +197,18 @@ function pokemonFilterAbilities(p, meta) {
   return [...(meta?.abilities || []), ...yAbilities];
 }
 function finalFilterBar(prefix, showBst = true) {
-  return `<div class="pokemon-filters"><div class="filter-field wide"><label>Pokémon</label><input id="${prefix}-search" placeholder="Search Pokémon..."></div><div class="filter-field"><label>Sort</label><select id="${prefix}-sort"><option value="name">Name A–Z</option><option value="price-low">Price Low → High</option><option value="price-high">Price High → Low</option>${showBst ? '<option value="bst-high">BST High → Low</option><option value="bst-low">BST Low → High</option>' : ""}</select></div><div class="filter-field"><label>Mega</label><select id="${prefix}-mega"><option value="all">All Pokémon</option><option value="mega">Has Mega Evolution</option></select></div><div class="filter-field"><label>Move</label><input id="${prefix}-move" list="${prefix}-move-list" placeholder="Type a move..."><datalist id="${prefix}-move-list"></datalist></div><div class="filter-field"><label>Ability</label><input id="${prefix}-ability" list="${prefix}-ability-list" placeholder="Type an ability..."><datalist id="${prefix}-ability-list"></datalist></div><button type="button" class="secondary" id="${prefix}-clear">Clear</button></div>`;
+  return `<div class="pokemon-filters type-filter-bar"><div class="filter-field wide"><label>Pokémon</label><input id="${prefix}-search" placeholder="Search Pokémon..."></div><div class="filter-field"><label>Sort</label><select id="${prefix}-sort"><option value="name">Name A–Z</option><option value="price-low">Price Low → High</option><option value="price-high">Price High → Low</option>${showBst ? '<option value="bst-high">BST High → Low</option><option value="bst-low">BST Low → High</option>' : ""}</select></div>${pokemonTypeFilter(prefix)}<div class="filter-field"><label>Mega</label><select id="${prefix}-mega"><option value="all">All Pokémon</option><option value="mega">Has Mega Evolution</option></select></div><div class="filter-field"><label>Move</label><input id="${prefix}-move" list="${prefix}-move-list" placeholder="Type a move..."><datalist id="${prefix}-move-list"></datalist></div><div class="filter-field"><label>Ability</label><input id="${prefix}-ability" list="${prefix}-ability-list" placeholder="Type an ability..."><datalist id="${prefix}-ability-list"></datalist></div><button type="button" class="secondary" id="${prefix}-clear">Clear</button></div>`;
 }
 async function wireFinalFilters(prefix, source, draw) {
+  let filterRevision = 0;
   const apply = async () => {
+    const revision = ++filterRevision;
     const q = $(`#${prefix}-search`).value.trim().toLowerCase(),
       move = $(`#${prefix}-move`).value.trim().toLowerCase(),
       ability = $(`#${prefix}-ability`).value.trim().toLowerCase(),
       sort = $(`#${prefix}-sort`).value,
-      mega = $(`#${prefix}-mega`).value;
+      mega = $(`#${prefix}-mega`).value,
+      type = $(`#${prefix}-type`).value;
     const rows = [];
     for (const p of source) {
       if (
@@ -214,9 +217,11 @@ async function wireFinalFilters(prefix, source, draw) {
       )
         continue;
       const m =
-        move || ability || sort.startsWith("bst")
+        move || ability || type !== "all" || sort.startsWith("bst")
           ? await getPokemonFullMeta(p.name)
           : null;
+      if (revision !== filterRevision) return;
+      if (type !== "all" && !m.types?.some(t => t.toLowerCase() === type)) continue;
       if (move && !m.moves.some((x) => x.toLowerCase().includes(move)))
         continue;
       if (
@@ -237,12 +242,12 @@ async function wireFinalFilters(prefix, source, draw) {
               ? bstOf(a.m) - bstOf(b.m) || a.p.name.localeCompare(b.p.name)
               : a.p.name.localeCompare(b.p.name),
     );
-    draw(rows.map((x) => x.p));
+    if (revision === filterRevision) draw(rows.map((x) => x.p));
   };
   ["search", "move", "ability"].forEach((x) =>
     $(`#${prefix}-${x}`).addEventListener("input", apply),
   );
-  ["sort", "mega"].forEach((x) =>
+  ["sort", "mega", "type"].forEach((x) =>
     $(`#${prefix}-${x}`).addEventListener("change", apply),
   );
   $(`#${prefix}-clear`).onclick = () => {
@@ -251,7 +256,8 @@ async function wireFinalFilters(prefix, source, draw) {
     $(`#${prefix}-ability`).value = "";
     $(`#${prefix}-sort`).value = "name";
     $(`#${prefix}-mega`).value = "all";
-    apply();
+    $(`#${prefix}-type`).value = "all";
+    return apply();
   };
   (async () => {
     const moves = new Set(),

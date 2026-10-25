@@ -1,5 +1,13 @@
 /* Enhanced Pokemon card UI. Loaded after app.js so it can upgrade existing renderers without changing league APIs. */
 const pokemonMetaCache = new Map();
+const pokemonMetaRequests = new Map();
+const POKEMON_TYPES = Object.freeze([
+  "Bug", "Dark", "Dragon", "Electric", "Fairy", "Fighting", "Fire", "Flying", "Ghost",
+  "Grass", "Ground", "Ice", "Normal", "Poison", "Psychic", "Rock", "Steel", "Water",
+]);
+function pokemonTypeFilter(prefix) {
+  return `<div class="filter-field"><label for="${prefix}-type">Type</label><select id="${prefix}-type"><option value="all">All types</option>${POKEMON_TYPES.map(type => `<option value="${type.toLowerCase()}">${type}</option>`).join("")}</select></div>`;
+}
 // V6 invalidates old image lookups after correcting Rotom and Squawkabilly form slugs.
 const POKE_CACHE_KEY = "draftLeaguePokemonMetaV6";
 try {
@@ -76,9 +84,15 @@ async function fetchPokemonData(slug) {
 async function getPokemonMeta(name) {
   if (pokemonMetaCache.has(name)) {
     const cached = pokemonMetaCache.get(name);
-    if (cached?.image) return cached;
-    pokemonMetaCache.delete(name);
+    if (cached?.image && Array.isArray(cached.types) && cached.types.length) return cached;
   }
+  if (pokemonMetaRequests.has(name)) return pokemonMetaRequests.get(name);
+  const request = loadPokemonMeta(name);
+  pokemonMetaRequests.set(name, request);
+  try { return await request; }
+  finally { if (pokemonMetaRequests.get(name) === request) pokemonMetaRequests.delete(name); }
+}
+async function loadPokemonMeta(name) {
   try {
     let data;
     try {
@@ -93,6 +107,7 @@ async function getPokemonMeta(name) {
         data.sprites?.other?.home?.front_default ||
         data.sprites?.front_default ||
         "",
+      types: (data.types || []).map(t => prettyPokeText(t.type.name)),
       abilities: (data.abilities || []).map((a) =>
         prettyPokeText(a.ability.name),
       ),
@@ -111,7 +126,8 @@ async function getPokemonMeta(name) {
     } catch {}
     return meta;
   } catch {
-    return { image: "", abilities: [], moves: [], stats: [] };
+    const cached = pokemonMetaCache.get(name);
+    return cached ? { ...cached, types: [] } : { image: "", types: [], abilities: [], moves: [], stats: [] };
   }
 }
 function pokemonPriceText(price) {
@@ -143,20 +159,25 @@ async function hydratePokemonCards(root = document) {
   await Promise.all(Array.from({ length: Math.min(10, cards.length) }, worker));
 }
 function advancedFilterBar(prefix) {
-  return `<div class="pokemon-filters"><div class="filter-field wide"><label>Pokémon</label><input id="${prefix}-search" placeholder="Search Pokémon..."></div><div class="filter-field"><label>Price</label><select id="${prefix}-price"><option value="name">Name A–Z</option><option value="low">Price Low → High</option><option value="high">Price High → Low</option></select></div><div class="filter-field"><label>Move</label><input id="${prefix}-move" list="${prefix}-move-list" placeholder="Type a move..."><datalist id="${prefix}-move-list"></datalist></div><div class="filter-field"><label>Ability</label><input id="${prefix}-ability" list="${prefix}-ability-list" placeholder="Type an ability..."><datalist id="${prefix}-ability-list"></datalist></div><button type="button" class="secondary clear-poke-filters" id="${prefix}-clear">Clear</button></div>`;
+  return `<div class="pokemon-filters type-filter-bar"><div class="filter-field wide"><label>Pokémon</label><input id="${prefix}-search" placeholder="Search Pokémon..."></div><div class="filter-field"><label>Price</label><select id="${prefix}-price"><option value="name">Name A–Z</option><option value="low">Price Low → High</option><option value="high">Price High → Low</option></select></div>${pokemonTypeFilter(prefix)}<div class="filter-field"><label>Move</label><input id="${prefix}-move" list="${prefix}-move-list" placeholder="Type a move..."><datalist id="${prefix}-move-list"></datalist></div><div class="filter-field"><label>Ability</label><input id="${prefix}-ability" list="${prefix}-ability-list" placeholder="Type an ability..."><datalist id="${prefix}-ability-list"></datalist></div><button type="button" class="secondary clear-poke-filters" id="${prefix}-clear">Clear</button></div>`;
 }
 async function wireAdvancedFilters(prefix, pokemon, draw) {
   const names = [...pokemon];
+  let filterRevision = 0;
   const apply = async () => {
+    const revision = ++filterRevision;
     const q = $(`#${prefix}-search`).value.trim().toLowerCase(),
       move = $(`#${prefix}-move`).value.trim().toLowerCase(),
       ability = $(`#${prefix}-ability`).value.trim().toLowerCase(),
-      sort = $(`#${prefix}-price`).value;
+      sort = $(`#${prefix}-price`).value,
+      type = $(`#${prefix}-type`).value;
     let rows = names.filter((p) => p.name.toLowerCase().includes(q));
-    if (move || ability) {
+    if (move || ability || type !== "all") {
       const tested = [];
       for (const p of rows) {
         const m = await getPokemonMeta(p.name);
+        if (revision !== filterRevision) return;
+        if (type !== "all" && !m.types?.some(t => t.toLowerCase() === type)) continue;
         if (move && !m.moves.some((x) => x.toLowerCase().includes(move)))
           continue;
         if (
@@ -175,18 +196,20 @@ async function wireAdvancedFilters(prefix, pokemon, draw) {
           ? b.price - a.price || a.name.localeCompare(b.name)
           : a.name.localeCompare(b.name),
     );
-    draw(rows);
+    if (revision === filterRevision) draw(rows);
   };
   ["search", "move", "ability"].forEach((x) =>
     $(`#${prefix}-${x}`).addEventListener("input", apply),
   );
   $(`#${prefix}-price`).addEventListener("change", apply);
+  $(`#${prefix}-type`).addEventListener("change", apply);
   $(`#${prefix}-clear`).onclick = () => {
     $(`#${prefix}-search`).value = "";
     $(`#${prefix}-move`).value = "";
     $(`#${prefix}-ability`).value = "";
     $(`#${prefix}-price`).value = "name";
-    apply();
+    $(`#${prefix}-type`).value = "all";
+    return apply();
   };
 }
 renderRosters = async function () {

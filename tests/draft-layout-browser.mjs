@@ -13,6 +13,18 @@ try {
     await page.route("https://**/*",route=>route.fulfill({contentType:"image/svg+xml",body:'<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><circle cx="80" cy="80" r="60" fill="#73d2ff"/></svg>'}));
     await page.goto(preview);
     await page.locator(".live-draft-board").waitFor();
+    await page.locator("#draft-type").selectOption("fire");
+    await page.waitForFunction(()=>JSON.stringify([...document.querySelectorAll("#draft-grid .pokemon-card")].map(c=>c.dataset.pokemonName).sort())===JSON.stringify(["Incineroar","Skeledirge"]));
+    assert.equal(await page.locator("#draft-type option").count(),19);
+    const controlsFit=await page.locator(".pokemon-filters").evaluate(filters=>{
+      const box=filters.getBoundingClientRect();
+      return [...filters.querySelectorAll("input,select,button")].every(control=>{
+        const rect=control.getBoundingClientRect();return rect.width===0||(rect.left>=box.left-1&&rect.right<=box.right+1);
+      });
+    });
+    assert.equal(controlsFit,true,"Type and other filters stay inside the filter bar");
+    await page.locator("#draft-clear").click();
+    assert.equal(await page.locator("#draft-type").inputValue(),"all");
     const originalWidth=(await page.locator(".content").boundingBox()).width;
     await page.locator("#sidebar-toggle").click();
     assert.equal(await page.locator("#league-sidebar").isVisible(),false);
