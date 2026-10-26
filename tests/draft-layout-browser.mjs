@@ -19,6 +19,31 @@ try {
     );
     await page.goto(preview);
     await page.locator(".live-draft-board").waitFor();
+    async function checkBudgetHeaders() {
+      const headers = await page.evaluate(async () => {
+        const draft = await api("/api/draft");
+        return [...state.teams].sort((a, b) => a.draftPosition - b.draftPosition).map((team, i) => {
+          const picks = draft.picks.filter((pick) => pick.teamId === team.id);
+          const left = 100 - picks.reduce((sum, pick) => sum + pick.price, 0);
+          const slots = 10 - picks.length;
+          const label = document.querySelectorAll(".draft-team-budget")[i];
+          const range = document.createRange();
+          range.selectNodeContents(label);
+          const box = label.getBoundingClientRect();
+          return {
+            actual: label.textContent,
+            expected: `$${left} left · ${slots ? `$${Number((left / slots).toFixed(2))}/slot` : "Roster full"}`,
+            fits: range.getBoundingClientRect().width <= box.width + 1 && label.scrollWidth <= label.clientWidth + 1
+          };
+        });
+      });
+      assert.equal(headers.length, 16);
+      for (const header of headers) {
+        assert.equal(header.actual, header.expected);
+        assert.equal(header.fits, true, "Budget and average fit within the existing team column");
+      }
+    }
+    await checkBudgetHeaders();
     await page.locator("#draft-type").selectOption("fire");
     await page.waitForFunction(
       () =>
@@ -98,12 +123,14 @@ try {
     assert.equal(await page.locator("#make-pick").isEnabled(), true);
     await page.locator("#make-pick").click();
     await page.locator('.draft-board-pokemon[data-pokemon-name="Meowscarada"]').waitFor();
+    await checkBudgetHeaders();
     await page.locator("#preview-role").selectOption("GUEST");
     await page.waitForFunction(() => state.user.role === "GUEST");
     await page.locator('#draft-grid [data-pokemon-name="Corviknight"]').click();
     await detail.locator(".detail-close").click();
     assert.equal(await page.locator("#make-pick").isDisabled(), true);
     assert.equal(await page.locator("#manager-nav").isVisible(), false);
+    await checkBudgetHeaders();
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
       false
@@ -115,7 +142,7 @@ try {
     });
     await context.close();
     console.log(
-      `PASS: ${width}px collapse, selection, prices, sticky headers, persistent scrolling, card fit and guest permissions`
+      `PASS: ${width}px collapse, selection, prices, sticky headers, persistent scrolling, card fit, budget headers and guest permissions`
     );
   }
 } finally {

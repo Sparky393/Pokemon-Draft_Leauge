@@ -3,6 +3,21 @@ function draftBoardPokemon(pick) {
   return { id: pick.pokemonId, name: pick.pokemonName, price: pick.price };
 }
 
+// Use the existing draft snapshot; this display never fetches or changes league data.
+function draftTeamBudget(picks, teamId) {
+  const selected = picks.filter((pick) => String(pick.teamId) === String(teamId));
+  const slots = Math.max(0, 10 - selected.length);
+  if (selected.some((pick) => typeof pick.price !== "number" || !Number.isFinite(pick.price))) {
+    return { text: "Budget unavailable", title: "A drafted Pokémon price is unavailable." };
+  }
+  const remaining = 100 - selected.reduce((sum, pick) => sum + pick.price, 0);
+  const average = slots ? Number((remaining / slots).toFixed(2)) : null;
+  return {
+    text: `$${remaining} left · ${slots ? `$${average}/slot` : "Roster full"}`,
+    title: `$${remaining} remaining · ${slots} open slots${slots ? ` · $${average} average per remaining slot` : ""}`
+  };
+}
+
 function wireDraftBoardScrolling(board) {
   const scroller = board.querySelector(".draft-board-scroll");
   const position = board.querySelector(".draft-board-position");
@@ -72,12 +87,14 @@ function wireDraftBoardScrolling(board) {
     const currentPick = d.picks.length + 1;
 
     const headers = teams
-      .map(
-        (team) => `<th scope="col" title="${esc(team.name)}">
+      .map((team) => {
+        const budget = draftTeamBudget(d.picks, team.id);
+        return `<th scope="col" title="${esc(team.name)}">
           <span class="draft-team-position">#${team.draftPosition}</span>
           <span class="draft-team-name">${teamBrand(team, "xs")}</span>
-        </th>`,
-      )
+          <span class="draft-team-budget" title="${esc(budget.title)}">${esc(budget.text)}</span>
+        </th>`;
+      })
       .join("");
 
     const rows = Array.from({ length: rounds }, (_, index) => {

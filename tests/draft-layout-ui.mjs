@@ -102,6 +102,7 @@ context.hydratePokemonCards = () => {};
 context.wireFinalFilters = () => {};
 context.showPokemonDetails =p => details.push(p);
 vm.runInContext(readFileSync("src/main/resources/static/js/draft-live.js", "utf8"), context);
+const renderBoard = context.renderDraft;
 context.renderDraft = async () => {
   refreshes++;
 };
@@ -152,6 +153,50 @@ assert.equal(
   18
 );
 assert.equal(context.draftBoardPokemon({ pokemonId: 1, pokemonName: "Free", price: 0 }).price, 0);
+
+// Budgets use public draft picks, never the separate FAAB balance or roster prices.
+const teamPicks = (prices, teamId = 8) => prices.map((price, i) => ({
+  teamId, price, overallPick: i + 1, pokemonId: i + 1, pokemonName: `Pokemon ${i + 1}`
+}));
+assert.equal(context.draftTeamBudget([], 8).text, "$100 left · $10/slot");
+assert.equal(context.draftTeamBudget(teamPicks([10, 16, 14, 18]), 8).text, "$42 left · $7/slot");
+assert.equal(context.draftTeamBudget(teamPicks([10, 10, 10, 10]), 8).text, "$60 left · $10/slot");
+assert.equal(context.draftTeamBudget(teamPicks([10, 10, 10, 10, 10, 8]), "8").text, "$42 left · $10.5/slot");
+assert.equal(context.draftTeamBudget(teamPicks([30, 30, 20]), 8).text, "$20 left · $2.86/slot");
+assert.equal(context.draftTeamBudget(teamPicks([0]), 8).text, "$100 left · $11.11/slot");
+assert.equal(context.draftTeamBudget(teamPicks([100]), 8).text, "$0 left · $0/slot");
+assert.equal(context.draftTeamBudget(teamPicks(Array(10).fill(10)), 8).text, "$0 left · Roster full");
+assert.equal(context.draftTeamBudget(teamPicks(Array(10).fill(9)), 8).text, "$10 left · Roster full");
+assert.equal(context.draftTeamBudget(teamPicks([50], 9), 8).text, "$100 left · $10/slot");
+for (const price of [null, undefined, NaN]) {
+  assert.equal(context.draftTeamBudget(teamPicks([price]), 8).text, "Budget unavailable");
+}
+let boardHtml = "";
+page.children = [];
+page.querySelector = () => null;
+page.insertAdjacentHTML = (_, html) => { boardHtml = html; };
+context.document.querySelector = (selector) => selector === "#page-draft" ? page : null;
+context.pokemonCard = () => "<div>Pokemon</div>";
+context.state.teams = [{ id: 8, name: "Team Eight", draftPosition: 1, faBudget: 3 },
+  { id: 9, name: "Team Nine", draftPosition: 2, faBudget: 3 }];
+for (const role of ["COACH", "MANAGER", "GUEST"]) {
+  context.state.user = { role, teamId: role === "COACH" ? 8 : null };
+  const before = posts.length;
+  const draft = { ...snapshot, picks: teamPicks([18]) };
+  const saved = JSON.stringify(draft);
+  await renderBoard(draft);
+  assert.match(boardHtml, /class="draft-team-budget"[^>]*>\$82 left · \$9.11\/slot<\/span>/);
+  assert.match(boardHtml, /\$100 left · \$10\/slot/);
+  assert.match(boardHtml, /9 open slots/);
+  await renderBoard({ ...draft, picks: teamPicks([18, 10]) });
+  assert.match(boardHtml, /\$72 left · \$9\/slot/);
+  await renderBoard({ ...draft, picks: [] });
+  assert.match(boardHtml, /\$100 left · \$10\/slot/);
+  assert.equal(JSON.stringify(draft), saved, "Displaying budgets must not modify picks");
+  assert.equal(posts.length, before, "Budget headers must not make extra API requests");
+}
+context.document.querySelector = () => null;
+console.log("PASS: draft budgets, averages, free picks, full rosters, missing prices, team isolation, all roles, pick/undo rerenders; no extra requests or mutations");
 
 const scroller = new Element(),
   position = new Element(),
