@@ -192,7 +192,7 @@ function pokemonFilterAbilities(p, meta) {
   return [...(meta?.abilities || []), ...yAbilities];
 }
 function finalFilterBar(prefix, showBst = true) {
-  return `<div class="pokemon-filters type-filter-bar"><div class="filter-field wide"><label>Pokémon</label><input id="${prefix}-search" placeholder="Search Pokémon..."></div><div class="filter-field"><label>Sort</label><select id="${prefix}-sort"><option value="name">Name A–Z</option><option value="price-low">Price Low → High</option><option value="price-high">Price High → Low</option>${showBst ? '<option value="bst-high">BST High → Low</option><option value="bst-low">BST Low → High</option>' : ""}</select></div>${pokemonTypeFilter(prefix)}<div class="filter-field"><label>Mega</label><select id="${prefix}-mega"><option value="all">All Pokémon</option><option value="mega">Has Mega Evolution</option></select></div><div class="filter-field"><label>Move</label><input id="${prefix}-move" list="${prefix}-move-list" placeholder="Type a move..."><datalist id="${prefix}-move-list"></datalist></div><div class="filter-field"><label>Ability</label><input id="${prefix}-ability" list="${prefix}-ability-list" placeholder="Type an ability..."><datalist id="${prefix}-ability-list"></datalist></div><button type="button" class="secondary" id="${prefix}-clear">Clear</button></div>`;
+  return `<div class="pokemon-filters type-filter-bar"><div class="filter-field wide"><label>Pokémon</label><input id="${prefix}-search" placeholder="Search Pokémon..."></div><div class="filter-field"><label>Sort</label><select id="${prefix}-sort"><option value="name">Name A–Z</option><option value="price-low">Price Low → High</option><option value="price-high" selected>Price High → Low</option>${showBst ? '<option value="bst-high">BST High → Low</option><option value="bst-low">BST Low → High</option>' : ""}</select></div>${pokemonTypeFilter(prefix)}<div class="filter-field"><label>Mega</label><select id="${prefix}-mega"><option value="all">All Pokémon</option><option value="mega">Has Mega Evolution</option></select></div><div class="filter-field"><label>Move</label><input id="${prefix}-move" list="${prefix}-move-list" placeholder="Type a move..."><datalist id="${prefix}-move-list"></datalist></div><div class="filter-field"><label>Ability</label><input id="${prefix}-ability" list="${prefix}-ability-list" placeholder="Type an ability..."><datalist id="${prefix}-ability-list"></datalist></div><button type="button" class="secondary" id="${prefix}-clear">Clear</button></div>`;
 }
 async function wireFinalFilters(prefix, source, draw) {
   let filterRevision = 0;
@@ -243,7 +243,7 @@ async function wireFinalFilters(prefix, source, draw) {
     $(`#${prefix}-search`).value = "";
     $(`#${prefix}-move`).value = "";
     $(`#${prefix}-ability`).value = "";
-    $(`#${prefix}-sort`).value = "name";
+    $(`#${prefix}-sort`).value = "price-high";
     $(`#${prefix}-mega`).value = "all";
     $(`#${prefix}-type`).value = "all";
     return apply();
@@ -274,6 +274,7 @@ async function wireFinalFilters(prefix, source, draw) {
         .map((x) => `<option value="${esc(x)}"></option>`)
         .join("");
   })();
+  return apply();
 }
 renderStandings = async function () {
   const s = await api("/api/standings");

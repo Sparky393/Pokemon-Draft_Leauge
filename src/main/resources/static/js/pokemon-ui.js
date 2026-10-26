@@ -177,7 +177,7 @@ async function hydratePokemonCards(root = document) {
   await Promise.all(Array.from({ length: Math.min(10, cards.length) }, worker));
 }
 function advancedFilterBar(prefix) {
-  return `<div class="pokemon-filters type-filter-bar"><div class="filter-field wide"><label>Pokémon</label><input id="${prefix}-search" placeholder="Search Pokémon..."></div><div class="filter-field"><label>Price</label><select id="${prefix}-price"><option value="name">Name A–Z</option><option value="low">Price Low → High</option><option value="high">Price High → Low</option></select></div>${pokemonTypeFilter(prefix)}<div class="filter-field"><label>Move</label><input id="${prefix}-move" list="${prefix}-move-list" placeholder="Type a move..."><datalist id="${prefix}-move-list"></datalist></div><div class="filter-field"><label>Ability</label><input id="${prefix}-ability" list="${prefix}-ability-list" placeholder="Type an ability..."><datalist id="${prefix}-ability-list"></datalist></div><button type="button" class="secondary clear-poke-filters" id="${prefix}-clear">Clear</button></div>`;
+  return `<div class="pokemon-filters type-filter-bar"><div class="filter-field wide"><label>Pokémon</label><input id="${prefix}-search" placeholder="Search Pokémon..."></div><div class="filter-field"><label>Price</label><select id="${prefix}-price"><option value="name">Name A–Z</option><option value="low">Price Low → High</option><option value="high" selected>Price High → Low</option></select></div>${pokemonTypeFilter(prefix)}<div class="filter-field"><label>Move</label><input id="${prefix}-move" list="${prefix}-move-list" placeholder="Type a move..."><datalist id="${prefix}-move-list"></datalist></div><div class="filter-field"><label>Ability</label><input id="${prefix}-ability" list="${prefix}-ability-list" placeholder="Type an ability..."><datalist id="${prefix}-ability-list"></datalist></div><button type="button" class="secondary clear-poke-filters" id="${prefix}-clear">Clear</button></div>`;
 }
 async function wireAdvancedFilters(prefix, pokemon, draw) {
   const names = [...pokemon];
@@ -220,10 +220,11 @@ async function wireAdvancedFilters(prefix, pokemon, draw) {
     $(`#${prefix}-search`).value = "";
     $(`#${prefix}-move`).value = "";
     $(`#${prefix}-ability`).value = "";
-    $(`#${prefix}-price`).value = "name";
+    $(`#${prefix}-price`).value = "high";
     $(`#${prefix}-type`).value = "all";
     return apply();
   };
+  return apply();
 }
 renderRosters = async function () {
   const data = await api("/api/rosters");

@@ -130,9 +130,9 @@ function inputs(prefix, advanced = false) {
     fields.set(`#${prefix}-${name}`, {
       value: ["mega", "type"].includes(name)
         ? "all"
-        : ["sort", "price"].includes(name)
-          ? "name"
-          : "",
+        : name === "sort"
+          ? "price-high"
+          : name === "price" ? "high" : "",
       listeners: {},
       addEventListener(event, fn) {
         this.listeners[event] = fn;
@@ -146,6 +146,9 @@ for (const prefix of ["draft", "fa"]) {
   await context.wireFinalFilters(prefix, source,result => {
     rows = plain(result);
   });
+  assert.match(context.finalFilterBar(prefix), /value="price-high" selected/);
+  assert.deepEqual(rows.map(p => p.name), ["Garchomp", "Kingambit", "Charizard", "Rotom Wash", "Raichu"],
+    "The first render sorts highest price first, with names breaking ties");
   await Promise.all(source.map(p => context.getPokemonMeta(p.name)));
   const field =name => fields.get(`#${prefix}-${name}`);
   const change = async (name, value, event = "change") => {
@@ -164,10 +167,11 @@ for (const prefix of ["draft", "fa"]) {
     "Either side of a dual type matches"
   );
   await change("type", "electric");
-  assert.deepEqual(
-    rows.map(p => p.name),
-    ["Raichu", "Rotom Wash"]
-  );
+  assert.deepEqual(rows.map(p => p.name), ["Rotom Wash", "Raichu"]);
+  await change("sort", "name");
+  assert.deepEqual(rows.map(p => p.name), ["Raichu", "Rotom Wash"]);
+  await change("sort", "price-low");
+  assert.deepEqual(rows.map(p => p.name), ["Raichu", "Rotom Wash"]);
   await change("sort", "price-high");
   assert.deepEqual(
     rows.map(p => p.name),
@@ -195,6 +199,8 @@ for (const prefix of ["draft", "fa"]) {
   assert.deepEqual(rows, []);
   await field("clear").onclick();
   assert.equal(field("type").value, "all");
+  assert.equal(field("sort").value, "price-high");
+  assert.deepEqual(rows.map(p => p.price), [18, 18, 16, 12, 8]);
   assert.equal(rows.length, source.length);
   await change("mega", "mega");
   await change("type", "fire");
