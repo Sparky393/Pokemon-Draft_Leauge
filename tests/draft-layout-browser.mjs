@@ -94,9 +94,37 @@ try {
     await scroller.evaluate(node => {
       node.scrollTop = 500;
     });
-    const header = await page.locator(".draft-snake-table thead th").nth(2).boundingBox();
+    await scroller.scrollIntoViewIfNeeded();
     const bounds = await scroller.boundingBox();
-    assert.ok(Math.abs(header.y-bounds.y) < 15, "Headers stick to the board viewport");
+    const frozen = page.locator(".draft-snake-table thead");
+    const frozenTop = (await frozen.boundingBox()).y;
+    assert.ok(Math.abs(frozenTop - bounds.y) < 2, "The whole header row stays at the top of the board");
+    for (const scrollTop of [200, 800, 1100]) {
+      await scroller.evaluate((node, top) => { node.scrollTop = top; }, scrollTop);
+      assert.ok(Math.abs((await frozen.boundingBox()).y - frozenTop) < 1,
+        "The frozen row must not move as draft rounds scroll underneath");
+    }
+    const paint = await frozen.evaluate((head) => {
+      const style = getComputedStyle(head);
+      const cells = [...head.querySelectorAll("th")];
+      const viewport = head.closest(".draft-board-scroll").getBoundingClientRect();
+      const headerCell = cells.slice(1).find((cell) => {
+        const box = cell.getBoundingClientRect();
+        return Math.min(box.right, viewport.right) - Math.max(box.left, viewport.left + 70) > 12;
+      });
+      const box = headerCell?.getBoundingClientRect();
+      const pointX = box && (Math.max(box.left, viewport.left + 70) + Math.min(box.right, viewport.right)) / 2;
+      return {
+        position: style.position,
+        background: style.backgroundColor,
+        solidCells: cells.every((cell) => getComputedStyle(cell).backgroundColor === "rgb(20, 43, 69)"),
+        aboveCards: !!box && !!document.elementFromPoint(pointX, box.y + box.height / 2)?.closest("thead")
+      };
+    });
+    assert.equal(paint.position, "sticky");
+    assert.equal(paint.background, "rgb(20, 43, 69)", "Column gaps also have an opaque background");
+    assert.equal(paint.solidCells, true, "Global translucent styles must not override the frozen cells");
+    assert.equal(paint.aboveCards, true, "The frozen header stays above the scrolling cards");
     await scroller.evaluate(node => {
       node.scrollTop = 0;
       node.scrollLeft = 0;
@@ -142,7 +170,7 @@ try {
     });
     await context.close();
     console.log(
-      `PASS: ${width}px collapse, selection, prices, sticky headers, persistent scrolling, card fit, budget headers and guest permissions`
+      `PASS: ${width}px collapse, selection, prices, solid frozen headers, persistent scrolling, card fit, budget headers and guest permissions`
     );
   }
 } finally {

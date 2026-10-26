@@ -131,11 +131,18 @@
 .live-draft-board .draft-snake-table {
   min-width: 2600px;
 }
-.draft-snake-table thead th {
+/* Freeze one solid header band, including the gaps between team columns. */
+.live-draft-board .draft-snake-table thead {
   position: sticky;
   top: 0;
   z-index: 3;
   background: #142b45;
+  box-shadow: 0 2px 0 #385574;
+}
+.live-draft-board .draft-snake-table thead th,
+.live-draft-board .draft-snake-table .draft-round-heading {
+  /* Override the global translucent th theme within this board only. */
+  background: #142b45 !important;
 }
 .draft-team-budget {
   display: block;
