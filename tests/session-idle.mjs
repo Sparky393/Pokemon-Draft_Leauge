@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
-const IDLE = 180000;
+const IDLE = 300000;
 const source = readFileSync(
   "src/main/resources/static/js/session-idle.js",
   "utf8",
@@ -207,11 +207,11 @@ async function test(name, fn) {
   console.log("PASS:", name);
 }
 
-await test("poll requests never extend three-minute inactivity; exactly one logout; no later API traffic", async () => {
+await test("poll requests never extend five-minute inactivity; exactly one logout; no later API traffic", async () => {
   const w = world(),
     t = w.tab();
   assert.equal(t.begin(), true);
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 9; i++) {
     await w.advance(30000);
     await t.c.api("/api/notifications");
   }
@@ -238,9 +238,9 @@ await test("real keyboard/mouse/wheel/touch activity extends the deadline; synth
     const w = world(),
       t = w.tab();
     t.begin();
-    await w.advance(170000);
+    await w.advance(IDLE - 10000);
     t.input(event);
-    await w.advance(170000);
+    await w.advance(IDLE - 10000);
     assert.ok(t.state.user);
     await w.advance(10000);
     assert.equal(t.state.user, null);
@@ -252,7 +252,7 @@ await test("real keyboard/mouse/wheel/touch activity extends the deadline; synth
     const w = world(),
       t = w.tab();
     t.begin();
-    await w.advance(170000);
+    await w.advance(IDLE - 10000);
     t.input(event, trusted);
     await w.advance(10000);
     assert.equal(t.state.user, null);
@@ -360,7 +360,7 @@ await test("activity in another tab keeps the shared session alive; logout propa
   a.begin();
   const b = w.tab();
   assert.equal(b.begin(false), true);
-  await w.advance(170000);
+  await w.advance(IDLE - 10000);
   b.input();
   await w.advance(20000);
   assert.ok(a.state.user);

@@ -64,11 +64,11 @@ try {
       true,
       "Real input extends the idle deadline",
     );
-    await page.clock.fastForward(61000);
+    await page.clock.fastForward(181000);
     await page.locator("#login-screen:not(.hidden)").waitFor();
     assert.match(
       await page.locator("#session-idle-message").innerText(),
-      /3 minutes/,
+      /5 minutes/,
     );
     assert.equal(
       requests.filter((path) => path === "/api/auth/logout").length,

@@ -1,6 +1,6 @@
-/* Three minutes of real input inactivity. All state is browser/session state, never league data. */
+/* Five minutes of real input inactivity. All state is browser/session state, never league data. */
 (() => {
-  const IDLE_MS = 180000;
+  const IDLE_MS = 300000;
   const STORAGE_KEY = "league-session-activity-v1";
   let active = false,
     stopped = false,
@@ -75,7 +75,7 @@
     }
   }
   function logout(
-    message = "Signed out after 3 minutes without activity. Sign in again to continue.",
+    message = "Signed out after 5 minutes without activity. Sign in again to continue.",
   ) {
     if (stopped) return logoutPromise || Promise.resolve();
     stopLocal(message); // Stop requests before the final, session-only logout call.
