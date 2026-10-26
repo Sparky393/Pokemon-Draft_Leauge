@@ -59,8 +59,8 @@ class TeamBrandingControllerTest {
 
   @Test
   void coachRenamesOnlyTheirOwnTeam() {
-    Team changed =
-        controller.rename(new TeamBrandingController.TeamNameRequest("  New Burn  "), session);
+    Team changed = controller.rename(new TeamBrandingController.TeamNameRequest("  New Burn  "),
+        session);
     assertEquals("New Burn", changed.getName());
     assertEquals("Wide Right", other.getName());
     verify(teams).rename(1L, "New Burn");
@@ -69,61 +69,45 @@ class TeamBrandingControllerTest {
   @Test
   void managerCannotRenameOrUploadTeamBranding() throws Exception {
     when(auth.current(session)).thenReturn(new AppUser("manager", "secret", Role.MANAGER, null));
-    assertEquals(
-        HttpStatus.FORBIDDEN,
-        assertThrows(
-                ResponseStatusException.class,
-                () -> controller.rename(new TeamBrandingController.TeamNameRequest("New"), session))
+    assertEquals(HttpStatus.FORBIDDEN,
+        assertThrows(ResponseStatusException.class,
+            () -> controller.rename(new TeamBrandingController.TeamNameRequest("New"), session))
             .getStatusCode());
-    assertEquals(
-        HttpStatus.FORBIDDEN,
-        assertThrows(
-                ResponseStatusException.class,
-                () ->
-                    controller.upload(
-                        new MockMultipartFile("file", "image.png", "image/png", new byte[] {1}),
-                        session))
+    assertEquals(HttpStatus.FORBIDDEN,
+        assertThrows(ResponseStatusException.class,
+            () -> controller.upload(
+                new MockMultipartFile("file", "image.png", "image/png", new byte[] { 1 }), session))
             .getStatusCode());
     verify(teams, never()).save(any());
   }
 
   @Test
   void duplicateAndInvalidNamesAreRejected() {
-    assertEquals(
-        HttpStatus.CONFLICT,
-        assertThrows(
-                ResponseStatusException.class,
-                () ->
-                    controller.rename(
-                        new TeamBrandingController.TeamNameRequest("wide right"), session))
-            .getStatusCode());
-    assertEquals(
-        HttpStatus.BAD_REQUEST,
-        assertThrows(
-                ResponseStatusException.class,
-                () -> controller.rename(new TeamBrandingController.TeamNameRequest(" "), session))
+    assertEquals(HttpStatus.CONFLICT, assertThrows(ResponseStatusException.class,
+        () -> controller.rename(new TeamBrandingController.TeamNameRequest("wide right"), session))
+        .getStatusCode());
+    assertEquals(HttpStatus.BAD_REQUEST,
+        assertThrows(ResponseStatusException.class,
+            () -> controller.rename(new TeamBrandingController.TeamNameRequest(" "), session))
             .getStatusCode());
     verify(teams, never()).save(any());
   }
 
   @Test
   void logoIsStoredInDatabaseAndNotSerializedInTeamLists() throws Exception {
-    byte[] png =
-        Base64.getDecoder()
-            .decode(
-                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9YueWUkAAAAASUVORK5CYII=");
+    byte[] png = Base64.getDecoder().decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9YueWUkAAAAASUVORK5CYII=");
     controller.upload(new MockMultipartFile("file", "logo.png", "image/png", png), session);
     assertEquals("image/png", mine.getLogoContentType());
     assertEquals(Base64.getEncoder().encodeToString(png), mine.getLogoBase64());
     assertTrue(mine.getLogoUrl().startsWith("/api/teams/1/logo?v="));
     assertArrayEquals(png, controller.logo(1L, session).getBody());
     assertNotNull(
-        Team.class
-            .getMethod("getLogoBase64")
+        Team.class.getMethod("getLogoBase64")
             .getAnnotation(com.fasterxml.jackson.annotation.JsonIgnore.class),
         "Team JSON must never include raw base64 image data");
-    assertNotNull(
-        Team.class.getMethod("getLogoUrl"), "Team JSON must expose a lightweight image URL");
+    assertNotNull(Team.class.getMethod("getLogoUrl"),
+        "Team JSON must expose a lightweight image URL");
     controller.removeLogo(session);
     assertNull(mine.getLogoUrl());
     assertNull(mine.getLogoBase64());
@@ -131,25 +115,16 @@ class TeamBrandingControllerTest {
 
   @Test
   void rejectsFakeImageAndOversizedUpload() {
-    assertEquals(
-        HttpStatus.BAD_REQUEST,
-        assertThrows(
-                ResponseStatusException.class,
-                () ->
-                    controller.upload(
-                        new MockMultipartFile(
-                            "file", "fake.png", "image/png", "this is not an image".getBytes()),
-                        session))
+    assertEquals(HttpStatus.BAD_REQUEST,
+        assertThrows(ResponseStatusException.class,
+            () -> controller.upload(new MockMultipartFile("file", "fake.png", "image/png",
+                "this is not an image".getBytes()), session))
             .getStatusCode());
-    assertEquals(
-        HttpStatus.BAD_REQUEST,
-        assertThrows(
-                ResponseStatusException.class,
-                () ->
-                    controller.upload(
-                        new MockMultipartFile(
-                            "file", "big.png", "image/png", new byte[1024 * 1024 + 1]),
-                        session))
+    assertEquals(HttpStatus.BAD_REQUEST,
+        assertThrows(ResponseStatusException.class,
+            () -> controller.upload(
+                new MockMultipartFile("file", "big.png", "image/png", new byte[1024 * 1024 + 1]),
+                session))
             .getStatusCode());
   }
 }

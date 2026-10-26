@@ -51,9 +51,7 @@
     grid.querySelectorAll(".display-selectable").forEach((c) => {
       c.onclick = () => {
         if (d.locked) {
-          const p = d.roster.find(
-            (x) => x.pokemonId === Number(c.dataset.pokemonId),
-          );
+          const p = d.roster.find((x) => x.pokemonId === Number(c.dataset.pokemonId),);
           if (p) showPokemonDetails(p);
           return;
         }
@@ -63,26 +61,21 @@
           selected.delete(id);
           c.classList.remove("selected");
         } else {
-          if (selected.size >= 6)
-            return toast("You can only select 6 Pokémon", true);
+          if (selected.size >= 6) return toast("You can only select 6 Pokémon", true);
           selected.add(id);
           c.classList.add("selected");
         }
 
         $("#lineup-count").textContent = `${selected.size}/6 selected`;
         $("#lineup-message").textContent =
-          selected.size === 6
-            ? "Ready to submit."
-            : "Select exactly six Pokémon.";
+          selected.size === 6 ? "Ready to submit." : "Select exactly six Pokémon.";
       };
     });
 
     grid.querySelectorAll(".display-selectable").forEach((c) =>
       c.addEventListener("dblclick", (e) => {
         e.preventDefault();
-        const p = d.roster.find(
-          (x) => x.pokemonId === Number(c.dataset.pokemonId),
-        );
+        const p = d.roster.find((x) => x.pokemonId === Number(c.dataset.pokemonId),);
         if (p) showPokemonDetails(p);
       }),
     );
@@ -128,12 +121,8 @@
       (b) =>
         (b.onclick = async () => {
           const id = b.dataset.id;
-          const h = document.querySelector(
-            `.score-home[data-id="${id}"]`,
-          ).value;
-          const a = document.querySelector(
-            `.score-away[data-id="${id}"]`,
-          ).value;
+          const h = document.querySelector(`.score-home[data-id="${id}"]`,).value;
+          const a = document.querySelector(`.score-away[data-id="${id}"]`,).value;
           if (h === "" || a === "") return toast("Enter both scores", true);
           try {
             await api(`/api/manager/results/${id}`, {

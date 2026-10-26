@@ -15,7 +15,8 @@ public class DraftPick {
   private Long pokemonId;
   private LocalDateTime pickedAt;
 
-  public DraftPick() {}
+  public DraftPick() {
+  }
 
   public DraftPick(int overallPick, int roundNumber, Long teamId, Long pokemonId) {
     this.overallPick = overallPick;

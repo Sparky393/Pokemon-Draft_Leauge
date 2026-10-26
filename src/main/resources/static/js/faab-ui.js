@@ -55,21 +55,12 @@
             const r = await api("/api/manager/free-agency/process", {
               method: "POST",
             });
-            toast(
-              `FAAB processed: ${r.winners} winning bid${r.winners === 1 ? "" : "s"}`,
-            );
+            toast(`FAAB processed: ${r.winners} winning bid${r.winners === 1 ? "" : "s"}`,);
             if (r.wheels?.length)
               alert(
                 "Wheel tiebreak results:\\n" +
                   r.wheels
-                    .map(
-                      (w) =>
-                        w.pokemon +
-                        ": " +
-                        w.teams.join(" / ") +
-                        " → " +
-                        w.winner,
-                    )
+                    .map((w) => w.pokemon + ": " + w.teams.join(" / ") + " → " + w.winner,)
                     .join("\\n"),
               );
             await renderBids();
@@ -88,8 +79,7 @@
     const reserved = pendingBids.reduce((sum, b) => sum + b.amount, 0);
     const budget = Math.max(0, Math.min(3, me?.faBudget ?? 0) - reserved);
     const open = !!state.settings?.waiverWindowOpen;
-    $("#fa-content").innerHTML =
-      `<div class="card"><h2>Submit Blind FAAB Bid</h2>
+    $("#fa-content").innerHTML = `<div class="card"><h2>Submit Blind FAAB Bid</h2>
       <p>FAAB available to bid: <strong>${budget}/$3</strong> · Roster: <strong>${myRoster.length}/10</strong></p>
       <p class="muted">Two waiver periods in Week 4 after all Week 3 results. Each bid is $1–$3; combined pending bids cannot exceed available FAAB. Teams must have exactly 10 Pokémon, and the free agent cannot cost more than the Pokémon dropped.</p>
       <div class="toolbar">
@@ -104,11 +94,7 @@
     $("#fa-content .cancel-faab-bid").forEach((button) => {
       button.disabled = !open;
       button.onclick = async () => {
-        if (
-          !confirm(
-            "Withdraw this pending FAAB bid? It will no longer be eligible to win.",
-          )
-        )
+        if (!confirm("Withdraw this pending FAAB bid? It will no longer be eligible to win.",))
           return;
         button.disabled = true;
         try {
@@ -126,37 +112,27 @@
 
     const preview = () => {
       const wanted = free.find((p) => p.id === Number($("#bid-wanted").value));
-      const drop = myRoster.find(
-        (p) => p.pokemonId === Number($("#bid-drop").value),
-      );
+      const drop = myRoster.find((p) => p.pokemonId === Number($("#bid-drop").value),);
       const amount = Number($("#bid-amount").value);
       const current = myRoster.reduce((sum, p) => sum + (p.price || 0), 0);
       const after = current - (drop?.price || 0) + (wanted?.price || 0);
       let reason = "";
       if (!open)
-        reason =
-          state.settings?.waiverClosedReason ||
-          "Week 4 waivers are currently closed.";
+        reason = state.settings?.waiverClosedReason || "Week 4 waivers are currently closed.";
       else if (!complete)
         reason = `Your roster has ${myRoster.length}/10 Pokémon. You need exactly 10 to bid.`;
-      else if (pendingBids.length >= 3)
-        reason = "You already have the maximum of 3 pending bids.";
-      else if (budget <= 0)
-        reason = "You have no available FAAB after existing bids.";
+      else if (pendingBids.length >= 3) reason = "You already have the maximum of 3 pending bids.";
+      else if (budget <= 0) reason = "You have no available FAAB after existing bids.";
       else if (!free.length) reason = "No free agents are currently available.";
       else if (!wanted) reason = "Choose the free agent you want to acquire.";
-      else if (!drop)
-        reason = "Choose a Pokémon from your roster to drop if the bid wins.";
+      else if (!drop) reason = "Choose a Pokémon from your roster to drop if the bid wins.";
       else if (pendingBids.some((b) => Number(b.wantedPokemonId) === wanted.id))
         reason = `You already have a pending bid for ${wanted.name}.`;
-      else if (
-        pendingBids.some((b) => Number(b.dropPokemonId) === drop.pokemonId)
-      )
+      else if (pendingBids.some((b) => Number(b.dropPokemonId) === drop.pokemonId))
         reason = `${drop.name} is already selected as the drop in another pending bid.`;
       else if (wanted.price > drop.price)
         reason = `${wanted.name} costs $${wanted.price}, but ${drop.name} costs $${drop.price}. The free agent cannot cost more than your drop.`;
-      else if (after > 100)
-        reason = `This move would put your roster at $${after}/$100.`;
+      else if (after > 100) reason = `This move would put your roster at $${after}/$100.`;
       else if (!Number.isInteger(amount) || amount < 1 || amount > budget)
         reason = `Enter a whole-dollar bid between $1 and $${budget}.`;
       $("#submit-bid").disabled = !!reason;
@@ -175,10 +151,7 @@
         drop = dropValue ? Number(dropValue) : null,
         amount = Number($("#bid-amount").value);
       if (!complete)
-        return toast(
-          "Your roster must have exactly 10 Pokemon before using free agency",
-          true,
-        );
+        return toast("Your roster must have exactly 10 Pokemon before using free agency", true,);
       if (!wanted) return toast("Choose a free agent", true);
       if (!drop) return toast("Choose who to drop if you win", true);
       if (!Number.isInteger(amount) || amount < 1 || amount > budget)

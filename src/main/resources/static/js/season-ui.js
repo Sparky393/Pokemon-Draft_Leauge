@@ -82,12 +82,7 @@ function wireSeasonScores(scope, refresh, playoff = false) {
   });
   scope.querySelectorAll(".clear-result").forEach((button) => {
     button.onclick = async () => {
-      if (
-        playoff &&
-        !confirm(
-          "Clear this playoff result? Later-round fixtures may be reset.",
-        )
-      )
+      if (playoff && !confirm("Clear this playoff result? Later-round fixtures may be reset.",))
         return;
       try {
         await api(`/api/manager/results/${button.dataset.id}`, {
@@ -124,9 +119,7 @@ renderSchedule = async function () {
   // navigation creates a fresh render, so this never hides new saved results.
   let allGames = initialQuery === "/api/flow/schedule" ? initialGames : null;
   let filterRequest = 0;
-  const options = state.teams
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const options = state.teams.slice().sort((a, b) => a.name.localeCompare(b.name));
   root.innerHTML = `
     <div class="page-hero"><div><div class="eyebrow">Official Season 2 Fixtures</div>
     <h1>Schedule / Results</h1><p class="muted">Every regular-season matchup follows the published spreadsheet. Weeks 4, 8 and 9 have no games or lineups.</p></div></div>
@@ -145,21 +138,17 @@ renderSchedule = async function () {
   const draw = () => {
     seasonSelectedWeek = root.querySelector("#schedule-week").value;
     seasonSelectedTeam = root.querySelector("#schedule-team").value;
-    const selected =
-      seasonSelectedTeam === "all" ? null : Number(seasonSelectedTeam);
+    const selected = seasonSelectedTeam === "all" ? null : Number(seasonSelectedTeam);
     const target = root.querySelector("#schedule-results");
     const availableWeeks = calendar.filter(
-      (w) =>
-        seasonSelectedWeek === "all" || Number(seasonSelectedWeek) === w.week,
+      (w) => seasonSelectedWeek === "all" || Number(seasonSelectedWeek) === w.week,
     );
     target.innerHTML = availableWeeks
       .map((w) => {
         const rows = games.filter(
           (m) =>
             m.week === w.week &&
-            (!selected ||
-              m.homeTeamId === selected ||
-              m.awayTeamId === selected),
+            (!selected || m.homeTeamId === selected || m.awayTeamId === selected),
         );
         let body;
         if (!w.lineupRequired) {
@@ -167,11 +156,7 @@ renderSchedule = async function () {
           <p>${w.kind === "free_agency" ? "Free agency / waivers only." : "League-wide bye week."}</p>
           ${(w.waiverNotes || []).map((note) => `<p class="muted">${esc(note)}</p>`).join("")}</div>`;
         } else if (rows.length) {
-          body = rows
-            .map((m) =>
-              seasonMatchCard(m, lockedWeeks[String(m.week)] === true),
-            )
-            .join("");
+          body = rows.map((m) => seasonMatchCard(m, lockedWeeks[String(m.week)] === true),).join("");
         } else if (w.kind === "playoffs") {
           body =
             '<div class="season-off-week">Playoff matchups will appear as seeds and winners are determined. See the Playoffs tab.</div>';
@@ -209,11 +194,7 @@ renderSchedule = async function () {
     try {
       const query = scheduleQuery();
       const next = await api(query);
-      if (
-        request !== filterRequest ||
-        root.dataset.scheduleGeneration !== renderId
-      )
-        return;
+      if (request !== filterRequest || root.dataset.scheduleGeneration !== renderId) return;
       if (query === "/api/flow/schedule") allGames = next;
       games = next;
       draw();
@@ -232,10 +213,7 @@ renderSchedule = async function () {
 };
 
 renderPlayoffs = async function () {
-  const [bracket, lockedWeeks] = await Promise.all([
-    api("/api/playoffs"),
-    api("/api/weeks/locks"),
-  ]);
+  const [bracket, lockedWeeks] = await Promise.all([api("/api/playoffs"), api("/api/weeks/locks"),]);
   const root = $("#page-playoffs");
   const stage = (week, title, dates) => {
     const games = bracket.games.filter((g) => g.week === week);

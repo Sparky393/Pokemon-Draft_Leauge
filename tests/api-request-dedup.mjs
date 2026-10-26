@@ -7,15 +7,10 @@ const calls = [];
 const context = vm.createContext({
   structuredClone,
   fetch(url, options) {
-    return new Promise((resolve, reject) =>
-      calls.push({ url, options, resolve, reject }),
-    );
+    return new Promise((resolve, reject) => calls.push({ url, options, resolve, reject }),);
   },
 });
-vm.runInContext(
-  readFileSync("src/main/resources/static/js/api-fix.js", "utf8"),
-  context,
-);
+vm.runInContext(readFileSync("src/main/resources/static/js/api-fix.js", "utf8"), context,);
 const api = context.api;
 function complete(call, value = { items: [1] }) {
   call.resolve({
@@ -31,11 +26,7 @@ assert.equal(calls.length, 1, "Identical concurrent reads share a request");
 complete(calls[0]);
 const [a, b] = await Promise.all([first, second]);
 a.items.push(2);
-assert.deepEqual(
-  b.items,
-  [1],
-  "Consumers receive independent response objects",
-);
+assert.deepEqual(b.items, [1], "Consumers receive independent response objects",);
 
 const later = api("/api/teams");
 assert.equal(calls.length, 2, "Completed responses are never reused");
@@ -64,11 +55,7 @@ await retry;
 
 const explicitA = api("/api/teams", { headers: { "X-Test": "a" } });
 const explicitB = api("/api/teams", { headers: { "X-Test": "b" } });
-assert.equal(
-  calls.length,
-  9,
-  "Reads with explicit request options are not coalesced",
-);
+assert.equal(calls.length, 9, "Reads with explicit request options are not coalesced",);
 complete(calls[7]);
 complete(calls[8]);
 await Promise.all([explicitA, explicitB]);

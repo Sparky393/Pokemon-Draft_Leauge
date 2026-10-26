@@ -40,14 +40,15 @@ public class CoachLoginMigrationService {
     }
 
     List<AppUser> accounts = users.findAll();
-    Map<String, AppUser> ownerOfUsername =
-        accounts.stream().collect(Collectors.toMap(AppUser::getUsername, user -> user));
-    Map<Long, AppUser> byId =
-        accounts.stream().collect(Collectors.toMap(AppUser::getId, user -> user));
+    Map<String, AppUser> ownerOfUsername = accounts.stream()
+        .collect(Collectors.toMap(AppUser::getUsername, user -> user));
+    Map<Long, AppUser> byId = accounts.stream()
+        .collect(Collectors.toMap(AppUser::getId, user -> user));
     Map<Long, String> desired = new LinkedHashMap<>();
 
     for (AppUser account : accounts) {
-      if (account.getRole() != Role.COACH || account.getTeamId() == null) continue;
+      if (account.getRole() != Role.COACH || account.getTeamId() == null)
+        continue;
       String coachName = coachByTeam.get(account.getTeamId());
       if (coachName != null && !coachName.equals(account.getUsername()))
         desired.put(account.getId(), coachName);
@@ -59,10 +60,7 @@ public class CoachLoginMigrationService {
     for (Map.Entry<Long, String> entry : new ArrayList<>(desired.entrySet())) {
       Long previous = firstOwner.putIfAbsent(entry.getValue(), entry.getKey());
       if (previous != null) {
-        log.warn(
-            "Skipping conflicting login {} for accounts {} and {}",
-            entry.getValue(),
-            previous,
+        log.warn("Skipping conflicting login {} for accounts {} and {}", entry.getValue(), previous,
             entry.getKey());
         desired.remove(previous);
         desired.remove(entry.getKey());
@@ -76,14 +74,10 @@ public class CoachLoginMigrationService {
       changed = false;
       for (Map.Entry<Long, String> entry : new ArrayList<>(desired.entrySet())) {
         AppUser owner = ownerOfUsername.get(entry.getValue());
-        if (owner != null
-            && !owner.getId().equals(entry.getKey())
+        if (owner != null && !owner.getId().equals(entry.getKey())
             && !desired.containsKey(owner.getId())) {
-          log.warn(
-              "Cannot change coach login {} to {}; reserved by account {}",
-              entry.getKey(),
-              entry.getValue(),
-              owner.getId());
+          log.warn("Cannot change coach login {} to {}; reserved by account {}", entry.getKey(),
+              entry.getValue(), owner.getId());
           desired.remove(entry.getKey());
           changed = true;
         }
@@ -110,8 +104,7 @@ public class CoachLoginMigrationService {
       users.saveAndFlush(account);
     }
     if (!desired.isEmpty())
-      log.info(
-          "Synchronized {} coach account usernames to existing team.coach_name values",
+      log.info("Synchronized {} coach account usernames to existing team.coach_name values",
           desired.size());
   }
 }

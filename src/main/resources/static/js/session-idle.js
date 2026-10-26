@@ -18,9 +18,7 @@
   const readShared = () => {
     try {
       const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      return value &&
-        typeof value.session === "string" &&
-        Number.isFinite(value.lastActivity)
+      return value && typeof value.session === "string" && Number.isFinite(value.lastActivity)
         ? value
         : null;
     } catch {
@@ -61,9 +59,7 @@
     }
     document.querySelector("#app")?.classList.add("hidden");
     document.querySelector("#login-screen")?.classList.remove("hidden");
-    document
-      .querySelectorAll(".pokemon-detail-overlay")
-      .forEach((node) => node.remove());
+    document.querySelectorAll(".pokemon-detail-overlay").forEach((node) => node.remove());
     for (const id of ["#login-username", "#login-password"]) {
       const input = document.querySelector(id);
       if (input) input.value = "";
@@ -92,9 +88,7 @@
     const shared = readShared();
     if (!active || !shared) return;
     if (shared.session !== session) {
-      stopLocal(
-        "The session changed in another tab. Sign in again to continue.",
-      );
+      stopLocal("The session changed in another tab. Sign in again to continue.",);
     } else if (shared.loggedOut) {
       stopLocal("Signed out in another tab. Sign in again to continue.");
     } else {
@@ -131,9 +125,7 @@
     active = true;
     identity = key;
     const reuse = !fresh && shared?.identity === key;
-    session = reuse
-      ? shared.session
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    session = reuse ? shared.session : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     lastActivity = reuse ? shared.lastActivity : Date.now();
     needsRefresh = document.hidden;
     if (reuse && shared.loggedOut) {
@@ -174,14 +166,7 @@
     schedule();
   }
   async function resume() {
-    if (
-      !active ||
-      expired() ||
-      document.hidden ||
-      !needsRefresh ||
-      refreshPromise
-    )
-      return;
+    if (!active || expired() || document.hidden || !needsRefresh || refreshPromise) return;
     if (!refreshPage) return;
     const started = generation;
     busy(true);
@@ -201,19 +186,12 @@
   }
   function beforeRequest(url, options) {
     const path = String(url).split("?")[0];
-    const entry = [
-      "/api/auth/login",
-      "/api/auth/guest",
-      "/api/auth/logout",
-    ].includes(path);
+    const entry = ["/api/auth/login", "/api/auth/guest", "/api/auth/logout",].includes(path);
     if (entry) return { assertCurrent() {}, finish() {} };
     if (expired() || (!active && (stopped || path !== "/api/auth/me")))
       throw new Error("Your session has ended. Sign in again to continue.");
-    if (document.hidden)
-      throw new Error("League requests pause while this tab is hidden.");
-    const read = ["GET", "HEAD"].includes(
-      (options.method || "GET").toUpperCase(),
-    );
+    if (document.hidden) throw new Error("League requests pause while this tab is hidden.");
+    const read = ["GET", "HEAD"].includes((options.method || "GET").toUpperCase(),);
     if (!read && (needsRefresh || refreshPromise))
       throw new Error("League data is refreshing. Wait before submitting.");
     const started = generation;
@@ -229,9 +207,7 @@
     return {
       assertCurrent() {
         if (generation !== started || stopped || controller?.signal.aborted)
-          throw new Error(
-            "The session or page changed before this request finished.",
-          );
+          throw new Error("The session or page changed before this request finished.",);
       },
       finish() {
         if (controller) reads.delete(controller);
@@ -248,26 +224,14 @@
       return stopped;
     },
     canPoll() {
-      return (
-        active &&
-        !expired() &&
-        !document.hidden &&
-        !needsRefresh &&
-        !refreshPromise
+      return ( active && !expired() && !document.hidden && !needsRefresh && !refreshPromise
       );
     },
     setRefresh(callback) {
       refreshPage = callback;
     },
   };
-  for (const name of [
-    "pointerdown",
-    "pointermove",
-    "keydown",
-    "wheel",
-    "touchstart",
-    "touchmove",
-  ])
+  for (const name of ["pointerdown", "pointermove", "keydown", "wheel", "touchstart", "touchmove",])
     document.addEventListener(name, activity, { capture: true, passive: true });
   // Do not count programmatic scrolls or polling responses as activity.
   document.addEventListener("visibilitychange", () => {

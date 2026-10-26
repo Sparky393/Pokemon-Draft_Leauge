@@ -21,7 +21,8 @@ public class AppUser {
 
   private Long teamId;
 
-  public AppUser() {}
+  public AppUser() {
+  }
 
   public AppUser(String username, String password, Role role, Long teamId) {
     this.username = username;

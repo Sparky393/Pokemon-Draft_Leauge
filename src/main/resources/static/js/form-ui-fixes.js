@@ -44,13 +44,17 @@ const PALAFIN_HERO_SLUG = "palafin-hero";
 // Display-only forms: these never create separate draft slots or database rows.
 const MEGA_Y_METADATA = {
   "charizard-mega-y": {
-    types: ["Fire", "Flying"], abilities: ["Drought"],
-    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10035.png",
+    types: ["Fire", "Flying"],
+    abilities: ["Drought"],
+    image:
+      "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10035.png",
     values: [78, 104, 78, 159, 115, 100],
   },
   "raichu-mega-y": {
-    types: ["Electric"], abilities: ["No Guard"],
-    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10305.png",
+    types: ["Electric"],
+    abilities: ["No Guard"],
+    image:
+      "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10305.png",
     values: [60, 100, 55, 160, 80, 130],
   },
 };
@@ -59,11 +63,16 @@ const MEGA_Y_METADATA = {
 const oldFetchMetaBySlug = fetchMetaBySlug;
 fetchMetaBySlug = async function (slug) {
   const known = MEGA_Y_METADATA[slug];
-  if (known) return {
-    image: known.image, types: [...known.types], abilities: [...known.abilities], moves: [],
-    stats: ["Hp", "Attack", "Defense", "Special Attack", "Special Defense", "Speed"]
-      .map((name, i) => ({ name, value: known.values[i] })),
-  };
+  if (known)
+    return {
+      image: known.image,
+      types: [...known.types],
+      abilities: [...known.abilities],
+      moves: [],
+      stats: ["Hp", "Attack", "Defense", "Special Attack", "Special Defense", "Speed"].map(
+        (name, i) => ({ name, value: known.values[i] })
+      ),
+    };
   const found = await oldFetchMetaBySlug(slug);
   if (found) return found;
   if (slug === "meowstic-mega")
@@ -90,9 +99,7 @@ showPokemonDetails = function (p) {
     document.querySelector(".pokemon-detail-overlay")?.remove();
     const allForms = megaFormsFor(p.name);
     const normalMega =
-      MEOWSTIC_MEGA_SLUGS[p.name] ||
-      allForms.find((slug) => !slug.endsWith("-mega-z")) ||
-      null;
+      MEOWSTIC_MEGA_SLUGS[p.name] || allForms.find((slug) => !slug.endsWith("-mega-z")) || null;
     const yMega = allForms.find((slug) => slug.endsWith("-mega-y")) || null;
     const zMega = Z_MEGA_SLUGS[p.name] || null;
     const hasHero = p.name === "Palafin";
@@ -111,16 +118,11 @@ showPokemonDetails = function (p) {
         const mm = await fetchMetaBySlug(normalMega);
         if (mm) {
           meta = mm;
-          title = p.name.startsWith("Meowstic")
-            ? "Mega Meowstic"
-            : megaLabel(normalMega);
+          title = p.name.startsWith("Meowstic") ? "Mega Meowstic" : megaLabel(normalMega);
           badge = "MEGA";
           eyebrow = "Mega Evolution";
         } else {
-          toast(
-            "Mega data is not available from the Pokémon data service yet.",
-            true,
-          );
+          toast("Mega data is not available from the Pokémon data service yet.", true,);
           active = "base";
         }
       } else if (active === "y" && yMega) {
@@ -142,10 +144,7 @@ showPokemonDetails = function (p) {
           badge = "Z MEGA";
           eyebrow = "Z Mega Evolution";
         } else {
-          toast(
-            "Z Mega data is not available from the Pokémon data service yet.",
-            true,
-          );
+          toast("Z Mega data is not available from the Pokémon data service yet.", true,);
           active = "base";
         }
       } else if (active === "hero" && hasHero) {
@@ -156,15 +155,15 @@ showPokemonDetails = function (p) {
           badge = "HERO";
           eyebrow = "Zero to Hero";
         } else {
-          toast(
-            "Palafin Hero data is not available from the Pokémon data service yet.",
-            true,
-          );
+          toast("Palafin Hero data is not available from the Pokémon data service yet.", true,);
           active = "base";
         }
       }
 
-      if (globalThis.leagueSession?.isEnded()) { overlay.remove(); return; }
+      if (globalThis.leagueSession?.isEnded()) {
+        overlay.remove();
+        return;
+      }
       if (revision !== paintRevision) return;
       const controls = [];
       if (normalMega)
@@ -187,9 +186,16 @@ showPokemonDetails = function (p) {
           (btn.onclick = async (e) => {
             e.stopPropagation();
             const requested = btn.dataset.form;
-            active = requested === "mega" && yMega
-              ? active === "mega" ? "y" : active === "y" ? "base" : "mega"
-              : active === requested ? "base" : requested;
+            active =
+              requested === "mega" && yMega
+                ? active === "mega"
+                  ? "y"
+                  : active === "y"
+                    ? "base"
+                    : "mega"
+                : active === requested
+                  ? "base"
+                  : requested;
             await paint();
           }),
       );

@@ -15,7 +15,6 @@ public interface DraftPickRepository extends JpaRepository<DraftPick, Long> {
     Long getLastPickId();
   }
 
-  @org.springframework.data.jpa.repository.Query(
-      "select count(p) as pickCount, max(p.id) as lastPickId from DraftPick p")
+  @org.springframework.data.jpa.repository.Query("select count(p) as pickCount, max(p.id) as lastPickId from DraftPick p")
   Status status();
 }

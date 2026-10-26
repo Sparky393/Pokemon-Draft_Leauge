@@ -15,7 +15,8 @@ public class Matchup {
   private Integer awayScore;
   private boolean played;
 
-  public Matchup() {}
+  public Matchup() {
+  }
 
   public Matchup(int week, Long homeTeamId, Long awayTeamId) {
     this.week = week;

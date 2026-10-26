@@ -9,16 +9,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest(
-    properties = {
-      "spring.datasource.url=jdbc:h2:mem:repositorytest;DB_CLOSE_DELAY=-1",
-      "spring.jpa.hibernate.ddl-auto=create-drop"
-    })
+@SpringBootTest(properties = { "spring.datasource.url=jdbc:h2:mem:repositorytest;DB_CLOSE_DELAY=-1",
+    "spring.jpa.hibernate.ddl-auto=create-drop" })
 @Transactional
 class RepositoryIntegrationTest {
-  @Autowired AppUserRepository users;
-  @Autowired FreeAgentBidRepository bids;
-  @Autowired LeagueSettingsRepository settings;
+  @Autowired
+  AppUserRepository users;
+  @Autowired
+  FreeAgentBidRepository bids;
+  @Autowired
+  LeagueSettingsRepository settings;
 
   @Test
   void savesUserAndRetrievesByUsername() {

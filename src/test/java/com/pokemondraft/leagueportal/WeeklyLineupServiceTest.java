@@ -19,8 +19,8 @@ class WeeklyLineupServiceTest {
   MatchupRepository matchups = mock(MatchupRepository.class);
   LeagueSettingsRepository settings = mock(LeagueSettingsRepository.class);
   PokemonRepository pokemon = mock(PokemonRepository.class);
-  WeeklyLineupService service =
-      new WeeklyLineupService(submissions, roster, matchups, settings, pokemon);
+  WeeklyLineupService service = new WeeklyLineupService(submissions, roster, matchups, settings,
+      pokemon);
   LeagueSettings config = new LeagueSettings();
   List<Long> six = List.of(10L, 11L, 12L, 13L, 14L, 15L);
 
@@ -33,37 +33,25 @@ class WeeklyLineupServiceTest {
         .thenReturn(six.stream().map(id -> new RosterEntry(1L, id)).toList());
     when(submissions.findByTeamIdAndWeek(anyLong(), anyInt())).thenReturn(Optional.empty());
     when(submissions.save(any(WeeklySubmission.class))).thenAnswer(inv -> inv.getArgument(0));
-    when(roster.findByTeamIdIn(anyCollection()))
-        .thenAnswer(
-            inv -> {
-              Collection<Long> ids = inv.getArgument(0);
-              return ids.stream().flatMap(id -> roster.findByTeamId(id).stream()).toList();
-            });
-    when(submissions.findLatestBeforeWeek(anyCollection(), anyInt()))
-        .thenAnswer(
-            inv -> {
-              Collection<Long> ids = inv.getArgument(0);
-              int week = inv.getArgument(1);
-              return ids.stream()
-                  .flatMap(
-                      id ->
-                          submissions
-                              .findFirstByTeamIdAndWeekLessThanOrderByWeekDesc(id, week)
-                              .stream())
-                  .toList();
-            });
+    when(roster.findByTeamIdIn(anyCollection())).thenAnswer(inv -> {
+      Collection<Long> ids = inv.getArgument(0);
+      return ids.stream().flatMap(id -> roster.findByTeamId(id).stream()).toList();
+    });
+    when(submissions.findLatestBeforeWeek(anyCollection(), anyInt())).thenAnswer(inv -> {
+      Collection<Long> ids = inv.getArgument(0);
+      int week = inv.getArgument(1);
+      return ids.stream()
+          .flatMap(
+              id -> submissions.findFirstByTeamIdAndWeekLessThanOrderByWeekDesc(id, week).stream())
+          .toList();
+    });
   }
 
   @Test
   void rejectsDuplicateOrIncompleteLineup() {
-    assertEquals(
-        HttpStatus.BAD_REQUEST,
-        assertThrows(
-                ResponseStatusException.class,
-                () -> service.submit(1L, List.of(10L, 10L, 12L, 13L, 14L, 15L)))
-            .getStatusCode());
-    assertEquals(
-        HttpStatus.BAD_REQUEST,
+    assertEquals(HttpStatus.BAD_REQUEST, assertThrows(ResponseStatusException.class,
+        () -> service.submit(1L, List.of(10L, 10L, 12L, 13L, 14L, 15L))).getStatusCode());
+    assertEquals(HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, () -> service.submit(1L, List.of(10L, 11L)))
             .getStatusCode());
   }
@@ -77,20 +65,15 @@ class WeeklyLineupServiceTest {
 
   @Test
   void rejectsNonOwnedPokemon() {
-    assertEquals(
-        HttpStatus.FORBIDDEN,
-        assertThrows(
-                ResponseStatusException.class,
-                () -> service.submit(1L, List.of(10L, 11L, 12L, 13L, 14L, 99L)))
-            .getStatusCode());
+    assertEquals(HttpStatus.FORBIDDEN, assertThrows(ResponseStatusException.class,
+        () -> service.submit(1L, List.of(10L, 11L, 12L, 13L, 14L, 99L))).getStatusCode());
   }
 
   @Test
   void rejectsAfterDeadline() {
     config.setLineupDeadline(
         LocalDateTime.now(java.time.ZoneId.of("America/New_York")).minusMinutes(1));
-    assertEquals(
-        HttpStatus.BAD_REQUEST,
+    assertEquals(HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, () -> service.submit(1L, six)).getStatusCode());
   }
 
@@ -98,8 +81,7 @@ class WeeklyLineupServiceTest {
   void rejectsLineupsDuringFreeAgencyAndBothByes() {
     for (int week : List.of(4, 8, 9)) {
       config.setCurrentWeek(week);
-      assertEquals(
-          HttpStatus.BAD_REQUEST,
+      assertEquals(HttpStatus.BAD_REQUEST,
           assertThrows(ResponseStatusException.class, () -> service.submit(1L, six))
               .getStatusCode());
       assertFalse(service.hasMatchup(1L, week));
@@ -114,8 +96,8 @@ class WeeklyLineupServiceTest {
     when(submissions.existsByTeamIdAndWeek(2L, 1)).thenReturn(true);
     when(submissions.findByTeamIdAndWeek(2L, 1))
         .thenReturn(Optional.of(new WeeklySubmission(2L, 1, "20,21,22,23,24,25")));
-    ResponseStatusException error =
-        assertThrows(ResponseStatusException.class, () -> service.submit(1L, six));
+    ResponseStatusException error = assertThrows(ResponseStatusException.class,
+        () -> service.submit(1L, six));
     assertTrue(error.getReason().toLowerCase().contains("locked"));
     verify(submissions, never()).save(any(WeeklySubmission.class));
   }
@@ -126,21 +108,15 @@ class WeeklyLineupServiceTest {
     config.setLineupDeadline(
         LocalDateTime.now(java.time.ZoneId.of("America/New_York")).minusMinutes(1));
     when(matchups.findByWeekOrderByIdAsc(5)).thenReturn(List.of(new Matchup(5, 1L, 2L)));
-    when(roster.findByTeamId(2L))
-        .thenReturn(
-            List.of(20L, 21L, 22L, 23L, 24L, 25L).stream()
-                .map(id -> new RosterEntry(2L, id))
-                .toList());
+    when(roster.findByTeamId(2L)).thenReturn(
+        List.of(20L, 21L, 22L, 23L, 24L, 25L).stream().map(id -> new RosterEntry(2L, id)).toList());
     when(submissions.findFirstByTeamIdAndWeekLessThanOrderByWeekDesc(1L, 5))
         .thenReturn(Optional.of(new WeeklySubmission(1L, 3, "10,12,14,11,13,15")));
     service.finalizeExpired(5);
     var captor = org.mockito.ArgumentCaptor.forClass(WeeklySubmission.class);
     verify(submissions, times(2)).save(captor.capture());
-    WeeklySubmission carried =
-        captor.getAllValues().stream()
-            .filter(ws -> ws.getTeamId().equals(1L))
-            .findFirst()
-            .orElseThrow();
+    WeeklySubmission carried = captor.getAllValues().stream()
+        .filter(ws -> ws.getTeamId().equals(1L)).findFirst().orElseThrow();
     assertEquals("10,12,14,11,13,15", carried.getPokemonIdsCsv());
     assertTrue(carried.isAutomatic());
     assertEquals(5, carried.getWeek());
@@ -152,26 +128,17 @@ class WeeklyLineupServiceTest {
     config.setLineupDeadline(
         LocalDateTime.now(java.time.ZoneId.of("America/New_York")).minusMinutes(1));
     when(matchups.findByWeekOrderByIdAsc(2)).thenReturn(List.of(new Matchup(2, 1L, 2L)));
-    when(roster.findByTeamId(1L))
-        .thenReturn(
-            List.of(10L, 11L, 12L, 13L, 14L, 16L, 17L).stream()
-                .map(id -> new RosterEntry(1L, id))
-                .toList());
-    when(roster.findByTeamId(2L))
-        .thenReturn(
-            List.of(20L, 21L, 22L, 23L, 24L, 25L).stream()
-                .map(id -> new RosterEntry(2L, id))
-                .toList());
+    when(roster.findByTeamId(1L)).thenReturn(List.of(10L, 11L, 12L, 13L, 14L, 16L, 17L).stream()
+        .map(id -> new RosterEntry(1L, id)).toList());
+    when(roster.findByTeamId(2L)).thenReturn(
+        List.of(20L, 21L, 22L, 23L, 24L, 25L).stream().map(id -> new RosterEntry(2L, id)).toList());
     when(submissions.findFirstByTeamIdAndWeekLessThanOrderByWeekDesc(1L, 2))
         .thenReturn(Optional.of(new WeeklySubmission(1L, 1, "15,14,13,12,11,10")));
     service.finalizeExpired(2);
     var captor = org.mockito.ArgumentCaptor.forClass(WeeklySubmission.class);
     verify(submissions, times(2)).save(captor.capture());
-    WeeklySubmission carried =
-        captor.getAllValues().stream()
-            .filter(ws -> ws.getTeamId().equals(1L))
-            .findFirst()
-            .orElseThrow();
+    WeeklySubmission carried = captor.getAllValues().stream()
+        .filter(ws -> ws.getTeamId().equals(1L)).findFirst().orElseThrow();
     assertEquals("14,13,12,11,10,16", carried.getPokemonIdsCsv());
     assertTrue(carried.isAutomatic());
   }
@@ -182,19 +149,13 @@ class WeeklyLineupServiceTest {
     config.setLineupDeadline(
         LocalDateTime.now(java.time.ZoneId.of("America/New_York")).minusMinutes(1));
     when(matchups.findByWeekOrderByIdAsc(2)).thenReturn(List.of(new Matchup(2, 1L, 2L)));
-    when(roster.findByTeamId(2L))
-        .thenReturn(
-            List.of(20L, 21L, 22L, 23L, 24L, 25L).stream()
-                .map(id -> new RosterEntry(2L, id))
-                .toList());
+    when(roster.findByTeamId(2L)).thenReturn(
+        List.of(20L, 21L, 22L, 23L, 24L, 25L).stream().map(id -> new RosterEntry(2L, id)).toList());
     service.finalizeExpired(2);
     var captor = org.mockito.ArgumentCaptor.forClass(WeeklySubmission.class);
     verify(submissions, times(2)).save(captor.capture());
-    WeeklySubmission auto =
-        captor.getAllValues().stream()
-            .filter(ws -> ws.getTeamId().equals(1L))
-            .findFirst()
-            .orElseThrow();
+    WeeklySubmission auto = captor.getAllValues().stream().filter(ws -> ws.getTeamId().equals(1L))
+        .findFirst().orElseThrow();
     assertEquals("10,11,12,13,14,15", auto.getPokemonIdsCsv());
     assertTrue(auto.isAutomatic());
   }

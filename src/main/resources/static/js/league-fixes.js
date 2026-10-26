@@ -25,9 +25,7 @@ renderLineup = async function () {
     (c) =>
       (c.onclick = () => {
         if (d.locked) {
-          const p = d.roster.find(
-            (x) => x.pokemonId === Number(c.dataset.pokemonId),
-          );
+          const p = d.roster.find((x) => x.pokemonId === Number(c.dataset.pokemonId),);
           if (p) showPokemonDetails(p);
           return;
         }
@@ -36,8 +34,7 @@ renderLineup = async function () {
           selected.delete(id);
           c.classList.remove("selected");
         } else {
-          if (selected.size >= 6)
-            return toast("You can only select 6 Pokémon", true);
+          if (selected.size >= 6) return toast("You can only select 6 Pokémon", true);
           selected.add(id);
           c.classList.add("selected");
         }
@@ -47,9 +44,7 @@ renderLineup = async function () {
   grid.querySelectorAll(".league-select-card").forEach(
     (c) =>
       (c.ondblclick = () => {
-        const p = d.roster.find(
-          (x) => x.pokemonId === Number(c.dataset.pokemonId),
-        );
+        const p = d.roster.find((x) => x.pokemonId === Number(c.dataset.pokemonId),);
         if (p) showPokemonDetails(p);
       }),
   );
@@ -70,12 +65,10 @@ renderLineup = async function () {
 
 renderSchedule = async function () {
   const data = await api("/api/flow/schedule");
-  const weeks = [...new Set(data.map((m) => Number(m.week)))].sort(
-      (a, b) => a - b,
-    ),
-    teamNames = [
-      ...new Set(data.flatMap((m) => [m.homeTeam, m.awayTeam])),
-    ].sort((a, b) => a.localeCompare(b));
+  const weeks = [...new Set(data.map((m) => Number(m.week)))].sort((a, b) => a - b,),
+    teamNames = [...new Set(data.flatMap((m) => [m.homeTeam, m.awayTeam])),].sort((a, b) =>
+      a.localeCompare(b)
+    );
   const lineupCards = (list) =>
     `<div class="schedule-six-grid">${(list || []).map((p) => simplePokemonCard(p)).join("")}</div>`;
   $("#page-schedule").innerHTML =
@@ -106,10 +99,7 @@ renderSchedule = async function () {
         (c.onclick = () => {
           const id = Number(c.dataset.pokemonId),
             p = data
-              .flatMap((m) => [
-                ...(m.homeLineup || []),
-                ...(m.awayLineup || []),
-              ])
+              .flatMap((m) => [...(m.homeLineup || []), ...(m.awayLineup || []),])
               .find((x) => Number(x.pokemonId ?? x.id) === id);
           if (p) showPokemonDetails(p);
         }),
@@ -122,8 +112,7 @@ renderSchedule = async function () {
             a = target.querySelector(`.score-away[data-id="${id}"]`).value;
           if (h === "" || a === "")
             return toast("Enter both scores before saving the result.", true);
-          if (Number(h) < 0 || Number(a) < 0)
-            return toast("Scores cannot be negative.", true);
+          if (Number(h) < 0 || Number(a) < 0) return toast("Scores cannot be negative.", true);
           try {
             await api(`/api/manager/results/${id}`, {
               method: "POST",
@@ -202,9 +191,7 @@ renderBids = async function () {
   };
   const draw = (rows) => {
     const grid = $("#fa-grid");
-    grid.innerHTML = rows
-      .map((p) => pokemonCard(p, wanted === p.id ? "selected" : ""))
-      .join("");
+    grid.innerHTML = rows.map((p) => pokemonCard(p, wanted === p.id ? "selected" : "")).join("");
     grid.querySelectorAll(".pokemon-card").forEach(
       (c) =>
         (c.onclick = () => {
@@ -226,14 +213,12 @@ renderBids = async function () {
     const drop = $("#bid-drop").value ? Number($("#bid-drop").value) : null,
       amount = Number($("#bid-amount").value);
     if (!wanted) return toast("Select a free agent", true);
-    if (roster.length >= 10 && !drop)
-      return toast("Choose the Pokémon to drop if you win", true);
+    if (roster.length >= 10 && !drop) return toast("Choose the Pokémon to drop if you win", true);
     if (!amount || amount < 1) return toast("Bid at least $1 FAAB", true);
     const w = free.find((p) => p.id === wanted),
       dp = roster.find((p) => p.pokemonId === drop),
       value = currentValue + (w?.price || 0) - (dp?.price || 0);
-    if (value > 100)
-      return toast(`That move would make your roster $${value}/$100`, true);
+    if (value > 100) return toast(`That move would make your roster $${value}/$100`, true);
     try {
       await api("/api/free-agency/bids", {
         method: "POST",
@@ -250,8 +235,7 @@ renderBids = async function () {
 renderTrades = async function () {
   const list = await api("/api/trades");
   if (state.user.role === "MANAGER") {
-    $("#fa-content").innerHTML =
-      `<div class="card"><h2>All Trades</h2>${tradeTable(list)}</div>`;
+    $("#fa-content").innerHTML = `<div class="card"><h2>All Trades</h2>${tradeTable(list)}</div>`;
     bindTradeButtons();
     return;
   }

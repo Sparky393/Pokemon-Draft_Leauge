@@ -11,23 +11,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest(
-    properties = {
-      "spring.datasource.url=jdbc:h2:mem:neonlogintest;DB_CLOSE_DELAY=-1",
-      "spring.jpa.hibernate.ddl-auto=create-drop"
-    })
+@SpringBootTest(properties = { "spring.datasource.url=jdbc:h2:mem:neonlogintest;DB_CLOSE_DELAY=-1",
+    "spring.jpa.hibernate.ddl-auto=create-drop" })
 @Transactional
 class NeonCoachLoginMigrationTest {
-  @Autowired AppUserRepository users;
-  @Autowired TeamRepository teams;
-  @Autowired CoachLoginMigrationService migration;
-  @Autowired ScheduleService schedule;
-  @Autowired MatchupRepository matchups;
+  @Autowired
+  AppUserRepository users;
+  @Autowired
+  TeamRepository teams;
+  @Autowired
+  CoachLoginMigrationService migration;
+  @Autowired
+  ScheduleService schedule;
+  @Autowired
+  MatchupRepository matchups;
 
   private AppUser userFor(long teamId) {
-    return users.findAll().stream()
-        .filter(u -> Objects.equals(u.getTeamId(), teamId))
-        .findFirst()
+    return users.findAll().stream().filter(u -> Objects.equals(u.getTeamId(), teamId)).findFirst()
         .orElseThrow();
   }
 
@@ -66,13 +66,8 @@ class NeonCoachLoginMigrationTest {
     assertEquals(originalDraft1, teams.findById(1L).orElseThrow().getDraftPosition());
     assertEquals(originalDraft2, teams.findById(2L).orElseThrow().getDraftPosition());
     assertDoesNotThrow(migration::reconcile, "Repeated Render starts must be safe");
-    assertEquals(
-        "manager",
-        users.findAll().stream()
-            .filter(u -> u.getRole() == Role.MANAGER)
-            .findFirst()
-            .orElseThrow()
-            .getUsername());
+    assertEquals("manager", users.findAll().stream().filter(u -> u.getRole() == Role.MANAGER)
+        .findFirst().orElseThrow().getUsername());
   }
 
   @Test
@@ -84,15 +79,17 @@ class NeonCoachLoginMigrationTest {
       int slot = t.getDraftPosition();
       t.setName(SeasonCalendar.teamNameForSlot(slot));
       t.setCoachName(SeasonCalendar.teamNameForSlot(slot));
-      if (slot == 15) t.setDraftPosition(14); // duplicate in production screenshot
-      if (slot == 16) t.setDraftPosition(14); // another duplicate
+      if (slot == 15)
+        t.setDraftPosition(14); // duplicate in production screenshot
+      if (slot == 16)
+        t.setDraftPosition(14); // another duplicate
       teams.saveAndFlush(t);
       originalPositions.put(t.getId(), t.getDraftPosition());
     }
 
     assertDoesNotThrow(schedule::syncOfficialSchedule);
-    assertEquals(
-        80, matchups.findAll().stream().filter(m -> m.getWeek() >= 1 && m.getWeek() <= 13).count());
+    assertEquals(80,
+        matchups.findAll().stream().filter(m -> m.getWeek() >= 1 && m.getWeek() <= 13).count());
     for (Team t : teams.findAll()) {
       assertEquals(originalPositions.get(t.getId()).intValue(), t.getDraftPosition());
       assertNotNull(t.getName());

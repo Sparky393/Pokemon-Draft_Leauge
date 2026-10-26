@@ -31,13 +31,15 @@ public class TeamBrandingController {
   private static final long MAX_IMAGE_BYTES = 1024 * 1024;
   private static final int MAX_DIMENSION = 2048;
 
-  private record LogoKey(Long teamId, Long version, String contentType) {}
+  private record LogoKey(Long teamId, Long version, String contentType) {
+  }
 
-  private record LogoBytes(String contentType, byte[] bytes) {}
+  private record LogoBytes(String contentType, byte[] bytes) {
+  }
 
   // Bounded across all teams/versions, including unusual imported databases.
-  private final java.util.LinkedHashMap<LogoKey, LogoBytes> logoCache =
-      new java.util.LinkedHashMap<>(16, 0.75f, true);
+  private final java.util.LinkedHashMap<LogoKey, LogoBytes> logoCache = new java.util.LinkedHashMap<>(
+      16, 0.75f, true);
   private long cachedBytes;
 
   private synchronized void invalidateLogo(Long id) {
@@ -54,16 +56,14 @@ public class TeamBrandingController {
   private synchronized LogoBytes cachedLogo(Long id, TeamRepository.LogoMetadata metadata) {
     var key = new LogoKey(id, metadata.getLogoVersion(), metadata.getLogoContentType());
     var cached = logoCache.get(key);
-    if (cached != null) return cached;
-    var image =
-        teams
-            .findLogoImage(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team not found"));
+    if (cached != null)
+      return cached;
+    var image = teams.findLogoImage(id)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team not found"));
     if (image.getLogoBase64() == null || image.getLogoContentType() == null)
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Team has no logo");
-    var value =
-        new LogoBytes(
-            image.getLogoContentType(), Base64.getDecoder().decode(image.getLogoBase64()));
+    var value = new LogoBytes(image.getLogoContentType(),
+        Base64.getDecoder().decode(image.getLogoBase64()));
     // Use the version belonging to the bytes even if an upload races this request.
     key = new LogoKey(id, image.getLogoVersion(), image.getLogoContentType());
     if (value.bytes().length <= MAX_IMAGE_BYTES) {
@@ -87,17 +87,16 @@ public class TeamBrandingController {
     this.teams = teams;
   }
 
-  public record TeamNameRequest(String name) {}
+  public record TeamNameRequest(String name) {
+  }
 
   private Team myTeam(HttpSession session) {
     AppUser user = auth.current(session);
     if (user.getRole() != Role.COACH || user.getTeamId() == null)
-      throw new ResponseStatusException(
-          HttpStatus.FORBIDDEN, "Only coaches can customize their team");
-    return teams
-        .findMetadataById(user.getTeamId())
-        .orElseThrow(
-            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Your team was not found"));
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+          "Only coaches can customize their team");
+    return teams.findMetadataById(user.getTeamId()).orElseThrow(
+        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Your team was not found"));
   }
 
   @PutMapping("/me/name")
@@ -105,8 +104,8 @@ public class TeamBrandingController {
     Team team = myTeam(session);
     String name = request == null || request.name() == null ? "" : request.name().trim();
     if (name.length() < 2 || name.length() > 40 || name.chars().anyMatch(Character::isISOControl))
-      throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST, "Team name must be 2-40 characters");
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+          "Team name must be 2-40 characters");
     if (teams.existsByNameIgnoreCaseAndIdNot(name, team.getId()))
       throw new ResponseStatusException(HttpStatus.CONFLICT, "Another team already uses that name");
     team.setName(name);
@@ -119,21 +118,22 @@ public class TeamBrandingController {
       throws IOException {
     Team team = myTeam(session);
     if (file == null || file.isEmpty() || file.getSize() > MAX_IMAGE_BYTES)
-      throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST, "Choose an image smaller than 1 MB");
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+          "Choose an image smaller than 1 MB");
     byte[] content = file.getBytes();
     if (content.length == 0 || content.length > MAX_IMAGE_BYTES)
-      throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST, "Choose an image smaller than 1 MB");
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+          "Choose an image smaller than 1 MB");
 
     String type = imageType(content);
     if (type == null)
-      throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST, "Only PNG, JPG and GIF images are supported");
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+          "Only PNG, JPG and GIF images are supported");
 
-    try (ImageInputStream input =
-        ImageIO.createImageInputStream(new ByteArrayInputStream(content))) {
-      if (input == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid image");
+    try (ImageInputStream input = ImageIO
+        .createImageInputStream(new ByteArrayInputStream(content))) {
+      if (input == null)
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid image");
       Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
       if (!readers.hasNext())
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid image");
@@ -142,21 +142,22 @@ public class TeamBrandingController {
         reader.setInput(input);
         int width = reader.getWidth(0), height = reader.getHeight(0);
         if (width < 1 || height < 1 || width > MAX_DIMENSION || height > MAX_DIMENSION)
-          throw new ResponseStatusException(
-              HttpStatus.BAD_REQUEST, "Logo dimensions must be at most 2048 x 2048");
+          throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+              "Logo dimensions must be at most 2048 x 2048");
       } finally {
         reader.dispose();
       }
     } catch (IOException | RuntimeException error) {
-      if (error instanceof ResponseStatusException response) throw response;
+      if (error instanceof ResponseStatusException response)
+        throw response;
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or damaged image");
     }
 
     team.setLogoBase64(Base64.getEncoder().encodeToString(content));
     team.setLogoContentType(type);
     team.setLogoVersion(System.currentTimeMillis());
-    teams.updateLogo(
-        team.getId(), team.getLogoBase64(), team.getLogoContentType(), team.getLogoVersion());
+    teams.updateLogo(team.getId(), team.getLogoBase64(), team.getLogoContentType(),
+        team.getLogoVersion());
     invalidateLogo(team.getId());
     return team;
   }
@@ -175,38 +176,25 @@ public class TeamBrandingController {
   @GetMapping("/{id}/logo")
   public ResponseEntity<byte[]> logo(@PathVariable Long id, HttpSession session) {
     auth.viewer(session);
-    var metadata =
-        teams
-            .findLogoMetadata(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team not found"));
+    var metadata = teams.findLogoMetadata(id)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Team not found"));
     if (!metadata.getPresent() || metadata.getLogoContentType() == null)
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Team has no logo");
     var image = cachedLogo(id, metadata);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.maxAge(java.time.Duration.ofDays(7)).cachePrivate())
-        .contentType(MediaType.parseMediaType(image.contentType()))
-        .body(image.bytes());
+        .contentType(MediaType.parseMediaType(image.contentType())).body(image.bytes());
   }
 
   private static String imageType(byte[] b) {
-    if (b.length >= 8
-        && (b[0] & 255) == 137
-        && b[1] == 80
-        && b[2] == 78
-        && b[3] == 71
-        && b[4] == 13
-        && b[5] == 10
-        && b[6] == 26
-        && b[7] == 10) return MediaType.IMAGE_PNG_VALUE;
+    if (b.length >= 8 && (b[0] & 255) == 137 && b[1] == 80 && b[2] == 78 && b[3] == 71 && b[4] == 13
+        && b[5] == 10 && b[6] == 26 && b[7] == 10)
+      return MediaType.IMAGE_PNG_VALUE;
     if (b.length >= 3 && (b[0] & 255) == 255 && (b[1] & 255) == 216 && (b[2] & 255) == 255)
       return MediaType.IMAGE_JPEG_VALUE;
-    if (b.length >= 6
-        && b[0] == 'G'
-        && b[1] == 'I'
-        && b[2] == 'F'
-        && b[3] == '8'
-        && (b[4] == '7' || b[4] == '9')
-        && b[5] == 'a') return MediaType.IMAGE_GIF_VALUE;
+    if (b.length >= 6 && b[0] == 'G' && b[1] == 'I' && b[2] == 'F' && b[3] == '8'
+        && (b[4] == '7' || b[4] == '9') && b[5] == 'a')
+      return MediaType.IMAGE_GIF_VALUE;
     return null;
   }
 }

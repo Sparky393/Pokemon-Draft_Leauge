@@ -17,9 +17,7 @@ try {
         requests.push(new URL(request.url()).pathname);
     });
     await page.route("**/*", (route) =>
-      route.request().url().startsWith(origin)
-        ? route.continue()
-        : route.abort(),
+      route.request().url().startsWith(origin) ? route.continue() : route.abort(),
     );
     await page.clock.install();
     await page.goto(origin);
@@ -51,9 +49,7 @@ try {
       window.idleTestHidden = false;
       document.dispatchEvent(new Event("visibilitychange"));
     });
-    await page.waitForFunction(
-      () => document.querySelector("#app").inert === false,
-    );
+    await page.waitForFunction(() => document.querySelector("#app").inert === false,);
     await page.locator("#whoami").click();
     await page.clock.fastForward(120000);
     assert.equal(await page.locator("#app").isVisible(), true);
@@ -66,21 +62,11 @@ try {
     );
     await page.clock.fastForward(181000);
     await page.locator("#login-screen:not(.hidden)").waitFor();
-    assert.match(
-      await page.locator("#session-idle-message").innerText(),
-      /5 minutes/,
-    );
-    assert.equal(
-      requests.filter((path) => path === "/api/auth/logout").length,
-      1,
-    );
+    assert.match(await page.locator("#session-idle-message").innerText(), /5 minutes/,);
+    assert.equal(requests.filter((path) => path === "/api/auth/logout").length, 1,);
     const stoppedCount = requests.length;
     await page.clock.fastForward(240000);
-    assert.equal(
-      requests.length,
-      stoppedCount,
-      "No automatic API calls after timeout",
-    );
+    assert.equal(requests.length, stoppedCount, "No automatic API calls after timeout",);
     // A deliberate raw probe verifies the real server session was invalidated.
     assert.equal(
       await page.evaluate(async () => {
@@ -94,11 +80,7 @@ try {
       draft: (await api("/api/draft")).picks,
       teams: await api("/api/teams"),
     }));
-    assert.deepEqual(
-      after,
-      before,
-      "Timeout/login must not change saved league data",
-    );
+    assert.deepEqual(after, before, "Timeout/login must not change saved league data",);
     await context.close();
     console.log(
       `PASS: ${width}px inactivity logout, hidden polling pause, return refresh, real-input extension, server invalidation, re-login and data preservation`,

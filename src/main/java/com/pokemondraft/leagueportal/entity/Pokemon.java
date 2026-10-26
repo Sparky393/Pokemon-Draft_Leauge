@@ -15,7 +15,8 @@ public class Pokemon {
   private int price;
   private boolean drafted;
 
-  public Pokemon() {}
+  public Pokemon() {
+  }
 
   public Pokemon(String name, int price) {
     this.name = name;

@@ -19,26 +19,32 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Disposable H2 proves completed picks expose actual prices in the existing batched read. */
-@SpringBootTest(properties = {
-    "spring.datasource.url=jdbc:h2:mem:draftprice;DB_CLOSE_DELAY=-1",
-    "spring.datasource.driver-class-name=org.h2.Driver",
-    "spring.datasource.username=sa", "spring.datasource.password=",
-    "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.jpa.properties.hibernate.session_factory.statement_inspector=com.pokemondraft.leagueportal.DraftPriceViewTest$SqlCapture"
-})
+@SpringBootTest(properties = { "spring.datasource.url=jdbc:h2:mem:draftprice;DB_CLOSE_DELAY=-1",
+    "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa",
+    "spring.datasource.password=", "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.jpa.properties.hibernate.session_factory.statement_inspector=com.pokemondraft.leagueportal.DraftPriceViewTest$SqlCapture" })
 @AutoConfigureMockMvc
 @Transactional
 class DraftPriceViewTest {
   public static class SqlCapture implements StatementInspector {
     static final List<String> queries = new CopyOnWriteArrayList<>();
-    public String inspect(String sql) { queries.add(sql); return sql; }
+
+    public String inspect(String sql) {
+      queries.add(sql);
+      return sql;
+    }
   }
 
-  @Autowired MockMvc mvc;
-  @Autowired PokemonRepository pokemon;
-  @Autowired DraftPickRepository picks;
-  @Autowired RosterEntryRepository roster;
-  @Autowired jakarta.persistence.EntityManager em;
+  @Autowired
+  MockMvc mvc;
+  @Autowired
+  PokemonRepository pokemon;
+  @Autowired
+  DraftPickRepository picks;
+  @Autowired
+  RosterEntryRepository roster;
+  @Autowired
+  jakarta.persistence.EntityManager em;
 
   @Test
   void completedPickPriceIsCorrectAndZeroIsDistinctFromAnUnknownPrice() throws Exception {
@@ -60,13 +66,13 @@ class DraftPriceViewTest {
     MockHttpSession guest = new MockHttpSession();
     guest.setAttribute(AuthService.SESSION_GUEST, Boolean.TRUE);
     SqlCapture.queries.clear();
-    mvc.perform(get("/api/draft").session(guest))
-        .andExpect(status().isOk())
+    mvc.perform(get("/api/draft").session(guest)).andExpect(status().isOk())
         .andExpect(jsonPath("$.picks[0].pokemonName").value("Garchomp"))
         .andExpect(jsonPath("$.picks[0].price").value(18))
         .andExpect(jsonPath("$.picks[1].price").value(0))
         .andExpect(jsonPath("$.picks[2].price").isEmpty());
-    assertEquals(1, SqlCapture.queries.stream().filter(q -> q.startsWith("select ") && q.contains("price") && q.contains(" in ")).count(),
+    assertEquals(1, SqlCapture.queries.stream()
+        .filter(q -> q.startsWith("select ") && q.contains("price") && q.contains(" in ")).count(),
         "All completed picks should share one narrow price/name query");
     assertTrue(SqlCapture.queries.stream().filter(q -> q.startsWith("select ")).count() <= 6,
         "Guest draft reads should not add an extra query per pick");

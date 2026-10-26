@@ -10,11 +10,15 @@
     open.hidden = !collapsed;
     close.setAttribute("aria-expanded", String(!collapsed));
     open.setAttribute("aria-expanded", String(!collapsed));
-    try { localStorage.setItem(key, String(collapsed)); } catch {}
+    try {
+      localStorage.setItem(key, String(collapsed));
+    } catch {}
     if (moveFocus) (collapsed ? open : close).focus();
   }
   let collapsed = false;
-  try { collapsed = localStorage.getItem(key) === "true"; } catch {}
+  try {
+    collapsed = localStorage.getItem(key) === "true";
+  } catch {}
   setCollapsed(collapsed);
   close.addEventListener("click", () => setCollapsed(true, true));
   open.addEventListener("click", () => setCollapsed(false, true));

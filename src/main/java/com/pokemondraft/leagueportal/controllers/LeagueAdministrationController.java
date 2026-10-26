@@ -21,8 +21,8 @@ public class LeagueAdministrationController {
   private final TestRosterService resets;
   private final WeekLockService weekLocks;
 
-  public LeagueAdministrationController(
-      AuthService auth, TestRosterService resets, WeekLockService weekLocks) {
+  public LeagueAdministrationController(AuthService auth, TestRosterService resets,
+      WeekLockService weekLocks) {
     this.auth = auth;
     this.resets = resets;
     this.weekLocks = weekLocks;
@@ -34,11 +34,12 @@ public class LeagueAdministrationController {
     return weekLocks.statuses();
   }
 
-  public record WeekLockRequest(boolean locked) {}
+  public record WeekLockRequest(boolean locked) {
+  }
 
   @PutMapping("/api/manager/weeks/{week}/lock")
-  public Map<Integer, Boolean> lockWeek(
-      @PathVariable int week, @RequestBody WeekLockRequest request, HttpSession session) {
+  public Map<Integer, Boolean> lockWeek(@PathVariable int week,
+      @RequestBody WeekLockRequest request, HttpSession session) {
     auth.manager(session);
     if (request == null)
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing lock status");
@@ -52,17 +53,15 @@ public class LeagueAdministrationController {
     return resets.resetPreview();
   }
 
-  public record ResetRequest(String password) {}
+  public record ResetRequest(String password) {
+  }
 
   @PostMapping("/api/manager/league-reset")
   public Map<String, Integer> reset(@RequestBody ResetRequest request, HttpSession session) {
     auth.manager(session);
-    if (resetPassword == null
-        || resetPassword.isBlank()
-        || request == null
+    if (resetPassword == null || resetPassword.isBlank() || request == null
         || request.password() == null
-        || !MessageDigest.isEqual(
-            resetPassword.getBytes(StandardCharsets.UTF_8),
+        || !MessageDigest.isEqual(resetPassword.getBytes(StandardCharsets.UTF_8),
             request.password().getBytes(StandardCharsets.UTF_8)))
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Incorrect league reset password.");
     return resets.resetLeague();

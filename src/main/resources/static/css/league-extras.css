@@ -25,11 +25,7 @@
 .league-tool-links > button[aria-expanded="true"] {
   color: #eefdff;
   border-color: rgba(105, 190, 255, 0.28);
-  background: linear-gradient(
-    135deg,
-    rgba(55, 145, 240, 0.3),
-    rgba(25, 85, 170, 0.2)
-  );
+  background: linear-gradient(135deg, rgba(55, 145, 240, 0.3), rgba(25, 85, 170, 0.2));
 }
 .league-notice-count {
   background: #a83246;

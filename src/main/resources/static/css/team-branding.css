@@ -178,11 +178,7 @@
   margin-top: 12px;
   border: 1px dashed rgba(142, 207, 255, 0.4);
   border-radius: 16px;
-  background: linear-gradient(
-    150deg,
-    rgba(57, 124, 185, 0.16),
-    rgba(21, 46, 77, 0.22)
-  );
+  background: linear-gradient(150deg, rgba(57, 124, 185, 0.16), rgba(21, 46, 77, 0.22));
   padding: 20px;
   display: flex;
   gap: 17px;

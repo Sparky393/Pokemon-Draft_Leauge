@@ -12,7 +12,8 @@ public class RosterEntry {
   private Long teamId;
   private Long pokemonId;
 
-  public RosterEntry() {}
+  public RosterEntry() {
+  }
 
   public RosterEntry(Long teamId, Long pokemonId) {
     this.teamId = teamId;

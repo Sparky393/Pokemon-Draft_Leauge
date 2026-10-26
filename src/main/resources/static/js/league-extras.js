@@ -78,9 +78,7 @@
     $notice("#league-notices-list").innerHTML = noticeCache.length
       ? noticeCache
           .map(
-            (
-              n,
-            ) => `<button type="button" class="league-notice-item" data-page="${esc(n.page)}">
+            (n,) => `<button type="button" class="league-notice-item" data-page="${esc(n.page)}">
           <strong>${esc(n.title)}</strong><small>${esc(n.message)}</small></button>`,
           )
           .join("")
@@ -165,10 +163,7 @@
         '<strong>Official Draft Finalized</strong><p class="muted">All original draft picks are protected. Roster changes now occur through official league actions.</p>';
     } else if (d.currentTeam) {
       const owned = await api("/api/rosters/" + d.currentTeam.id);
-      const current = owned.reduce(
-        (sum, mon) => sum + Number(mon.price || 0),
-        0,
-      );
+      const current = owned.reduce((sum, mon) => sum + Number(mon.price || 0), 0,);
       const left = 100 - current;
       header.innerHTML = `<strong>${esc(d.currentTeam.name)}: $${left} draft budget remaining</strong>
         <p class="muted">${owned.length}/10 Pokémon selected · $${current}/$100 used.
@@ -177,9 +172,7 @@
       root.onclick = (e) => {
         const card = e.target.closest?.("[data-pokemon-id]");
         if (!card || !root.contains(card)) return;
-        const mon = d.available.find(
-          (p) => Number(p.id) === Number(card.dataset.pokemonId),
-        );
+        const mon = d.available.find((p) => Number(p.id) === Number(card.dataset.pokemonId),);
         const status = root.querySelector("#draft-cost-preview");
         if (!mon || !status) return;
         const after = left - Number(mon.price);
@@ -194,11 +187,7 @@
         '<strong>Draft board complete</strong><p class="muted">All 160 draft positions have been selected.</p>';
     }
 
-    if (
-      state.user.role === "MANAGER" &&
-      d.picks.length === 160 &&
-      !d.settings.draftFinalized
-    ) {
+    if (state.user.role === "MANAGER" && d.picks.length === 160 && !d.settings.draftFinalized) {
       const button = document.createElement("button");
       button.textContent = "Finalize Official Draft";
       button.className = "primary";

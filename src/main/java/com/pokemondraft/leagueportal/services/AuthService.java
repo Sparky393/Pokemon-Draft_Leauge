@@ -36,7 +36,8 @@ public class AuthService {
     }
 
     synchronized void failed() {
-      if (!locked()) count++;
+      if (!locked())
+        count++;
     }
   }
 
@@ -56,24 +57,22 @@ public class AuthService {
     String key = username.trim().toLowerCase(Locale.ROOT);
     // Bound memory when many fabricated usernames are submitted by a bot.
     if (failures.size() >= 4096) {
-      failures
-          .entrySet()
+      failures.entrySet()
           .removeIf(e -> System.currentTimeMillis() - e.getValue().started > WINDOW_MILLIS);
       if (failures.size() >= 4096 && !failures.containsKey(key))
-        throw new ResponseStatusException(
-            HttpStatus.TOO_MANY_REQUESTS, "Too many login attempts right now. Try again later.");
+        throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+            "Too many login attempts right now. Try again later.");
     }
     FailureWindow window = failures.computeIfAbsent(key, k -> new FailureWindow());
     if (window.locked())
-      throw new ResponseStatusException(
-          HttpStatus.TOO_MANY_REQUESTS, "Too many failed login attempts. Try again in 10 minutes.");
+      throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+          "Too many failed login attempts. Try again in 10 minutes.");
 
     AppUser user = users.findByUsername(username.trim()).orElse(null);
     if (user == null || !matches(password, user.getPassword())) {
       window.failed();
       // Do not reveal which accounts exist on a public website.
-      throw new ResponseStatusException(
-          HttpStatus.UNAUTHORIZED,
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
           "Username or password is incorrect. Check your details and try again.");
     }
     failures.remove(key);
@@ -111,16 +110,14 @@ public class AuthService {
   @Transactional
   public String resetPassword(HttpSession session, Long userId) {
     manager(session);
-    AppUser target =
-        users
-            .findById(userId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    AppUser target = users.findById(userId)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     if (target.getRole() == Role.MANAGER)
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot reset manager accounts");
     byte[] value = new byte[18];
     random.nextBytes(value);
-    String temporaryPassword =
-        java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(value);
+    String temporaryPassword = java.util.Base64.getUrlEncoder().withoutPadding()
+        .encodeToString(value);
     target.setPassword(encoder.encode(temporaryPassword));
     users.save(target);
     return temporaryPassword;
@@ -128,12 +125,8 @@ public class AuthService {
 
   public java.util.List<java.util.Map<String, Object>> resettableUsers(HttpSession session) {
     manager(session);
-    return users.findResettableIdentities().stream()
-        .map(
-            u ->
-                java.util.Map.<String, Object>of(
-                    "id", u.getId(), "username", u.getUsername(), "role", u.getRole().name()))
-        .toList();
+    return users.findResettableIdentities().stream().map(u -> java.util.Map.<String, Object>of("id",
+        u.getId(), "username", u.getUsername(), "role", u.getRole().name())).toList();
   }
 
   /** Read-only security warning; never changes a coach's existing password. */
@@ -170,9 +163,9 @@ public class AuthService {
     if (isGuest(session))
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Guest access is read-only");
     Object id = session.getAttribute(SESSION_USER_ID);
-    if (id == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please log in");
-    return users
-        .findIdentityById((Long) id)
+    if (id == null)
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please log in");
+    return users.findIdentityById((Long) id)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Session expired"));
   }
 
@@ -180,9 +173,9 @@ public class AuthService {
     if (isGuest(session))
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Guests do not have an account");
     Object id = session.getAttribute(SESSION_USER_ID);
-    if (id == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please log in");
-    return users
-        .findById((Long) id)
+    if (id == null)
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Please log in");
+    return users.findById((Long) id)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Session expired"));
   }
 
@@ -195,7 +188,8 @@ public class AuthService {
 
   public Long teamId(HttpSession session) {
     AppUser u = current(session);
-    if (u.getRole() == Role.MANAGER) return null;
+    if (u.getRole() == Role.MANAGER)
+      return null;
     if (u.getTeamId() == null)
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No team assigned");
     return u.getTeamId();

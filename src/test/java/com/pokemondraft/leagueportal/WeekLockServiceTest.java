@@ -31,8 +31,8 @@ class WeekLockServiceTest {
     verify(locks).save(argThat(row -> row.getWeek() == 1 && row.isLocked()));
 
     when(locks.findById(1)).thenReturn(Optional.of(new WeekLock(1, true)));
-    ResponseStatusException error =
-        assertThrows(ResponseStatusException.class, () -> service.requireEditable(1));
+    ResponseStatusException error = assertThrows(ResponseStatusException.class,
+        () -> service.requireEditable(1));
     assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
 
     service.setLocked(1, false);
@@ -42,12 +42,10 @@ class WeekLockServiceTest {
   @Test
   void cannotLockUnfinishedWeekOrBye() {
     when(matchups.findByWeekOrderByIdAsc(2)).thenReturn(List.of(new Matchup(2, 1L, 2L)));
-    assertEquals(
-        HttpStatus.CONFLICT,
+    assertEquals(HttpStatus.CONFLICT,
         assertThrows(ResponseStatusException.class, () -> service.setLocked(2, true))
             .getStatusCode());
-    assertEquals(
-        HttpStatus.BAD_REQUEST,
+    assertEquals(HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, () -> service.setLocked(4, true))
             .getStatusCode());
     verify(locks, never()).save(any());
@@ -56,8 +54,7 @@ class WeekLockServiceTest {
   @Test
   void cannotEditOlderResultsUnderLockedPlayoffWeeks() {
     when(locks.findById(14)).thenReturn(Optional.of(new WeekLock(14, true)));
-    assertEquals(
-        HttpStatus.CONFLICT,
+    assertEquals(HttpStatus.CONFLICT,
         assertThrows(ResponseStatusException.class, () -> service.requireEditable(2))
             .getStatusCode());
     assertDoesNotThrow(() -> service.requireEditable(15));
@@ -80,8 +77,7 @@ class WeekLockServiceTest {
       games.add(game);
     }
     when(matchups.findByWeekOrderByIdAsc(1)).thenReturn(games);
-    assertEquals(
-        HttpStatus.CONFLICT,
+    assertEquals(HttpStatus.CONFLICT,
         assertThrows(ResponseStatusException.class, () -> service.setLocked(1, true))
             .getStatusCode());
     verify(locks, never()).save(any());

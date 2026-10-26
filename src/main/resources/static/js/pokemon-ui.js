@@ -2,8 +2,24 @@
 const pokemonMetaCache = new Map();
 const pokemonMetaRequests = new Map();
 const POKEMON_TYPES = Object.freeze([
-  "Bug", "Dark", "Dragon", "Electric", "Fairy", "Fighting", "Fire", "Flying", "Ghost",
-  "Grass", "Ground", "Ice", "Normal", "Poison", "Psychic", "Rock", "Steel", "Water",
+  "Bug",
+  "Dark",
+  "Dragon",
+  "Electric",
+  "Fairy",
+  "Fighting",
+  "Fire",
+  "Flying",
+  "Ghost",
+  "Grass",
+  "Ground",
+  "Ice",
+  "Normal",
+  "Poison",
+  "Psychic",
+  "Rock",
+  "Steel",
+  "Water",
 ]);
 function pokemonTypeFilter(prefix) {
   return `<div class="filter-field"><label for="${prefix}-type">Type</label><select id="${prefix}-type"><option value="all">All types</option>${POKEMON_TYPES.map(type => `<option value="${type.toLowerCase()}">${type}</option>`).join("")}</select></div>`;
@@ -11,9 +27,9 @@ function pokemonTypeFilter(prefix) {
 // V6 invalidates old image lookups after correcting Rotom and Squawkabilly form slugs.
 const POKE_CACHE_KEY = "draftLeaguePokemonMetaV6";
 try {
-  Object.entries(
-    JSON.parse(localStorage.getItem(POKE_CACHE_KEY) || "{}"),
-  ).forEach(([k, v]) => pokemonMetaCache.set(k, v));
+  Object.entries(JSON.parse(localStorage.getItem(POKE_CACHE_KEY) || "{}"),).forEach(([k, v]) =>
+    pokemonMetaCache.set(k, v)
+  );
 } catch {}
 function pokeSlug(name) {
   const special = {
@@ -90,8 +106,11 @@ async function getPokemonMeta(name) {
   if (pokemonMetaRequests.has(name)) return pokemonMetaRequests.get(name);
   const request = loadPokemonMeta(name);
   pokemonMetaRequests.set(name, request);
-  try { return await request; }
-  finally { if (pokemonMetaRequests.get(name) === request) pokemonMetaRequests.delete(name); }
+  try {
+    return await request;
+  } finally {
+    if (pokemonMetaRequests.get(name) === request) pokemonMetaRequests.delete(name);
+  }
 }
 async function loadPokemonMeta(name) {
   try {
@@ -109,9 +128,7 @@ async function loadPokemonMeta(name) {
         data.sprites?.front_default ||
         "",
       types: (data.types || []).map(t => prettyPokeText(t.type.name)),
-      abilities: (data.abilities || []).map((a) =>
-        prettyPokeText(a.ability.name),
-      ),
+      abilities: (data.abilities || []).map((a) => prettyPokeText(a.ability.name),),
       moves: (data.moves || []).map((m) => prettyPokeText(m.move.name)),
       stats: (data.stats || []).map((s) => ({
         name: prettyPokeText(s.stat.name),
@@ -120,15 +137,14 @@ async function loadPokemonMeta(name) {
     };
     pokemonMetaCache.set(name, meta);
     try {
-      localStorage.setItem(
-        POKE_CACHE_KEY,
-        JSON.stringify(Object.fromEntries(pokemonMetaCache)),
-      );
+      localStorage.setItem(POKE_CACHE_KEY, JSON.stringify(Object.fromEntries(pokemonMetaCache)),);
     } catch {}
     return meta;
   } catch {
     const cached = pokemonMetaCache.get(name);
-    return cached ? { ...cached, types: [] } : { image: "", types: [], abilities: [], moves: [], stats: [] };
+    return cached
+      ? { ...cached, types: [] }
+      : { image: "", types: [], abilities: [], moves: [], stats: [] };
   }
 }
 function pokemonPriceText(price) {
@@ -155,8 +171,7 @@ async function hydratePokemonCards(root = document) {
       }
       if (loader) loader.remove();
       const line = card.querySelector(".poke-meta");
-      if (line && m.abilities.length)
-        line.textContent = m.abilities.slice(0, 2).join(" · ");
+      if (line && m.abilities.length) line.textContent = m.abilities.slice(0, 2).join(" · ");
     }
   }
   await Promise.all(Array.from({ length: Math.min(10, cards.length) }, worker));
@@ -181,13 +196,8 @@ async function wireAdvancedFilters(prefix, pokemon, draw) {
         const m = await getPokemonMeta(p.name);
         if (revision !== filterRevision) return;
         if (type !== "all" && !m.types?.some(t => t.toLowerCase() === type)) continue;
-        if (move && !m.moves.some((x) => x.toLowerCase().includes(move)))
-          continue;
-        if (
-          ability &&
-          !m.abilities.some((x) => x.toLowerCase().includes(ability))
-        )
-          continue;
+        if (move && !m.moves.some((x) => x.toLowerCase().includes(move))) continue;
+        if (ability && !m.abilities.some((x) => x.toLowerCase().includes(ability))) continue;
         tested.push(p);
       }
       rows = tested;
@@ -221,10 +231,7 @@ renderRosters = async function () {
     `<div class="section-title"><div><h1>Rosters</h1><p class="muted">Browse every team and its Pokémon.</p></div><select id="roster-team"><option value="all">All Teams</option>${data.map((r) => `<option value="${r.team.id}">${esc(r.team.name)}</option>`).join("")}</select></div><div id="roster-content"></div>`;
   const draw = () => {
     const wanted = $("#roster-team").value,
-      rows =
-        wanted === "all"
-          ? data
-          : data.filter((r) => String(r.team.id) === wanted);
+      rows = wanted === "all" ? data : data.filter((r) => String(r.team.id) === wanted);
     $("#roster-content").innerHTML = `<div class="roster-team-grid">${rows
       .map((r) => {
         const value = r.pokemon.reduce((s, p) => s + Number(p.price || 0), 0);
@@ -238,12 +245,8 @@ renderRosters = async function () {
         (c.onclick = () => {
           const p = data
             .flatMap((r) => r.pokemon)
-            .find(
-              (x) =>
-                Number(x.pokemonId ?? x.id) === Number(c.dataset.pokemonId),
-            );
-          if (p && typeof showPokemonDetails === "function")
-            showPokemonDetails(p);
+            .find((x) => Number(x.pokemonId ?? x.id) === Number(c.dataset.pokemonId),);
+          if (p && typeof showPokemonDetails === "function") showPokemonDetails(p);
         }),
     );
   };

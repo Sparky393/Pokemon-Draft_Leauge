@@ -13,17 +13,32 @@ function wireDraftBoardScrolling(board) {
     position.max = String(max);
     position.value = String(scroller.scrollLeft);
     position.disabled = max === 0;
-    position.setAttribute("aria-valuetext", max ? `${Math.round(100 * scroller.scrollLeft / max)}% across the draft board` : "All columns visible");
+    position.setAttribute(
+      "aria-valuetext",
+      max
+        ? `${Math.round(100 * scroller.scrollLeft / max)}% across the draft board`
+        : "All columns visible"
+    );
     arrows.forEach((arrow) => {
-      arrow.disabled = Number(arrow.dataset.draftScroll) < 0 ? scroller.scrollLeft <= 0 : scroller.scrollLeft >= max - 1;
+      arrow.disabled =
+        Number(arrow.dataset.draftScroll) < 0
+          ? scroller.scrollLeft <= 0
+          : scroller.scrollLeft >= max - 1;
     });
   };
-  const move = () => { scroller.scrollLeft = Number(position.value); update(); };
+  const move = () => {
+    scroller.scrollLeft = Number(position.value);
+    update();
+  };
   position.addEventListener("input", move);
   scroller.addEventListener("scroll", update, { passive: true });
   window.addEventListener("resize", update);
   const clicks = arrows.map((arrow) => {
-    const click = () => scroller.scrollBy({ left: Number(arrow.dataset.draftScroll) * scroller.clientWidth * .8, behavior: "smooth" });
+    const click = () =>
+      scroller.scrollBy({
+        left: Number(arrow.dataset.draftScroll) * scroller.clientWidth *.8,
+        behavior: "smooth"
+      });
     arrow.addEventListener("click", click);
     return click;
   });
@@ -50,9 +65,7 @@ function wireDraftBoardScrolling(board) {
   const originalRenderDraft = window.renderDraft;
 
   function buildBoard(d) {
-    const teams = [...state.teams].sort(
-      (a, b) => a.draftPosition - b.draftPosition,
-    );
+    const teams = [...state.teams].sort((a, b) => a.draftPosition - b.draftPosition,);
     const count = teams.length;
     const rounds = 10;
     const picks = new Map(d.picks.map((p) => [Number(p.overallPick), p]));
@@ -75,11 +88,7 @@ function wireDraftBoardScrolling(board) {
           const position = reversed ? count - column : column + 1;
           const overall = index * count + position;
           const pick = picks.get(overall);
-          const onClock =
-            !pick &&
-            overall === currentPick &&
-            d.settings.draftOpen &&
-            d.currentTeam;
+          const onClock = !pick && overall === currentPick && d.settings.draftOpen && d.currentTeam;
           const className = pick
             ? "draft-cell-picked"
             : onClock
@@ -154,11 +163,7 @@ function wireDraftBoardScrolling(board) {
     // Match its own heading, not a nested heading from another card.
     [...page.children]
       .filter((element) => element.classList.contains("card"))
-      .filter(
-        (card) =>
-          card.querySelector(":scope > h2")?.textContent.trim() ===
-          "Draft Board",
-      )
+      .filter((card) => card.querySelector(":scope > h2")?.textContent.trim() === "Draft Board",)
       .forEach((card) => card.remove());
 
     const title = page.querySelector(".section-title");
@@ -174,11 +179,8 @@ function wireDraftBoardScrolling(board) {
     }
     board?.querySelectorAll(".draft-board-pokemon").forEach((card) => {
       card.addEventListener("click", () => {
-        const pick = d.picks.find(
-          (p) => String(p.pokemonId) === card.dataset.pokemonId,
-        );
-        if (pick)
-          showPokemonDetails(draftBoardPokemon(pick));
+        const pick = d.picks.find((p) => String(p.pokemonId) === card.dataset.pokemonId,);
+        if (pick) showPokemonDetails(draftBoardPokemon(pick));
       });
     });
     if (board) hydratePokemonCards(board);
@@ -187,22 +189,13 @@ function wireDraftBoardScrolling(board) {
 
   async function checkDraft() {
     if (globalThis.leagueSession && !leagueSession.canPoll()) return;
-    if (
-      refreshing ||
-      state.page !== "draft" ||
-      !state.user ||
-      document.hidden ||
-      draftFinalized
-    )
+    if (refreshing || state.page !== "draft" || !state.user || document.hidden || draftFinalized)
       return;
     refreshing = true;
     try {
       if (!draftOpen) {
         const status = await api("/api/draft/idle-status");
-        if (
-          status.revision !== idleRevision &&
-          !document.querySelector(".pokemon-detail-overlay")
-        )
+        if (status.revision !== idleRevision && !document.querySelector(".pokemon-detail-overlay"))
           await window.renderDraft();
         return;
       }

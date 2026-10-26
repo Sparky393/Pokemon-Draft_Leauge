@@ -21,12 +21,8 @@ class LeagueResetPasswordTest {
   void wrongPasswordNeverResets() {
     var controller = new LeagueAdministrationController(auth, resets, locks);
     ReflectionTestUtils.setField(controller, "resetPassword", "configured-secret");
-    var ex =
-        assertThrows(
-            ResponseStatusException.class,
-            () ->
-                controller.reset(
-                    new LeagueAdministrationController.ResetRequest("incorrect"), session));
+    var ex = assertThrows(ResponseStatusException.class, () -> controller
+        .reset(new LeagueAdministrationController.ResetRequest("incorrect"), session));
     assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     verify(auth).manager(session);
     verifyNoInteractions(resets);
@@ -35,10 +31,8 @@ class LeagueResetPasswordTest {
   @Test
   void blankPasswordNeverResets() {
     var controller = new LeagueAdministrationController(auth, resets, locks);
-    var ex =
-        assertThrows(
-            ResponseStatusException.class,
-            () -> controller.reset(new LeagueAdministrationController.ResetRequest(""), session));
+    var ex = assertThrows(ResponseStatusException.class,
+        () -> controller.reset(new LeagueAdministrationController.ResetRequest(""), session));
     assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     verifyNoInteractions(resets);
   }
@@ -46,12 +40,8 @@ class LeagueResetPasswordTest {
   @Test
   void missingEnvironmentPasswordNeverResets() {
     var controller = new LeagueAdministrationController(auth, resets, locks);
-    var ex =
-        assertThrows(
-            ResponseStatusException.class,
-            () ->
-                controller.reset(
-                    new LeagueAdministrationController.ResetRequest("password"), session));
+    var ex = assertThrows(ResponseStatusException.class, () -> controller
+        .reset(new LeagueAdministrationController.ResetRequest("password"), session));
     assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     verifyNoInteractions(resets);
   }

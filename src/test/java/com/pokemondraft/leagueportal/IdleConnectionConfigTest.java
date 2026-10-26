@@ -21,7 +21,8 @@ class IdleConnectionConfigTest {
     }
     Map<String, Object> settings = new HashMap<>();
     properties.forEach((key, value) -> {
-      if (key.toString().startsWith("spring.datasource.hikari.")) settings.put(key.toString(), value);
+      if (key.toString().startsWith("spring.datasource.hikari."))
+        settings.put(key.toString(), value);
     });
     HikariConfig config = new Binder(new MapConfigurationPropertySource(settings))
         .bind("spring.datasource.hikari", Bindable.of(HikariConfig.class)).get();

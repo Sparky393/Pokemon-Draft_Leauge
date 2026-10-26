@@ -13,16 +13,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class RequestSafetyFilter extends OncePerRequestFilter {
   @Override
-  protected void doFilterInternal(
-      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-      throws ServletException, IOException {
+  protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+      FilterChain chain) throws ServletException, IOException {
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("X-Frame-Options", "DENY");
     response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
 
     String method = request.getMethod();
-    boolean modifying =
-        !(method.equals("GET") || method.equals("HEAD") || method.equals("OPTIONS"));
+    boolean modifying = !(method.equals("GET") || method.equals("HEAD")
+        || method.equals("OPTIONS"));
     if (modifying && request.getRequestURI().startsWith("/api/")) {
       // Browser requests from our own UI carry this non-simple header.
       // Combined with same-origin checks, it blocks ordinary cross-site forms
@@ -36,7 +35,8 @@ public class RequestSafetyFilter extends OncePerRequestFilter {
       String origin = request.getHeader("Origin");
       if (origin == null || origin.isBlank()) {
         String referer = request.getHeader("Referer");
-        if (referer != null && !referer.isBlank()) origin = referer;
+        if (referer != null && !referer.isBlank())
+          origin = referer;
       }
       if (origin != null && !origin.isBlank()) {
         try {

@@ -92,8 +92,7 @@
           button.onclick = async () => {
             const week = Number(button.dataset.week);
             const lock = button.dataset.locked !== "true";
-            if (!confirm(`${lock ? "Lock" : "Unlock"} Week ${week} results?`))
-              return;
+            if (!confirm(`${lock ? "Lock" : "Unlock"} Week ${week} results?`)) return;
             button.disabled = true;
             try {
               await api(`/api/manager/weeks/${week}/lock`, {
@@ -110,8 +109,7 @@
           };
         });
       } catch (error) {
-        $tool("#manager-week-locks").textContent =
-          "Could not load controls: " + error.message;
+        $tool("#manager-week-locks").textContent = "Could not load controls: " + error.message;
         $tool("#league-reset-preview").textContent = "Could not preview reset.";
         toast(error.message, true);
       }
@@ -154,10 +152,7 @@
   }
 
   const managerNav = document.querySelector("#manager-nav");
-  if (managerNav)
-    managerNav.addEventListener("click", () =>
-      setTimeout(addCommissionerTools, 0),
-    );
+  if (managerNav) managerNav.addEventListener("click", () => setTimeout(addCommissionerTools, 0),);
 
   const managerPage = document.querySelector("#page-manager");
   if (managerPage) {

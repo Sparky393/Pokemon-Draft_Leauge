@@ -3,24 +3,24 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 const IDLE = 300000;
-const source = readFileSync(
-  "src/main/resources/static/js/session-idle.js",
-  "utf8",
-);
-const apiSource = readFileSync(
-  "src/main/resources/static/js/api-fix.js",
-  "utf8",
-);
+const source = readFileSync("src/main/resources/static/js/session-idle.js", "utf8",);
+const apiSource = readFileSync("src/main/resources/static/js/api-fix.js", "utf8",);
 const user = { id: 1, username: "coach1", role: "COACH", teamId: 1 };
 const flush = async () => {
   for (let i = 0; i < 12; i++) await Promise.resolve();
 };
 class Node {
   listeners = new Map();
-  addEventListener(name, fn) { this.listeners.set(name, fn); }
-  setAttribute(name, value) { this[name] = value; }
+  addEventListener(name, fn) {
+    this.listeners.set(name, fn);
+  }
+  setAttribute(name, value) {
+    this[name] = value;
+  }
   insertAdjacentElement() {}
-  click() { return this.listeners.get("click")?.({}); }
+  click() {
+    return this.listeners.get("click")?.({});
+  }
   classes = new Set();
   value = "secret";
   hidden = true;
@@ -123,8 +123,7 @@ function world() {
           getItem: (key) => storage.get(key) || null,
           setItem: (key, value) => {
             storage.set(key, value);
-            for (const other of tabs)
-              if (other !== t) other.emit("storage", { key });
+            for (const other of tabs) if (other !== t) other.emit("storage", { key });
           },
         },
         Date: class extends Date {
@@ -156,14 +155,16 @@ function world() {
                 resolve: (value) => resolve(response(value)),
                 reject,
               });
-              options.signal?.addEventListener(
-                "abort",
-                () => reject(Error("Aborted")),
-                { once: true },
-              );
+              options.signal?.addEventListener("abort", () => reject(Error("Aborted")), {
+                once: true
+              },);
             });
-          if (url === "/api/auth/login" || url === "/api/auth/me") return Promise.resolve(response(user));
-          if (url === "/api/auth/guest") return Promise.resolve(response({id:null,username:"Guest",role:"GUEST",teamId:null}));
+          if (url === "/api/auth/login" || url === "/api/auth/me")
+            return Promise.resolve(response(user));
+          if (url === "/api/auth/guest")
+            return Promise.resolve(
+              response({ id: null, username: "Guest", role: "GUEST", teamId: null })
+            );
           const status = {
             pickCount: 0,
             lastPickId: null,
@@ -173,13 +174,7 @@ function world() {
             snakeDraft: true,
           };
           return Promise.resolve(
-            response(
-              url === "/api/draft/status"
-                ? status
-                : url === "/api/notifications"
-                  ? []
-                  : {},
-            ),
+            response(url === "/api/draft/status" ? status : url === "/api/notifications" ? [] : {},),
           );
         },
       });
@@ -193,8 +188,7 @@ function world() {
         t.state.user = { ...user };
         return c.leagueSession.begin(t.state.user, fresh);
       };
-      t.input = (name = "pointerdown", isTrusted = true) =>
-        t.emit(name, { isTrusted });
+      t.input = (name = "pointerdown", isTrusted = true) => t.emit(name, { isTrusted });
       return t;
     },
   };
@@ -228,13 +222,7 @@ await test("poll requests never extend five-minute inactivity; exactly one logou
 });
 
 await test("real keyboard/mouse/wheel/touch activity extends the deadline; synthetic events and programmatic scroll do not", async () => {
-  for (const event of [
-    "keydown",
-    "pointermove",
-    "wheel",
-    "touchstart",
-    "touchmove",
-  ]) {
+  for (const event of ["keydown", "pointermove", "wheel", "touchstart", "touchmove",]) {
     const w = world(),
       t = w.tab();
     t.begin();
@@ -283,9 +271,7 @@ await test("hidden tabs make no reads; returning in time refreshes once and bloc
   await flush();
   assert.equal(refreshes, 1);
   assert.equal(t.nodes.get("#app").inert, true);
-  await assert.rejects(
-    t.c.api("/api/draft/pick", { method: "POST", body: { pokemonId: 1 } }),
-  );
+  await assert.rejects(t.c.api("/api/draft/pick", { method: "POST", body: { pokemonId: 1 } }),);
   assert.equal(w.calls.length, 0);
   release();
   await flush();
@@ -348,10 +334,7 @@ await test("already-sent mutations are never aborted or retried when the session
   assert.equal(w.calls[0].options.signal, undefined);
   w.pending[0].resolve({ saved: true });
   await rejected;
-  assert.equal(
-    w.calls.filter((c) => c.url === "/api/manager/results/1").length,
-    1,
-  );
+  assert.equal(w.calls.filter((c) => c.url === "/api/manager/results/1").length, 1,);
 });
 
 await test("activity in another tab keeps the shared session alive; logout propagates without duplicate logout requests", async () => {
@@ -437,10 +420,7 @@ await test("actual five-second draft poller stops at timeout and while hidden, a
     t = w.tab();
   t.begin();
   t.c.renderDraft = async () => {};
-  vm.runInContext(
-    readFileSync("src/main/resources/static/js/draft-live.js", "utf8"),
-    t.c,
-  );
+  vm.runInContext(readFileSync("src/main/resources/static/js/draft-live.js", "utf8"), t.c,);
   await w.advance(15000);
   assert.equal(w.calls.filter((c) => c.url === "/api/draft/status").length, 3);
   t.document.hidden = true;
@@ -464,10 +444,7 @@ await test("actual notification handler makes no requests when hidden or expired
   const w = world(),
     t = w.tab();
   t.begin();
-  const text = readFileSync(
-    "src/main/resources/static/js/league-extras.js",
-    "utf8",
-  );
+  const text = readFileSync("src/main/resources/static/js/league-extras.js", "utf8",);
   const handler = text.slice(
     text.indexOf("  async function checkNotices()"),
     text.indexOf("  const enter = enterApp;"),
@@ -500,22 +477,25 @@ await test("new Pokémon metadata requests stop after logout", async () => {
   t.begin();
   await t.c.leagueSession.logout();
   const count = w.calls.length;
-  vm.runInContext(
-    readFileSync("src/main/resources/static/js/pokemon-ui.js", "utf8"),
-    t.c,
-  );
+  vm.runInContext(readFileSync("src/main/resources/static/js/pokemon-ui.js", "utf8"), t.c,);
   await assert.rejects(t.c.fetchPokemonData("garchomp"));
   await t.c.getPokemonMeta("Garchomp");
   assert.equal(w.calls.length, count);
 });
 
 await test("real app boot, login, guest entry and manual logout use the idle lifecycle without an automatic reload", async () => {
-  const w = world(), t = w.tab();
-  const app = readFileSync("src/main/resources/static/js/app.js", "utf8").replace(/\nboot\(\);\s*$/, "\n");
+  const w = world(),
+    t = w.tab();
+  const app = readFileSync("src/main/resources/static/js/app.js", "utf8").replace(
+    /\nboot\(\);\s*$/,
+    "\n"
+  );
   vm.runInContext(app, t.c);
   const state = vm.runInContext("state", t.c);
   let entries = 0;
-  t.c.enterApp = async () => { entries++; };
+  t.c.enterApp = async () => {
+    entries++;
+  };
   await t.c.boot();
   assert.equal(entries, 1);
   assert.equal(state.user.role, "COACH");

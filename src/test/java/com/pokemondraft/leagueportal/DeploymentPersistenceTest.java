@@ -11,19 +11,22 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Re-running the startup initializer must not rewrite an established league. */
-@SpringBootTest(
-    properties = {
-      "spring.datasource.url=jdbc:h2:mem:deploymenttest;DB_CLOSE_DELAY=-1",
-      "spring.jpa.hibernate.ddl-auto=create-drop"
-    })
+@SpringBootTest(properties = { "spring.datasource.url=jdbc:h2:mem:deploymenttest;DB_CLOSE_DELAY=-1",
+    "spring.jpa.hibernate.ddl-auto=create-drop" })
 @Transactional
 class DeploymentPersistenceTest {
-  @Autowired CommandLineRunner initializer;
-  @Autowired LeagueSettingsRepository settings;
-  @Autowired TeamRepository teams;
-  @Autowired PokemonRepository pokemon;
-  @Autowired MatchupRepository matchups;
-  @Autowired AppUserRepository users;
+  @Autowired
+  CommandLineRunner initializer;
+  @Autowired
+  LeagueSettingsRepository settings;
+  @Autowired
+  TeamRepository teams;
+  @Autowired
+  PokemonRepository pokemon;
+  @Autowired
+  MatchupRepository matchups;
+  @Autowired
+  AppUserRepository users;
 
   @Test
   void codeRedeployKeepsCustomizedLeagueState() throws Exception {
@@ -51,8 +54,8 @@ class DeploymentPersistenceTest {
     existing.setPlayed(true);
     matchups.saveAndFlush(existing);
 
-    AppUser user =
-        users.findAll().stream().filter(x -> x.getRole() == Role.COACH).findFirst().orElseThrow();
+    AppUser user = users.findAll().stream().filter(x -> x.getRole() == Role.COACH).findFirst()
+        .orElseThrow();
     Long userId = user.getId();
     user.setUsername("my-custom-login");
     users.saveAndFlush(user);

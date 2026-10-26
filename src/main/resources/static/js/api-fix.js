@@ -22,29 +22,16 @@ function apiErrorMessage(status, data) {
   )
     return data.trim();
   if (data && typeof data === "object") {
-    const candidates = [
-      data.message,
-      data.detail,
-      data.reason,
-      data.description,
-    ];
+    const candidates = [data.message, data.detail, data.reason, data.description,];
     for (const value of candidates) {
-      if (
-        typeof value === "string" &&
-        value.trim() &&
-        !/^bad request$/i.test(value.trim())
-      )
+      if (typeof value === "string" && value.trim() && !/^bad request$/i.test(value.trim()))
         return value.trim();
     }
     if (data.errors && typeof data.errors === "object") {
-      const values = Array.isArray(data.errors)
-        ? data.errors
-        : Object.values(data.errors);
+      const values = Array.isArray(data.errors) ? data.errors : Object.values(data.errors);
       const messages = values
         .flatMap((v) => (Array.isArray(v) ? v : [v]))
-        .map((v) =>
-          typeof v === "string" ? v : v?.defaultMessage || v?.message || "",
-        )
+        .map((v) =>typeof v === "string" ? v : v?.defaultMessage || v?.message || "",)
         .filter(Boolean);
       if (messages.length) return messages.join(" · ");
     }
@@ -60,17 +47,14 @@ const requestApi = async function (url, options = {}) {
       ...(options.headers || {}),
     },
   };
-  if (options.body && typeof options.body !== "string")
-    opts.body = JSON.stringify(options.body);
+  if (options.body && typeof options.body !== "string") opts.body = JSON.stringify(options.body);
   const permit = globalThis.leagueSession?.beforeRequest(url, opts);
   try {
     let res;
     try {
       res = await fetch(url, opts);
     } catch {
-      throw new Error(
-        "Could not reach the server. Check your connection and try again.",
-      );
+      throw new Error("Could not reach the server. Check your connection and try again.",);
     }
     if (res.status === 204) {
       permit?.assertCurrent();

@@ -1,8 +1,5 @@
 package com.pokemondraft.leagueportal.entity;
 
 public enum BidStatus {
-  PENDING,
-  WON,
-  LOST,
-  CANCELLED
+  PENDING, WON, LOST, CANCELLED
 }

@@ -19,7 +19,8 @@ public class FreeAgentBid {
 
   private LocalDateTime createdAt = LocalDateTime.now();
 
-  public FreeAgentBid() {}
+  public FreeAgentBid() {
+  }
 
   public FreeAgentBid(Long teamId, Long wanted, Long drop, int amount) {
     this.teamId = teamId;

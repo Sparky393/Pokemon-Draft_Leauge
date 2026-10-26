@@ -11,8 +11,7 @@ const errors = [];
 const requests = [];
 page.on("pageerror", (error) => errors.push(error.message));
 page.on("request", (request) => {
-  if (request.url().startsWith(origin + "/api/"))
-    requests.push(new URL(request.url()).pathname);
+  if (request.url().startsWith(origin + "/api/")) requests.push(new URL(request.url()).pathname);
 });
 await page.route("**/*", (route) =>
   route.request().url().startsWith(origin) ? route.continue() : route.abort(),
@@ -33,8 +32,7 @@ async function call(endpoint, method = "GET", body) {
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
-      if (!response.ok)
-        throw new Error(endpoint + " returned " + response.status);
+      if (!response.ok) throw new Error(endpoint + " returned " + response.status);
       return response.status === 204 ? null : response.json();
     },
     { endpoint, method, body },
@@ -46,18 +44,10 @@ try {
   await page.locator("#login-password").fill("manager");
   await page.locator("#login-button").click();
   await page.locator("#page-home .page-hero").waitFor();
-  assert.equal(
-    count("/api/dashboard/view"),
-    1,
-    "Login must fetch one dashboard",
-  );
+  assert.equal(count("/api/dashboard/view"), 1, "Login must fetch one dashboard",);
   const rosterLoads = count("/api/rosters");
   await page.evaluate(() =>
-    Promise.all([
-      showPage("rosters"),
-      showPage("rosters"),
-      showPage("rosters"),
-    ]),
+    Promise.all([showPage("rosters"), showPage("rosters"), showPage("rosters"),]),
   );
   assert.equal(
     count("/api/rosters") - rosterLoads,
@@ -74,11 +64,7 @@ try {
   const beforeDraft = count("/api/draft");
   await navigate("draft");
   await page.locator(".draft-budget-panel").waitFor();
-  assert.equal(
-    count("/api/draft") - beforeDraft,
-    1,
-    "All draft components must share one fetch",
-  );
+  assert.equal(count("/api/draft") - beforeDraft, 1, "All draft components must share one fetch",);
   assert.equal(await page.locator(".live-draft-board").count(), 1);
   assert.equal(await page.locator(".draft-budget-panel").count(), 1);
 
@@ -86,15 +72,8 @@ try {
   const full = count("/api/draft");
   const statusBefore = count("/api/draft/status");
   await page.waitForTimeout(5500);
-  assert.ok(
-    count("/api/draft/status") > statusBefore,
-    "Active room must continue polling",
-  );
-  assert.equal(
-    count("/api/draft"),
-    full,
-    "Unchanged status must not rerender/refetch",
-  );
+  assert.ok(count("/api/draft/status") > statusBefore, "Active room must continue polling",);
+  assert.equal(count("/api/draft"), full, "Unchanged status must not rerender/refetch",);
 
   // Pausing preserves the same five-second reopening response. The idle endpoint
   // reads only a tiny revision, and replaces full draft-status queries.
@@ -110,15 +89,9 @@ try {
   );
   const reopenFull = count("/api/draft");
   await call("/api/manager/settings", "PUT", { draftOpen: true });
-  await page.waitForFunction(() =>
-    document.querySelector("#page-draft .draft-cell-current"),
-  );
+  await page.waitForFunction(() => document.querySelector("#page-draft .draft-cell-current"),);
   await page.waitForTimeout(100);
-  assert.equal(
-    count("/api/draft") - reopenFull,
-    1,
-    "Reopening must rerender once",
-  );
+  assert.equal(count("/api/draft") - reopenFull, 1, "Reopening must rerender once",);
 
   // Finalization is covered end-to-end by the 160-pick H2 integration test.
   // Here a response fixture tests that the browser stops both polling loops.
@@ -142,9 +115,7 @@ try {
   await page.locator("#schedule-week").waitFor();
   const scheduleReads = count("/api/flow/schedule");
   await page.locator("#schedule-week").selectOption("2");
-  await page.waitForFunction(
-    () => document.querySelectorAll(".season-week").length === 1,
-  );
+  await page.waitForFunction(() => document.querySelectorAll(".season-week").length === 1,);
   assert.equal(
     count("/api/flow/schedule"),
     scheduleReads,
@@ -156,14 +127,10 @@ try {
   );
   await navigate("schedule");
   await filtered;
-  await page.waitForFunction(
-    () => document.querySelectorAll(".season-week").length === 1,
-  );
+  await page.waitForFunction(() => document.querySelectorAll(".season-week").length === 1,);
   assert.equal(await page.locator(".season-week").count(), 1);
   await page.locator("#schedule-clear").click();
-  await page.waitForFunction(
-    () => document.querySelectorAll(".season-week").length === 16,
-  );
+  await page.waitForFunction(() => document.querySelectorAll(".season-week").length === 16,);
   assert.equal(await page.locator(".season-week").count(), 16);
   assert.deepEqual(errors, []);
   console.log(

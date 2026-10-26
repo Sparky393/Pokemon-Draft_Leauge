@@ -5,10 +5,12 @@ import jakarta.persistence.Id;
 
 @Entity
 public class WeekLock {
-  @Id private Integer week;
+  @Id
+  private Integer week;
   private boolean locked;
 
-  protected WeekLock() {}
+  protected WeekLock() {
+  }
 
   public WeekLock(int week, boolean locked) {
     this.week = week;
