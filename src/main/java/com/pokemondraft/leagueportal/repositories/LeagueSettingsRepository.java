@@ -16,8 +16,9 @@ public interface LeagueSettingsRepository extends JpaRepository<LeagueSettings, 
     boolean isSnakeDraft();
   }
 
-  @Query("select s.draftOpen as draftOpen, coalesce(s.draftFinalized, false) as draftFinalized,"
-      + " s.snakeDraft as snakeDraft from LeagueSettings s where s.id = :id")
+  @Query(
+      "select s.draftOpen as draftOpen, coalesce(s.draftFinalized, false) as draftFinalized,"
+          + " s.snakeDraft as snakeDraft from LeagueSettings s where s.id = :id")
   Optional<DraftFlags> findDraftFlagsById(Long id);
 
   interface IdleStatus extends DraftFlags {
@@ -26,9 +27,10 @@ public interface LeagueSettingsRepository extends JpaRepository<LeagueSettings, 
     Long getLastPickId();
   }
 
-  @Query("select s.draftOpen as draftOpen, coalesce(s.draftFinalized, false) as draftFinalized,"
-      + " s.snakeDraft as snakeDraft, (select count(p) from DraftPick p) as pickCount, (select"
-      + " max(p.id) from DraftPick p) as lastPickId from LeagueSettings s where s.id = 1")
+  @Query(
+      "select s.draftOpen as draftOpen, coalesce(s.draftFinalized, false) as draftFinalized,"
+          + " s.snakeDraft as snakeDraft, (select count(p) from DraftPick p) as pickCount, (select"
+          + " max(p.id) from DraftPick p) as lastPickId from LeagueSettings s where s.id = 1")
   Optional<IdleStatus> idleStatus();
 
   /** Serializes draft picks across concurrent Render workers. */

@@ -52,10 +52,14 @@
                 ?.scrollIntoView({ behavior: "smooth", block: "center" });
             else {
               document
-                .querySelector(n.action === "lock" ? "#manager-week-locks" : "#setting-week",)
+                .querySelector(
+                  n.action === "lock" ? "#manager-week-locks" : "#setting-week",
+                )
                 ?.scrollIntoView({ behavior: "smooth", block: "center" });
-              if (n.action === "deadline") document.querySelector("#setting-deadline")?.focus();
-              if (n.action === "week") document.querySelector("#setting-week")?.focus();
+              if (n.action === "deadline")
+                document.querySelector("#setting-deadline")?.focus();
+              if (n.action === "week")
+                document.querySelector("#setting-week")?.focus();
             }
           };
           card.append(title, message, button);

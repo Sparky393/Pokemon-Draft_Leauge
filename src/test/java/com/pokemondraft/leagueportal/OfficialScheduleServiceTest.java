@@ -17,8 +17,8 @@ class OfficialScheduleServiceTest {
   TeamRepository teams = mock(TeamRepository.class);
   MatchupRepository matchups = mock(MatchupRepository.class);
   LeagueSettingsRepository settings = mock(LeagueSettingsRepository.class);
-  ScheduleService service = new ScheduleService(teams, matchups, settings,
-      mock(WeekLockService.class));
+  ScheduleService service =
+      new ScheduleService(teams, matchups, settings, mock(WeekLockService.class));
   List<Team> teamRows = new ArrayList<>();
   List<Matchup> rows = new ArrayList<>();
   AtomicLong next = new AtomicLong(100);
@@ -33,25 +33,39 @@ class OfficialScheduleServiceTest {
       teamRows.add(team);
     }
     when(teams.findAllMetadata()).thenAnswer(inv -> new ArrayList<>(teamRows));
-    when(teams.findByDivision("A")).thenAnswer(inv -> new ArrayList<>(
-        teamRows.stream().filter(t -> t.getDivision().equals("A")).toList()));
-    when(teams.findByDivision("B")).thenAnswer(inv -> new ArrayList<>(
-        teamRows.stream().filter(t -> t.getDivision().equals("B")).toList()));
+    when(teams.findByDivision("A"))
+        .thenAnswer(
+            inv ->
+                new ArrayList<>(
+                    teamRows.stream().filter(t -> t.getDivision().equals("A")).toList()));
+    when(teams.findByDivision("B"))
+        .thenAnswer(
+            inv ->
+                new ArrayList<>(
+                    teamRows.stream().filter(t -> t.getDivision().equals("B")).toList()));
     when(matchups.findAll()).thenAnswer(inv -> new ArrayList<>(rows));
-    when(matchups.findAllByOrderByWeekAscIdAsc()).thenAnswer(inv -> rows.stream()
-        .sorted(Comparator.comparingInt(Matchup::getWeek).thenComparing(Matchup::getId)).toList());
-    when(matchups.save(any(Matchup.class))).thenAnswer(inv -> {
-      Matchup game = inv.getArgument(0);
-      if (game.getId() == null)
-        ReflectionTestUtils.setField(game, "id", next.getAndIncrement());
-      if (!rows.contains(game))
-        rows.add(game);
-      return game;
-    });
-    doAnswer(inv -> {
-      rows.remove(inv.getArgument(0));
-      return null;
-    }).when(matchups).delete(any(Matchup.class));
+    when(matchups.findAllByOrderByWeekAscIdAsc())
+        .thenAnswer(
+            inv ->
+                rows.stream()
+                    .sorted(Comparator.comparingInt(Matchup::getWeek).thenComparing(Matchup::getId))
+                    .toList());
+    when(matchups.save(any(Matchup.class)))
+        .thenAnswer(
+            inv -> {
+              Matchup game = inv.getArgument(0);
+              if (game.getId() == null)
+                ReflectionTestUtils.setField(game, "id", next.getAndIncrement());
+              if (!rows.contains(game)) rows.add(game);
+              return game;
+            });
+    doAnswer(
+            inv -> {
+              rows.remove(inv.getArgument(0));
+              return null;
+            })
+        .when(matchups)
+        .delete(any(Matchup.class));
   }
 
   @Test
@@ -84,9 +98,12 @@ class OfficialScheduleServiceTest {
 
   private Matchup game(int week, long a, long b) {
     return rows.stream()
-        .filter(g -> g.getWeek() == week
-            && Set.of(g.getHomeTeamId(), g.getAwayTeamId()).equals(Set.of(a, b)))
-        .findFirst().orElseThrow();
+        .filter(
+            g ->
+                g.getWeek() == week
+                    && Set.of(g.getHomeTeamId(), g.getAwayTeamId()).equals(Set.of(a, b)))
+        .findFirst()
+        .orElseThrow();
   }
 
   private void win(int week, long home, long away) {
@@ -158,7 +175,12 @@ class OfficialScheduleServiceTest {
     bracket();
     assertEquals(0, semifinal.getWeek());
     assertEquals(2, semifinal.getHomeScore());
-    assertFalse(bracket().stream().anyMatch(g -> g.get("week").equals(15)
-        && Boolean.TRUE.equals(g.get("ready")) && "Kanto".equals(g.get("division"))));
+    assertFalse(
+        bracket().stream()
+            .anyMatch(
+                g ->
+                    g.get("week").equals(15)
+                        && Boolean.TRUE.equals(g.get("ready"))
+                        && "Kanto".equals(g.get("division"))));
   }
 }

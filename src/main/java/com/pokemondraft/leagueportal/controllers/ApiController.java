@@ -33,11 +33,20 @@ public class ApiController {
   private final WeeklyLineupService lineupService;
   private final TransactionHistoryService history;
 
-  public ApiController(AuthService auth, TeamRepository teams, PokemonRepository pokemon,
-      RosterEntryRepository roster, DraftPickRepository picks, DraftService draft,
-      MatchupRepository matchups, ScheduleService schedule, LeagueSettingsRepository settingsRepo,
-      WeeklySubmissionRepository submissions, FreeAgentBidRepository bids,
-      FreeAgencyService freeAgency, WeeklyLineupService lineupService,
+  public ApiController(
+      AuthService auth,
+      TeamRepository teams,
+      PokemonRepository pokemon,
+      RosterEntryRepository roster,
+      DraftPickRepository picks,
+      DraftService draft,
+      MatchupRepository matchups,
+      ScheduleService schedule,
+      LeagueSettingsRepository settingsRepo,
+      WeeklySubmissionRepository submissions,
+      FreeAgentBidRepository bids,
+      FreeAgencyService freeAgency,
+      WeeklyLineupService lineupService,
       TransactionHistoryService history) {
     this.auth = auth;
     this.teams = teams;
@@ -73,8 +82,7 @@ public class ApiController {
     out.put("settings", settingsMap(s));
     List<Team> teamList = teams.findAllMetadata();
     out.put("teams", teamList);
-    if (includeRoster && u.teamId() instanceof Long teamId)
-      out.put("myRoster", rosterView(teamId));
+    if (includeRoster && u.teamId() instanceof Long teamId) out.put("myRoster", rosterView(teamId));
     out.put("currentDraftTeam", draft.currentTeam(teamList, picks.count(), s));
     return out;
   }
@@ -87,18 +95,20 @@ public class ApiController {
         .toList();
   }
 
-  public record TeamUpdate(String name, String coachName, String division, Integer faBudget,
-      Integer draftPosition, Integer manualRank) {
-  }
+  public record TeamUpdate(
+      String name,
+      String coachName,
+      String division,
+      Integer faBudget,
+      Integer draftPosition,
+      Integer manualRank) {}
 
   @PutMapping("/manager/teams/{id}")
   public Team updateTeam(@PathVariable Long id, @RequestBody TeamUpdate r, HttpSession session) {
     auth.manager(session);
     Team t = teams.findById(id).orElseThrow();
-    if (r.name() != null && !r.name().isBlank())
-      t.setName(r.name());
-    if (r.coachName() != null)
-      t.setCoachName(r.coachName());
+    if (r.name() != null && !r.name().isBlank()) t.setName(r.name());
+    if (r.coachName() != null) t.setCoachName(r.coachName());
     if (r.division() != null && (r.division().equals("A") || r.division().equals("B")))
       t.setDivision(r.division());
     if (r.faBudget() != null) {
@@ -108,20 +118,22 @@ public class ApiController {
     }
     if (r.draftPosition() != null && r.draftPosition() != t.getDraftPosition()) {
       if (picks.count() > 0 || settings().isDraftFinalized())
-        throw new ResponseStatusException(HttpStatus.CONFLICT,
+        throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
             "Draft order cannot be changed after the first pick. Your current order is preserved.");
       if (r.draftPosition() < 1 || r.draftPosition() > 16)
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-            "Draft position must be from 1 to 16.");
-      if (teams.findAllMetadata().stream().anyMatch(
-          other -> !other.getId().equals(id) && other.getDraftPosition() == r.draftPosition()))
-        throw new ResponseStatusException(HttpStatus.CONFLICT,
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST, "Draft position must be from 1 to 16.");
+      if (teams.findAllMetadata().stream()
+          .anyMatch(
+              other -> !other.getId().equals(id) && other.getDraftPosition() == r.draftPosition()))
+        throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
             "That draft position is already assigned to another team. Swap their positions before"
                 + " starting the draft.");
       t.setDraftPosition(r.draftPosition());
     }
-    if (r.manualRank() != null)
-      t.setManualRank(r.manualRank());
+    if (r.manualRank() != null) t.setManualRank(r.manualRank());
     return teams.save(t);
   }
 
@@ -137,18 +149,18 @@ public class ApiController {
     return pokemon.findByDraftedFalseOrderByNameAsc();
   }
 
-  public record PriceUpdate(int price) {
-  }
+  public record PriceUpdate(int price) {}
 
   @PutMapping("/manager/pokemon/{id}/price")
   public Pokemon price(@PathVariable Long id, @RequestBody PriceUpdate r, HttpSession session) {
     auth.manager(session);
     if (r.price() < 0 || r.price() > 20)
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          "Pokémon draft prices must be between $0 and $20.");
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Pokémon draft prices must be between $0 and $20.");
     Pokemon p = pokemon.findById(id).orElseThrow();
     if (p.getPrice() != r.price() && (picks.count() > 0 || settings().isDraftFinalized()))
-      throw new ResponseStatusException(HttpStatus.CONFLICT,
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT,
           "Pokémon prices are locked once the draft begins. Existing draft and roster values stay"
               + " unchanged.");
     p.setPrice(r.price());
@@ -159,8 +171,10 @@ public class ApiController {
   public List<TeamRosterDto> rosters(HttpSession session) {
     auth.viewer(session);
     Map<Long, List<RosterPokemonDto>> members = rosterViews(roster.findAll());
-    return teams.findAllMetadata().stream().sorted(Comparator.comparing(Team::getName))
-        .map(t -> new TeamRosterDto(t, members.getOrDefault(t.getId(), List.of()))).toList();
+    return teams.findAllMetadata().stream()
+        .sorted(Comparator.comparing(Team::getName))
+        .map(t -> new TeamRosterDto(t, members.getOrDefault(t.getId(), List.of())))
+        .toList();
   }
 
   @GetMapping("/rosters/{teamId}")
@@ -176,17 +190,24 @@ public class ApiController {
     LeagueSettings league = viewerSettings(session);
     List<Team> teamRows = teams.findAllMetadata();
     List<DraftPick> pickRows = picks.findAllByOrderByOverallPickAsc();
-    Map<Long, String> names = teamRows.stream()
-        .collect(Collectors.toMap(Team::getId, Team::getName));
+    Map<Long, String> names =
+        teamRows.stream().collect(Collectors.toMap(Team::getId, Team::getName));
     Map<String, Object> m = new LinkedHashMap<>();
     m.put("currentTeam", draft.currentTeam(teamRows, pickRows.size(), league));
     m.put("picks", pickViews(pickRows, names));
     Long lastPickId = pickRows.stream().map(DraftPick::getId).max(Long::compareTo).orElse(null);
     m.put("lastPickId", lastPickId);
-    Map<Long, Integer> order = teamRows.stream()
-        .collect(Collectors.toMap(Team::getId, Team::getDraftPosition));
-    m.put("idleRevision", draftRevision(pickRows.size(), lastPickId, league.isDraftOpen(),
-        league.isDraftFinalized(), league.isSnakeDraft(), order));
+    Map<Long, Integer> order =
+        teamRows.stream().collect(Collectors.toMap(Team::getId, Team::getDraftPosition));
+    m.put(
+        "idleRevision",
+        draftRevision(
+            pickRows.size(),
+            lastPickId,
+            league.isDraftOpen(),
+            league.isDraftFinalized(),
+            league.isSnakeDraft(),
+            order));
     m.put("available", pokemon.findByDraftedFalseOrderByNameAsc());
     m.put("settings", settingsMap(league));
     return m;
@@ -226,18 +247,29 @@ public class ApiController {
     if (status.getPickCount() == 0)
       for (TeamRepository.DraftOrder team : teams.findAllProjectedByOrderByDraftPositionAsc())
         order.put(team.getId(), team.getDraftPosition());
-    return Map.of("revision", draftRevision(status.getPickCount(), status.getLastPickId(),
-        status.isDraftOpen(), status.isDraftFinalized(), status.isSnakeDraft(), order));
+    return Map.of(
+        "revision",
+        draftRevision(
+            status.getPickCount(),
+            status.getLastPickId(),
+            status.isDraftOpen(),
+            status.isDraftFinalized(),
+            status.isSnakeDraft(),
+            order));
   }
 
-  private String draftRevision(long count, Long lastId, boolean open, boolean finalized,
-      boolean snake, Map<Long, Integer> order) {
+  private String draftRevision(
+      long count,
+      Long lastId,
+      boolean open,
+      boolean finalized,
+      boolean snake,
+      Map<Long, Integer> order) {
     String positions = count == 0 ? new TreeMap<>(order).toString() : "";
     return count + ":" + lastId + ":" + open + ":" + finalized + ":" + snake + ":" + positions;
   }
 
-  public record PickRequest(Long pokemonId) {
-  }
+  public record PickRequest(Long pokemonId) {}
 
   @PostMapping("/draft/pick")
   public DraftPick pick(@RequestBody PickRequest r, HttpSession session) {
@@ -262,7 +294,12 @@ public class ApiController {
   public Map<String, Object> standings(HttpSession session) {
     auth.viewer(session);
     Map<String, List<Team>> divisions = schedule.standings();
-    return Map.of("A", divisions.get("A"), "B", divisions.get("B"), "seedModeEnabled",
+    return Map.of(
+        "A",
+        divisions.get("A"),
+        "B",
+        divisions.get("B"),
+        "seedModeEnabled",
         viewerSettings(session).isPlayoffSeedModeEnabled());
   }
 
@@ -270,7 +307,8 @@ public class ApiController {
   public List<MatchupDto> schedule(HttpSession session) {
     auth.viewer(session);
     Map<Long, String> names = teamNames();
-    return matchups.findPublished(null, null).stream().map(m -> LeagueMapper.matchup(m, names))
+    return matchups.findPublished(null, null).stream()
+        .map(m -> LeagueMapper.matchup(m, names))
         .toList();
   }
 
@@ -283,8 +321,7 @@ public class ApiController {
   // The season uses a published fixture list. Schedule regeneration and
   // arbitrary matchup editing are intentionally unavailable.
 
-  public record ResultRequest(int homeScore, int awayScore) {
-  }
+  public record ResultRequest(int homeScore, int awayScore) {}
 
   @PostMapping("/manager/results/{id}")
   public void result(@PathVariable Long id, @RequestBody ResultRequest r, HttpSession session) {
@@ -302,7 +339,8 @@ public class ApiController {
   public Map<String, Object> lineup(HttpSession session) {
     AppUser u = auth.current(session);
     if (u.getRole() == Role.MANAGER)
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
           "Commissioners do not have a team lineup. Sign in as a coach to submit one.");
     LeagueSettings s = settings();
     Map<String, Object> out = new LinkedHashMap<>();
@@ -311,21 +349,21 @@ public class ApiController {
     out.put("weekLabel", SeasonCalendar.week(s.getCurrentWeek()).label());
     out.put("deadline", s.getLineupDeadline());
     out.put("roster", rosterView(u.getTeamId()));
-    out.put("submission",
+    out.put(
+        "submission",
         submissions.findByTeamIdAndWeek(u.getTeamId(), s.getCurrentWeek()).orElse(null));
     return out;
   }
 
-  public record LineupRequest(List<Long> pokemonIds) {
-  }
+  public record LineupRequest(List<Long> pokemonIds) {}
 
   // Legacy endpoint must use the same strict, one-way lineup locking rules.
   @PostMapping("/lineup")
   public WeeklySubmission submitLineup(@RequestBody LineupRequest r, HttpSession session) {
     AppUser u = auth.current(session);
     if (u.getRole() == Role.MANAGER)
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          "Commissioners cannot submit team lineups.");
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Commissioners cannot submit team lineups.");
     return lineupService.submit(u.getTeamId(), r.pokemonIds());
   }
 
@@ -335,27 +373,34 @@ public class ApiController {
     LeagueSettings s = settings();
     if (week < 1 || week > SeasonCalendar.FINAL_WEEK || !SeasonCalendar.week(week).lineupRequired())
       return List.of();
-    boolean reveal = u.getRole() == Role.MANAGER || (s.getLineupDeadline() != null && LocalDateTime
-        .now(java.time.ZoneId.of("America/New_York")).isAfter(s.getLineupDeadline()));
+    boolean reveal =
+        u.getRole() == Role.MANAGER
+            || (s.getLineupDeadline() != null
+                && LocalDateTime.now(java.time.ZoneId.of("America/New_York"))
+                    .isAfter(s.getLineupDeadline()));
     if (!reveal)
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-          "Lineups stay hidden until the deadline");
+      throw new ResponseStatusException(
+          HttpStatus.FORBIDDEN, "Lineups stay hidden until the deadline");
     List<WeeklySubmission> rows = submissions.findByWeek(week);
-    Set<Long> ids = rows.stream().flatMap(row -> Arrays.stream(row.getPokemonIdsCsv().split(",")))
-        .filter(x -> !x.isBlank()).map(Long::valueOf).collect(Collectors.toSet());
+    Set<Long> ids =
+        rows.stream()
+            .flatMap(row -> Arrays.stream(row.getPokemonIdsCsv().split(",")))
+            .filter(x -> !x.isBlank())
+            .map(Long::valueOf)
+            .collect(Collectors.toSet());
     Map<Long, String> names = pokemonNames(ids);
     Map<Long, String> teamNames = teamNames();
     return rows.stream().map(row -> submissionView(row, names, teamNames)).toList();
   }
 
-  public record BidRequest(Long wantedPokemonId, Long dropPokemonId, int amount) {
-  }
+  public record BidRequest(Long wantedPokemonId, Long dropPokemonId, int amount) {}
 
   @PostMapping("/free-agency/bids")
   public FreeAgentBid bid(@RequestBody BidRequest r, HttpSession session) {
     AppUser u = auth.current(session);
     if (u.getRole() == Role.MANAGER)
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
           "Commissioners cannot submit FAAB bids. Sign in as a coach to make a bid.");
     return freeAgency.submitBid(u.getTeamId(), r.wantedPokemonId(), r.dropPokemonId(), r.amount());
   }
@@ -364,16 +409,18 @@ public class ApiController {
   public void withdrawBid(@PathVariable Long bidId, HttpSession session) {
     AppUser user = auth.current(session);
     if (user.getRole() != Role.COACH)
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-          "Only coaches can withdraw their own FAAB bids.");
+      throw new ResponseStatusException(
+          HttpStatus.FORBIDDEN, "Only coaches can withdraw their own FAAB bids.");
     freeAgency.cancelBid(user.getTeamId(), bidId);
   }
 
   @GetMapping("/free-agency/bids")
   public List<Map<String, Object>> bids(HttpSession session) {
     AppUser u = auth.current(session);
-    List<FreeAgentBid> visible = u.getRole() == Role.MANAGER ? bids.findAll()
-        : bids.findByTeamIdOrderByCreatedAtDesc(u.getTeamId());
+    List<FreeAgentBid> visible =
+        u.getRole() == Role.MANAGER
+            ? bids.findAll()
+            : bids.findByTeamIdOrderByCreatedAtDesc(u.getTeamId());
     Set<Long> ids = new HashSet<>();
     for (FreeAgentBid bid : visible) {
       ids.add(bid.getWantedPokemonId());
@@ -381,19 +428,22 @@ public class ApiController {
     }
     ids.remove(null);
     Map<Long, String> names = pokemonNames(ids);
-    return visible.stream().map(b -> {
-      Map<String, Object> result = new LinkedHashMap<>();
-      result.put("id", b.getId());
-      result.put("teamId", b.getTeamId());
-      result.put("wantedPokemonId", b.getWantedPokemonId());
-      result.put("dropPokemonId", b.getDropPokemonId());
-      result.put("wantedPokemonName", names.get(b.getWantedPokemonId()));
-      result.put("dropPokemonName", names.get(b.getDropPokemonId()));
-      result.put("amount", b.getAmount());
-      result.put("status", b.getStatus());
-      result.put("createdAt", b.getCreatedAt());
-      return result;
-    }).toList();
+    return visible.stream()
+        .map(
+            b -> {
+              Map<String, Object> result = new LinkedHashMap<>();
+              result.put("id", b.getId());
+              result.put("teamId", b.getTeamId());
+              result.put("wantedPokemonId", b.getWantedPokemonId());
+              result.put("dropPokemonId", b.getDropPokemonId());
+              result.put("wantedPokemonName", names.get(b.getWantedPokemonId()));
+              result.put("dropPokemonName", names.get(b.getDropPokemonId()));
+              result.put("amount", b.getAmount());
+              result.put("status", b.getStatus());
+              result.put("createdAt", b.getCreatedAt());
+              return result;
+            })
+        .toList();
   }
 
   @PostMapping("/manager/free-agency/process")
@@ -414,37 +464,40 @@ public class ApiController {
     return settingsMap(viewerSettings(session));
   }
 
-  public record SettingsUpdate(String leagueName, Integer currentWeek, Integer regularSeasonWeeks,
-      Boolean draftOpen, Boolean snakeDraft, Long scheduleSeed, String lineupDeadline) {
-  }
+  public record SettingsUpdate(
+      String leagueName,
+      Integer currentWeek,
+      Integer regularSeasonWeeks,
+      Boolean draftOpen,
+      Boolean snakeDraft,
+      Long scheduleSeed,
+      String lineupDeadline) {}
 
   @PutMapping("/manager/settings")
   public Map<String, Object> updateSettings(@RequestBody SettingsUpdate r, HttpSession session) {
     auth.manager(session);
     LeagueSettings s = settings();
-    if (r.leagueName() != null)
-      s.setLeagueName(r.leagueName());
+    if (r.leagueName() != null) s.setLeagueName(r.leagueName());
     if (r.currentWeek() != null) {
       if (r.currentWeek() < 1 || r.currentWeek() > SeasonCalendar.FINAL_WEEK)
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-            "Choose a week between 1 and 16.");
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST, "Choose a week between 1 and 16.");
       s.setCurrentWeek(r.currentWeek());
     }
     if (r.regularSeasonWeeks() != null
         && r.regularSeasonWeeks() != SeasonCalendar.REGULAR_SEASON_END)
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          "Published schedule ends in Week 13");
-    if (r.draftOpen() != null)
-      s.setDraftOpen(r.draftOpen());
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Published schedule ends in Week 13");
+    if (r.draftOpen() != null) s.setDraftOpen(r.draftOpen());
     if (r.snakeDraft() != null && r.snakeDraft() != s.isSnakeDraft()) {
       if (picks.count() > 0 || s.isDraftFinalized())
-        throw new ResponseStatusException(HttpStatus.CONFLICT,
-            "Snake/linear draft format cannot change after the first pick.");
+        throw new ResponseStatusException(
+            HttpStatus.CONFLICT, "Snake/linear draft format cannot change after the first pick.");
       s.setSnakeDraft(r.snakeDraft());
     }
     if (r.draftOpen() != null && r.draftOpen() && s.isDraftFinalized())
-      throw new ResponseStatusException(HttpStatus.CONFLICT,
-          "The official draft is finalized. It cannot be reopened.");
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT, "The official draft is finalized. It cannot be reopened.");
     // Random seeds cannot change the published season schedule.
     if (r.lineupDeadline() != null)
       s.setLineupDeadline(
@@ -458,7 +511,8 @@ public class ApiController {
   }
 
   private LeagueSettings viewerSettings(HttpSession session) {
-    return auth.isGuest(session) ? settingsRepo.findById(1L).orElseGet(LeagueSettings::new)
+    return auth.isGuest(session)
+        ? settingsRepo.findById(1L).orElseGet(LeagueSettings::new)
         : settings();
   }
 
@@ -492,20 +546,25 @@ public class ApiController {
 
   private Map<Long, List<RosterPokemonDto>> rosterViews(List<RosterEntry> entries) {
     Set<Long> ids = entries.stream().map(RosterEntry::getPokemonId).collect(Collectors.toSet());
-    Map<Long, Pokemon> mons = ids.isEmpty() ? Map.of()
-        : pokemon.findAllById(ids).stream().collect(Collectors.toMap(Pokemon::getId, x -> x));
+    Map<Long, Pokemon> mons =
+        ids.isEmpty()
+            ? Map.of()
+            : pokemon.findAllById(ids).stream().collect(Collectors.toMap(Pokemon::getId, x -> x));
     Map<Long, List<RosterPokemonDto>> grouped = new HashMap<>();
     for (RosterEntry e : entries)
-      grouped.computeIfAbsent(e.getTeamId(), k -> new ArrayList<>())
+      grouped
+          .computeIfAbsent(e.getTeamId(), k -> new ArrayList<>())
           .add(LeagueMapper.rosterPokemon(e, mons.get(e.getPokemonId())));
     grouped.values().forEach(list -> list.sort(Comparator.comparing(RosterPokemonDto::name)));
     return grouped;
   }
 
   private Map<Long, String> pokemonNames(Collection<Long> ids) {
-    return ids.isEmpty() ? Map.of()
-        : pokemon.findNamesByIdIn(ids).stream().collect(
-            Collectors.toMap(PokemonRepository.Name::getId, PokemonRepository.Name::getName));
+    return ids.isEmpty()
+        ? Map.of()
+        : pokemon.findNamesByIdIn(ids).stream()
+            .collect(
+                Collectors.toMap(PokemonRepository.Name::getId, PokemonRepository.Name::getName));
   }
 
   private List<DraftPickDto> pickViews(List<DraftPick> rows, Map<Long, String> tn) {
@@ -520,10 +579,14 @@ public class ApiController {
     return rows.stream().map(p -> LeagueMapper.draftPick(p, tn, names, prices)).toList();
   }
 
-  private Map<String, Object> submissionView(WeeklySubmission s, Map<Long, String> pn,
-      Map<Long, String> teamNames) {
-    List<String> names = Arrays.stream(s.getPokemonIdsCsv().split(",")).filter(x -> !x.isBlank())
-        .map(Long::valueOf).map(id -> pn.getOrDefault(id, "Unknown")).toList();
+  private Map<String, Object> submissionView(
+      WeeklySubmission s, Map<Long, String> pn, Map<Long, String> teamNames) {
+    List<String> names =
+        Arrays.stream(s.getPokemonIdsCsv().split(","))
+            .filter(x -> !x.isBlank())
+            .map(Long::valueOf)
+            .map(id -> pn.getOrDefault(id, "Unknown"))
+            .toList();
     Map<String, Object> m = new LinkedHashMap<>();
     m.put("teamId", s.getTeamId());
     m.put("teamName", teamNames.getOrDefault(s.getTeamId(), "Unknown"));

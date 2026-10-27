@@ -4,7 +4,8 @@ const $$ = (s) => [...document.querySelectorAll(s)];
 
 async function api(url, options = {}) {
   const opts = { headers: { "Content-Type": "application/json" }, ...options };
-  if (options.body && typeof options.body !== "string") opts.body = JSON.stringify(options.body);
+  if (options.body && typeof options.body !== "string")
+    opts.body = JSON.stringify(options.body);
   const permit = globalThis.leagueSession?.beforeRequest(url, opts);
   try {
     const res = await fetch(url, opts);
@@ -20,7 +21,10 @@ async function api(url, options = {}) {
     }
     if (!res.ok) {
       const msg =
-        (data && data.detail) || (data && data.message) || data || `Request failed (${res.status})`;
+        (data && data.detail) ||
+        (data && data.message) ||
+        data ||
+        `Request failed (${res.status})`;
       throw new Error(msg);
     }
     permit?.assertCurrent();
@@ -39,7 +43,10 @@ function toast(msg, error = false) {
 function esc(v) {
   return String(v ?? "").replace(
     /[&<>'"]/g,
-    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[c],
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[
+        c
+      ],
   );
 }
 function teamName(id) {
@@ -75,7 +82,9 @@ async function enterApp() {
   $("#whoami").innerHTML =
     `<strong>${esc(state.user.username)}</strong><br>${esc(state.user.role)}${state.user.teamId ? ` · ${esc(teamName(state.user.teamId))}` : ""}`;
   if (state.user.teamId)
-    refreshTeamIdentity(state.teams.find((t) => Number(t.id) === Number(state.user.teamId)),);
+    refreshTeamIdentity(
+      state.teams.find((t) => Number(t.id) === Number(state.user.teamId)),
+    );
   $("#manager-nav").classList.toggle("hidden", state.user.role !== "MANAGER");
   document
     .querySelector('[data-page="freeagency"]')
@@ -86,11 +95,15 @@ async function enterApp() {
       .querySelector(`[data-page="${page}"]`)
       ?.classList.toggle(
         "hidden",
-        guest || (page === "freeagency" && state.user.role === "MANAGER")
+        guest || (page === "freeagency" && state.user.role === "MANAGER"),
       );
   });
-  document.querySelector(".league-tool-links")?.classList.toggle("hidden", guest);
-  $("#logout-button").textContent = guest ? "Exit Guest Mode / Sign In" : "Log Out";
+  document
+    .querySelector(".league-tool-links")
+    ?.classList.toggle("hidden", guest);
+  $("#logout-button").textContent = guest
+    ? "Exit Guest Mode / Sign In"
+    : "Log Out";
   // Apply role-based navigation before allowing the app to become visible.
   $("#app").classList.remove("hidden");
   await showPage("home", dash);
@@ -108,7 +121,9 @@ $("#login-button").addEventListener("click", async () => {
   const password = $("#login-password").value;
   loginFeedback.classList.add("hidden");
   if (!username || !password) {
-    loginFeedback.textContent = !username ? "Enter your username." : "Enter your password.";
+    loginFeedback.textContent = !username
+      ? "Enter your username."
+      : "Enter your password.";
     loginFeedback.classList.remove("hidden");
     return;
   }
@@ -118,7 +133,8 @@ $("#login-button").addEventListener("click", async () => {
       method: "POST",
       body: { username, password },
     });
-    if (globalThis.leagueSession && !leagueSession.begin(state.user, true)) return;
+    if (globalThis.leagueSession && !leagueSession.begin(state.user, true))
+      return;
     await enterApp();
   } catch (error) {
     loginFeedback.textContent = error.message;
@@ -133,7 +149,8 @@ $("#guest-button").addEventListener("click", async () => {
   loginFeedback.classList.add("hidden");
   try {
     state.user = await api("/api/auth/guest", { method: "POST" });
-    if (globalThis.leagueSession && !leagueSession.begin(state.user, true)) return;
+    if (globalThis.leagueSession && !leagueSession.begin(state.user, true))
+      return;
     await enterApp();
   } catch (error) {
     loginFeedback.textContent = error.message;
@@ -150,19 +167,24 @@ $("#login-password").addEventListener("keydown", (e) => {
 });
 $("#logout-button").addEventListener("click", async () => {
   if (globalThis.leagueSession)
-    await leagueSession.logout("You have signed out. Sign in again to continue.");
+    await leagueSession.logout(
+      "You have signed out. Sign in again to continue.",
+    );
   else {
     await api("/api/auth/logout", { method: "POST" });
     location.reload();
   }
 });
-$$("[data-page]").forEach((b) => b.addEventListener("click", () => showPage(b.dataset.page)),);
+$$("[data-page]").forEach((b) =>
+  b.addEventListener("click", () => showPage(b.dataset.page)),
+);
 
 let pendingPageLoad = null;
 let pendingPageName = null;
 function showPage(page, initialDashboard) {
   if (page === "freeagency" && state.user?.role === "MANAGER") page = "manager";
-  if (state.page === page && pendingPageName === page && pendingPageLoad) return pendingPageLoad;
+  if (state.page === page && pendingPageName === page && pendingPageLoad)
+    return pendingPageLoad;
   pendingPageName = page;
   const load = renderPage(page, initialDashboard);
   pendingPageLoad = load;
@@ -175,13 +197,18 @@ function showPage(page, initialDashboard) {
 }
 
 async function renderPage(page, initialDashboard) {
-  if (state.user?.role === "GUEST" && ["lineup", "freeagency", "manager", "account"].includes(page))
+  if (
+    state.user?.role === "GUEST" &&
+    ["lineup", "freeagency", "manager", "account"].includes(page)
+  )
     page = "home";
   if (page === "freeagency" && state.user?.role === "MANAGER") page = "manager";
   state.page = page;
   $$(".page").forEach((p) => p.classList.add("hidden"));
   $(`#page-${page}`).classList.remove("hidden");
-  $$("[data-page]").forEach((b) => b.classList.toggle("active", b.dataset.page === page),);
+  $$("[data-page]").forEach((b) =>
+    b.classList.toggle("active", b.dataset.page === page),
+  );
   try {
     if (page === "home") await renderHome(initialDashboard);
     if (page === "draft") await renderDraft();
@@ -214,7 +241,9 @@ async function renderHome() {
   const d = await api("/api/dashboard/view");
   state.teams = d.teams;
   state.settings = d.settings;
-  const myTeam = state.user.teamId ? state.teams.find((t) => t.id === state.user.teamId) : null;
+  const myTeam = state.user.teamId
+    ? state.teams.find((t) => t.id === state.user.teamId)
+    : null;
   $("#page-home").innerHTML = `
     <h1>${esc(d.settings.leagueName)}</h1><p class="muted">Functional prototype · Week ${d.settings.currentWeek} of ${d.settings.regularSeasonWeeks}</p>
     <div class="grid">
@@ -229,7 +258,8 @@ async function renderHome() {
 async function renderDraft() {
   const d = await api("/api/draft");
   const canPick =
-    state.user.role === "MANAGER" || (d.currentTeam && d.currentTeam.id === state.user.teamId);
+    state.user.role === "MANAGER" ||
+    (d.currentTeam && d.currentTeam.id === state.user.teamId);
   $("#page-draft").innerHTML =
     `<div class="section-title"><div><h1>Draft Room</h1><p class="muted">10 rounds · ${d.settings.snakeDraft ? "snake" : "linear"} draft</p></div>${state.user.role === "MANAGER" ? '<button id="undo-pick" class="danger">Undo Last Pick</button>' : ""}</div>
     <div class="card"><h2>${d.currentTeam ? `${esc(d.currentTeam.name)} is on the clock` : "Draft complete"}</h2>${d.currentTeam ? `<p>Draft position ${d.currentTeam.draftPosition}</p>` : ""}</div>
@@ -351,7 +381,9 @@ async function renderFreeAgency(tab = "bids") {
   await refreshBase();
   $("#page-freeagency").innerHTML =
     `<h1>Free Agency</h1><div class="subtabs"><button data-fa="bids" class="${tab === "bids" ? "active" : ""}">Add / Drop</button><button data-fa="trades" class="${tab === "trades" ? "active" : ""}">Trades</button><button data-fa="transactions" class="${tab === "transactions" ? "active" : ""}">Transactions</button></div><div id="fa-content"></div>`;
-  $$("[data-fa]").forEach((b) => b.addEventListener("click", () => renderFreeAgency(b.dataset.fa)),);
+  $$("[data-fa]").forEach((b) =>
+    b.addEventListener("click", () => renderFreeAgency(b.dataset.fa)),
+  );
   if (tab === "bids") await renderBids();
   if (tab === "transactions") await renderTransactions();
 }
@@ -411,7 +443,8 @@ async function renderManager() {
     return showPage("home");
   }
   await refreshBase();
-  $("#page-manager").innerHTML = `<h1>Commissioner</h1><div class="manager-grid">
+  $("#page-manager").innerHTML =
+    `<h1>Commissioner</h1><div class="manager-grid">
       <div class="card"><h2>League Settings</h2><div class="toolbar">
         <label>Name <input id="setting-name" value="${esc(state.settings.leagueName)}"></label>
         <label>Week <input id="setting-week" type="number" min="1" max="16" value="${state.settings.currentWeek}"></label>
@@ -439,7 +472,9 @@ async function renderManager() {
       const result = await api("/api/manager/free-agency/process", {
         method: "POST",
       });
-      toast(`FAAB period ${result.period} processed: ${result.winners} winning bid(s)`,);
+      toast(
+        `FAAB period ${result.period} processed: ${result.winners} winning bid(s)`,
+      );
       $("#manager-faab-message").textContent =
         `Period ${result.period} processed successfully. Results are in Free Agency → Transactions for coaches.`;
       await refreshBase();

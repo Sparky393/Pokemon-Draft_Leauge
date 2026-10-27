@@ -8,12 +8,12 @@ import java.util.*;
  * normalized to existing portal names.
  */
 public final class BasePrices {
-  private BasePrices() {
-  }
+  private BasePrices() {}
 
   public static Map<String, Integer> values() {
     Map<String, Integer> out = new LinkedHashMap<>();
-    String data = """
+    String data =
+        """
         20:Indeedee (Female)|Indeedee (Male)|Whimsicott|Pelipper|Rillaboom|Sneasler|Incineroar|Salamence|Golisopod|Raichu|Farigiraf|Volcarona|Grimmsnarl|Kingambit|Milotic|Gardevoir|Armarouge|Staraptor|Sinistcha|Talonflame|Vivillon
         19:Basculegion (Male)|Gholdengo|Sylveon|Gengar|Sableye|Corviknight|Pawmot|Blastoise|Hatterene
         18:Garchomp|Archaludon|Charizard|Arcanine (Hisuian)|Tyranitar|Metagross|Floette (Eternal Flower)|Lucario|Swampert|Dragonite|Aerodactyl|Kleavor

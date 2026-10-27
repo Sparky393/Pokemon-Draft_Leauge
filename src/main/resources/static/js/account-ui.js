@@ -6,7 +6,9 @@ async function renderAccount() {
     ? '<div class="card form-error" role="status"><strong>Change your initial password.</strong> ' +
       "This account still uses the original setup password. Use the Change My Password form below before the league begins.</div>"
     : "";
-  const myTeam = state.teams.find((t) => Number(t.id) === Number(state.user.teamId),);
+  const myTeam = state.teams.find(
+    (t) => Number(t.id) === Number(state.user.teamId),
+  );
   const branding =
     !manager && myTeam
       ? `
@@ -112,12 +114,20 @@ async function renderAccount() {
       try {
         const body = new FormData();
         body.append("file", file);
-        const options = { method: "POST", body, headers: { "X-Requested-With": "XMLHttpRequest" } };
-        permit = globalThis.leagueSession?.beforeRequest("/api/teams/me/logo", options);
+        const options = {
+          method: "POST",
+          body,
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+        };
+        permit = globalThis.leagueSession?.beforeRequest(
+          "/api/teams/me/logo",
+          options,
+        );
         const response = await fetch("/api/teams/me/logo", options);
         const result = await response.json();
         permit?.assertCurrent();
-        if (!response.ok) throw new Error(apiErrorMessage(response.status, result));
+        if (!response.ok)
+          throw new Error(apiErrorMessage(response.status, result));
         refreshTeamIdentity(result);
         toast("Team logo uploaded");
         await renderAccount();
@@ -146,7 +156,8 @@ async function renderAccount() {
     const currentPassword = $("#account-current").value;
     const newPassword = $("#account-new").value;
     const confirmation = $("#account-confirm").value;
-    if (newPassword !== confirmation) return toast("New passwords do not match", true);
+    if (newPassword !== confirmation)
+      return toast("New passwords do not match", true);
     if (newPassword.length < 8 || newPassword.length > 72)
       return toast("Use 8–72 characters", true);
     try {
@@ -178,11 +189,15 @@ async function renderAccount() {
       )
         return;
       try {
-        const result = await api(`/api/auth/manager/users/${id}/reset-password`, {
-          method: "POST"
-        },);
+        const result = await api(
+          `/api/auth/manager/users/${id}/reset-password`,
+          {
+            method: "POST",
+          },
+        );
         const secret = result?.temporaryPassword;
-        if (!secret) throw new Error("No temporary password returned. Try again.");
+        if (!secret)
+          throw new Error("No temporary password returned. Try again.");
         // Shown once; it is never stored in localStorage or included in a URL.
         document.querySelector("#manager-temp-password")?.remove();
         const output = document.createElement("div");

@@ -18,8 +18,8 @@ class CommissionerReminderControllerTest {
   private final MatchupRepository matchups = mock(MatchupRepository.class);
   private final WeekLockRepository locks = mock(WeekLockRepository.class);
   private final TransactionRecordRepository transactions = mock(TransactionRecordRepository.class);
-  private final CommissionerReminderController service = new CommissionerReminderController(auth,
-      settings, picks, matchups, locks, transactions);
+  private final CommissionerReminderController service =
+      new CommissionerReminderController(auth, settings, picks, matchups, locks, transactions);
 
   private LeagueSettings start(int week) {
     LeagueSettings league = new LeagueSettings();
@@ -72,27 +72,34 @@ class CommissionerReminderControllerTest {
   @Test
   void eachWaiverPeriodPromptsDayBeforeUntilProcessed() {
     start(4);
-    assertFalse(service.remindersAt(LocalDate.of(2026, 11, 26)).stream()
-        .anyMatch(n -> n.id().equals("faab:period:1")));
-    assertTrue(service.remindersAt(LocalDate.of(2026, 11, 27)).stream()
-        .anyMatch(n -> n.id().equals("faab:period:1")));
+    assertFalse(
+        service.remindersAt(LocalDate.of(2026, 11, 26)).stream()
+            .anyMatch(n -> n.id().equals("faab:period:1")));
+    assertTrue(
+        service.remindersAt(LocalDate.of(2026, 11, 27)).stream()
+            .anyMatch(n -> n.id().equals("faab:period:1")));
     when(transactions.countByType("WAIVER_PERIOD_PROCESSED")).thenReturn(1L);
-    assertTrue(service.remindersAt(LocalDate.of(2026, 11, 30)).stream()
-        .anyMatch(n -> n.id().equals("faab:period:2")));
-    assertFalse(service.remindersAt(LocalDate.of(2026, 11, 30)).stream()
-        .anyMatch(n -> n.id().equals("faab:period:1")));
+    assertTrue(
+        service.remindersAt(LocalDate.of(2026, 11, 30)).stream()
+            .anyMatch(n -> n.id().equals("faab:period:2")));
+    assertFalse(
+        service.remindersAt(LocalDate.of(2026, 11, 30)).stream()
+            .anyMatch(n -> n.id().equals("faab:period:1")));
     when(transactions.countByType("WAIVER_PERIOD_PROCESSED")).thenReturn(2L);
-    assertFalse(service.remindersAt(LocalDate.of(2026, 12, 1)).stream()
-        .anyMatch(n -> n.action().equals("faab")));
+    assertFalse(
+        service.remindersAt(LocalDate.of(2026, 12, 1)).stream()
+            .anyMatch(n -> n.action().equals("faab")));
   }
 
   @Test
   void noDeadlineForWeekFourByeOrWeekEight() {
     start(4);
-    assertFalse(service.remindersAt(LocalDate.of(2026, 11, 26)).stream()
-        .anyMatch(n -> n.action().equals("deadline")));
+    assertFalse(
+        service.remindersAt(LocalDate.of(2026, 11, 26)).stream()
+            .anyMatch(n -> n.action().equals("deadline")));
     start(8);
-    assertFalse(service.remindersAt(LocalDate.of(2026, 12, 26)).stream()
-        .anyMatch(n -> n.action().equals("deadline")));
+    assertFalse(
+        service.remindersAt(LocalDate.of(2026, 12, 26)).stream()
+            .anyMatch(n -> n.action().equals("deadline")));
   }
 }

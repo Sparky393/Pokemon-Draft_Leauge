@@ -26,10 +26,12 @@ class FreeAgencyServiceTest {
   private static final ZoneId EASTERN = ZoneId.of("America/New_York");
 
   private void at(int month, int day, int hour, int minute) {
-    Clock clock = Clock.fixed(
-        LocalDateTime.of(2026, month, day, hour, minute).atZone(EASTERN).toInstant(), EASTERN);
-    service = new FreeAgencyService(bids, teams, pokemon, roster, transactions, trades, matchups,
-        settings, clock);
+    Clock clock =
+        Clock.fixed(
+            LocalDateTime.of(2026, month, day, hour, minute).atZone(EASTERN).toInstant(), EASTERN);
+    service =
+        new FreeAgencyService(
+            bids, teams, pokemon, roster, transactions, trades, matchups, settings, clock);
   }
 
   LeagueSettings config;
@@ -46,13 +48,19 @@ class FreeAgencyServiceTest {
     third.setPlayed(true);
     when(matchups.findByWeekOrderByIdAsc(3)).thenReturn(Collections.nCopies(8, third));
     when(transactions.findAllByOrderByCreatedAtDesc()).thenAnswer(inv -> List.copyOf(journal));
-    when(transactions.countByType("WAIVER_PERIOD_PROCESSED")).thenAnswer(
-        inv -> journal.stream().filter(t -> "WAIVER_PERIOD_PROCESSED".equals(t.getType())).count());
-    when(transactions.save(any(TransactionRecord.class))).thenAnswer(inv -> {
-      TransactionRecord record = inv.getArgument(0);
-      journal.add(record);
-      return record;
-    });
+    when(transactions.countByType("WAIVER_PERIOD_PROCESSED"))
+        .thenAnswer(
+            inv ->
+                journal.stream()
+                    .filter(t -> "WAIVER_PERIOD_PROCESSED".equals(t.getType()))
+                    .count());
+    when(transactions.save(any(TransactionRecord.class)))
+        .thenAnswer(
+            inv -> {
+              TransactionRecord record = inv.getArgument(0);
+              journal.add(record);
+              return record;
+            });
     team = new Team("Team 1", "Coach", "A", 1);
     team.setFaBudget(3);
     when(teams.findById(1L)).thenReturn(Optional.of(team));
@@ -81,7 +89,8 @@ class FreeAgencyServiceTest {
     assertTrue(service.isWaiverWindowOpen());
     at(11, 28, 19, 0);
     assertFalse(service.isWaiverWindowOpen());
-    assertEquals(HttpStatus.BAD_REQUEST,
+    assertEquals(
+        HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, () -> service.submitBid(1L, 99L, 10L, 1))
             .getStatusCode());
     service.processBids();
@@ -99,12 +108,14 @@ class FreeAgencyServiceTest {
   @Test
   void processingCannotRunEarly() {
     at(11, 28, 18, 59);
-    assertEquals(HttpStatus.BAD_REQUEST,
+    assertEquals(
+        HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, service::processBids).getStatusCode());
     at(11, 28, 19, 0);
     service.processBids();
     at(12, 1, 18, 59);
-    assertEquals(HttpStatus.BAD_REQUEST,
+    assertEquals(
+        HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, service::processBids).getStatusCode());
   }
 
@@ -123,10 +134,12 @@ class FreeAgencyServiceTest {
 
   @Test
   void singleBidMustBeOneToThreeDollars() {
-    assertEquals(HttpStatus.BAD_REQUEST,
+    assertEquals(
+        HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, () -> service.submitBid(1L, 99L, 10L, 0))
             .getStatusCode());
-    assertEquals(HttpStatus.BAD_REQUEST,
+    assertEquals(
+        HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, () -> service.submitBid(1L, 99L, 10L, 4))
             .getStatusCode());
     assertEquals(3, service.submitBid(1L, 99L, 10L, 3).getAmount());
@@ -136,7 +149,8 @@ class FreeAgencyServiceTest {
   void combinedPendingBidsCannotExceedThree() {
     when(bids.findByTeamIdAndStatusOrderByCreatedAtDesc(1L, BidStatus.PENDING))
         .thenReturn(List.of(new FreeAgentBid(1L, 97L, 11L, 2)));
-    assertEquals(HttpStatus.BAD_REQUEST,
+    assertEquals(
+        HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, () -> service.submitBid(1L, 99L, 10L, 2))
             .getStatusCode());
     assertEquals(1, service.submitBid(1L, 99L, 10L, 1).getAmount());
@@ -144,11 +158,13 @@ class FreeAgencyServiceTest {
 
   @Test
   void preservesTenPokemonAndHundredDollarRosterChecks() {
-    assertEquals(HttpStatus.BAD_REQUEST,
+    assertEquals(
+        HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, () -> service.submitBid(1L, 98L, 10L, 1))
             .getStatusCode());
     when(roster.countByTeamId(1L)).thenReturn(9L);
-    assertEquals(HttpStatus.BAD_REQUEST,
+    assertEquals(
+        HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, () -> service.submitBid(1L, 99L, 10L, 1))
             .getStatusCode());
   }
@@ -156,7 +172,8 @@ class FreeAgencyServiceTest {
   @Test
   void rejectsPickupMoreExpensiveThanDrop() {
     when(pokemon.findById(96L)).thenReturn(Optional.of(new Pokemon("Higher price", 6)));
-    assertEquals(HttpStatus.BAD_REQUEST,
+    assertEquals(
+        HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, () -> service.submitBid(1L, 96L, 10L, 1))
             .getStatusCode());
   }
@@ -181,15 +198,16 @@ class FreeAgencyServiceTest {
     assertEquals(2, second.get("period"));
     assertTrue(config.isWaiverProcessed());
     assertFalse(service.isWaiverWindowOpen());
-    assertEquals(HttpStatus.BAD_REQUEST,
+    assertEquals(
+        HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, service::processBids).getStatusCode());
   }
 
   @Test
   void closedWaiversExplainTheActualLeagueWeek() {
     config.setCurrentWeek(2);
-    ResponseStatusException error = assertThrows(ResponseStatusException.class,
-        () -> service.submitBid(1L, 99L, 10L, 1));
+    ResponseStatusException error =
+        assertThrows(ResponseStatusException.class, () -> service.submitBid(1L, 99L, 10L, 1));
     assertTrue(error.getReason().contains("Week 4"));
     assertTrue(error.getReason().contains("Week 2"));
     config.setCurrentWeek(5);
@@ -200,15 +218,17 @@ class FreeAgencyServiceTest {
   void freeAgencyExplainsIncompleteWeekThreeResults() {
     when(matchups.findByWeekOrderByIdAsc(3)).thenReturn(List.of(new Matchup(3, 1L, 2L)));
     assertTrue(service.waiverClosedReason().contains("0/8 complete"));
-    assertTrue(assertThrows(ResponseStatusException.class, () -> service.submitBid(1L, 99L, 10L, 1))
-        .getReason().contains("Week 3"));
+    assertTrue(
+        assertThrows(ResponseStatusException.class, () -> service.submitBid(1L, 99L, 10L, 1))
+            .getReason()
+            .contains("Week 3"));
   }
 
   @Test
   void overPriceBidExplainsBothPokemonValues() {
     when(pokemon.findById(96L)).thenReturn(Optional.of(new Pokemon("Aegislash", 8)));
-    ResponseStatusException error = assertThrows(ResponseStatusException.class,
-        () -> service.submitBid(1L, 96L, 10L, 1));
+    ResponseStatusException error =
+        assertThrows(ResponseStatusException.class, () -> service.submitBid(1L, 96L, 10L, 1));
     assertTrue(error.getReason().contains("Aegislash"));
     assertTrue(error.getReason().contains("$8"));
     assertTrue(error.getReason().contains("$5"));
@@ -218,8 +238,8 @@ class FreeAgencyServiceTest {
   void pendingBidLimitExplainsTheRemainingFaab() {
     when(bids.findByTeamIdAndStatusOrderByCreatedAtDesc(1L, BidStatus.PENDING))
         .thenReturn(List.of(new FreeAgentBid(1L, 97L, 11L, 2)));
-    ResponseStatusException error = assertThrows(ResponseStatusException.class,
-        () -> service.submitBid(1L, 99L, 10L, 2));
+    ResponseStatusException error =
+        assertThrows(ResponseStatusException.class, () -> service.submitBid(1L, 99L, 10L, 2));
     assertTrue(error.getReason().contains("$1 FAAB available"));
   }
 
@@ -229,11 +249,13 @@ class FreeAgencyServiceTest {
     when(bids.findById(42L)).thenReturn(Optional.of(pending));
     service.cancelBid(1L, 42L);
     verify(bids).delete(pending);
-    assertEquals(HttpStatus.FORBIDDEN,
+    assertEquals(
+        HttpStatus.FORBIDDEN,
         assertThrows(ResponseStatusException.class, () -> service.cancelBid(2L, 42L))
             .getStatusCode());
     pending.setStatus(BidStatus.WON);
-    assertEquals(HttpStatus.CONFLICT,
+    assertEquals(
+        HttpStatus.CONFLICT,
         assertThrows(ResponseStatusException.class, () -> service.cancelBid(1L, 42L))
             .getStatusCode());
     verify(bids, times(1)).delete(pending);

@@ -16,17 +16,22 @@ class LeagueAdministrationControllerTest {
   AuthService auth = mock(AuthService.class);
   TestRosterService resets = mock(TestRosterService.class);
   WeekLockService locks = mock(WeekLockService.class);
-  LeagueAdministrationController controller = new LeagueAdministrationController(auth, resets,
-      locks);
+  LeagueAdministrationController controller =
+      new LeagueAdministrationController(auth, resets, locks);
   MockHttpSession session = new MockHttpSession();
 
   @Test
   void resetRequiresPasswordAndManager() {
-    org.springframework.test.util.ReflectionTestUtils.setField(controller, "resetPassword",
-        "configured-secret");
-    assertEquals(HttpStatus.FORBIDDEN, assertThrows(ResponseStatusException.class,
-        () -> controller.reset(new LeagueAdministrationController.ResetRequest("wrong"), session))
-        .getStatusCode());
+    org.springframework.test.util.ReflectionTestUtils.setField(
+        controller, "resetPassword", "configured-secret");
+    assertEquals(
+        HttpStatus.FORBIDDEN,
+        assertThrows(
+                ResponseStatusException.class,
+                () ->
+                    controller.reset(
+                        new LeagueAdministrationController.ResetRequest("wrong"), session))
+            .getStatusCode());
     verify(resets, never()).resetLeague();
     controller.reset(new LeagueAdministrationController.ResetRequest("configured-secret"), session);
     verify(resets).resetLeague();
@@ -36,14 +41,23 @@ class LeagueAdministrationControllerTest {
   @Test
   void coachesCannotLockWeeksOrResetLeague() {
     doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN)).when(auth).manager(session);
-    assertEquals(HttpStatus.FORBIDDEN,
-        assertThrows(ResponseStatusException.class,
-            () -> controller.reset(
-                new LeagueAdministrationController.ResetRequest("RESET ENTIRE LEAGUE"), session))
+    assertEquals(
+        HttpStatus.FORBIDDEN,
+        assertThrows(
+                ResponseStatusException.class,
+                () ->
+                    controller.reset(
+                        new LeagueAdministrationController.ResetRequest("RESET ENTIRE LEAGUE"),
+                        session))
             .getStatusCode());
-    assertEquals(HttpStatus.FORBIDDEN,
-        assertThrows(ResponseStatusException.class, () -> controller.lockWeek(1,
-            new LeagueAdministrationController.WeekLockRequest(true), session)).getStatusCode());
+    assertEquals(
+        HttpStatus.FORBIDDEN,
+        assertThrows(
+                ResponseStatusException.class,
+                () ->
+                    controller.lockWeek(
+                        1, new LeagueAdministrationController.WeekLockRequest(true), session))
+            .getStatusCode());
     verifyNoInteractions(resets, locks);
   }
 

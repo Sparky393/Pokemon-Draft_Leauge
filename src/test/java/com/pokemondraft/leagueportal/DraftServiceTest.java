@@ -47,7 +47,8 @@ class DraftServiceTest {
 
   @Test
   void onlyCurrentTeamCanDraft() {
-    assertEquals(HttpStatus.FORBIDDEN,
+    assertEquals(
+        HttpStatus.FORBIDDEN,
         assertThrows(ResponseStatusException.class, () -> draft.pick(2L, false, 99L))
             .getStatusCode());
   }
@@ -55,7 +56,8 @@ class DraftServiceTest {
   @Test
   void cannotExceedTenPokemon() {
     when(roster.countByTeamId(1L)).thenReturn(10L);
-    assertEquals(HttpStatus.BAD_REQUEST,
+    assertEquals(
+        HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, () -> draft.pick(1L, false, 99L))
             .getStatusCode());
   }
@@ -73,7 +75,8 @@ class DraftServiceTest {
     LeagueSettings config = new LeagueSettings();
     config.setDraftOpen(false);
     when(settings.findById(1L)).thenReturn(Optional.of(config));
-    assertEquals(HttpStatus.BAD_REQUEST,
+    assertEquals(
+        HttpStatus.BAD_REQUEST,
         assertThrows(ResponseStatusException.class, () -> draft.pick(1L, false, 99L))
             .getStatusCode());
   }
@@ -82,8 +85,8 @@ class DraftServiceTest {
   void refusesPickOverTheHundredDollarCap() {
     Pokemon existing = new Pokemon("Expensive", 99);
     when(roster.totalPriceByTeamId(1L)).thenReturn(99L);
-    ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-        () -> draft.pick(1L, false, 99L));
+    ResponseStatusException ex =
+        assertThrows(ResponseStatusException.class, () -> draft.pick(1L, false, 99L));
     assertTrue(ex.getReason().contains("$100"));
     verify(picks, never()).save(any());
   }
@@ -93,10 +96,12 @@ class DraftServiceTest {
     LeagueSettings config = new LeagueSettings();
     config.setDraftFinalized(true);
     when(settings.findById(1L)).thenReturn(Optional.of(config));
-    assertEquals(HttpStatus.CONFLICT,
+    assertEquals(
+        HttpStatus.CONFLICT,
         assertThrows(ResponseStatusException.class, () -> draft.pick(1L, false, 99L))
             .getStatusCode());
-    assertEquals(HttpStatus.CONFLICT,
+    assertEquals(
+        HttpStatus.CONFLICT,
         assertThrows(ResponseStatusException.class, draft::undoLast).getStatusCode());
   }
 }

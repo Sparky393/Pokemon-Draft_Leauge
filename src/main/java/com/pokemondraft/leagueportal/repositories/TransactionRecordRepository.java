@@ -15,11 +15,13 @@ public interface TransactionRecordRepository extends JpaRepository<TransactionRe
     Long getLatestId();
   }
 
-  @org.springframework.data.jpa.repository.Query("select count(t) as rowCount, max(t.id) as latestId from TransactionRecord t")
+  @org.springframework.data.jpa.repository.Query(
+      "select count(t) as rowCount, max(t.id) as latestId from TransactionRecord t")
   Revision revision();
 
-  @org.springframework.data.jpa.repository.Query("select distinct floor(t.id / 256.0) from TransactionRecord t order by floor(t.id / 256.0)"
-      + " desc")
+  @org.springframework.data.jpa.repository.Query(
+      "select distinct floor(t.id / 256.0) from TransactionRecord t order by floor(t.id / 256.0)"
+          + " desc")
   List<Long> historyBuckets();
 
   List<TransactionRecord> findByIdGreaterThanEqualAndIdLessThan(Long start, Long end);

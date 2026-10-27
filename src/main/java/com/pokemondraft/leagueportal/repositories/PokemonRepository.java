@@ -12,7 +12,8 @@ public interface PokemonRepository extends JpaRepository<Pokemon, Long> {
 
   Optional<Pokemon> findByName(String name);
 
-  @org.springframework.data.jpa.repository.Query("select coalesce(sum(p.price), 0) from Pokemon p where p.id in :ids")
+  @org.springframework.data.jpa.repository.Query(
+      "select coalesce(sum(p.price), 0) from Pokemon p where p.id in :ids")
   long totalPriceByIdIn(java.util.Collection<Long> ids);
 
   interface Name {

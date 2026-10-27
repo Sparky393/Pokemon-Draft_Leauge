@@ -5,8 +5,7 @@ import java.time.LocalDateTime;
 
 @Entity
 public class LeagueSettings {
-  @Id
-  private Long id = 1L;
+  @Id private Long id = 1L;
   private String leagueName = "Pokemon Draft League Portal";
   private int currentWeek = 1;
   private int regularSeasonWeeks = 13;
@@ -21,8 +20,7 @@ public class LeagueSettings {
   // Nullable additive column for existing Neon leagues; no existing values are overwritten.
   private Boolean draftFinalized = false;
 
-  public LeagueSettings() {
-  }
+  public LeagueSettings() {}
 
   public Long getId() {
     return id;

@@ -69,9 +69,14 @@ fetchMetaBySlug = async function (slug) {
       types: [...known.types],
       abilities: [...known.abilities],
       moves: [],
-      stats: ["Hp", "Attack", "Defense", "Special Attack", "Special Defense", "Speed"].map(
-        (name, i) => ({ name, value: known.values[i] })
-      ),
+      stats: [
+        "Hp",
+        "Attack",
+        "Defense",
+        "Special Attack",
+        "Special Defense",
+        "Speed",
+      ].map((name, i) => ({ name, value: known.values[i] })),
     };
   const found = await oldFetchMetaBySlug(slug);
   if (found) return found;
@@ -99,7 +104,9 @@ showPokemonDetails = function (p) {
     document.querySelector(".pokemon-detail-overlay")?.remove();
     const allForms = megaFormsFor(p.name);
     const normalMega =
-      MEOWSTIC_MEGA_SLUGS[p.name] || allForms.find((slug) => !slug.endsWith("-mega-z")) || null;
+      MEOWSTIC_MEGA_SLUGS[p.name] ||
+      allForms.find((slug) => !slug.endsWith("-mega-z")) ||
+      null;
     const yMega = allForms.find((slug) => slug.endsWith("-mega-y")) || null;
     const zMega = Z_MEGA_SLUGS[p.name] || null;
     const hasHero = p.name === "Palafin";
@@ -118,11 +125,16 @@ showPokemonDetails = function (p) {
         const mm = await fetchMetaBySlug(normalMega);
         if (mm) {
           meta = mm;
-          title = p.name.startsWith("Meowstic") ? "Mega Meowstic" : megaLabel(normalMega);
+          title = p.name.startsWith("Meowstic")
+            ? "Mega Meowstic"
+            : megaLabel(normalMega);
           badge = "MEGA";
           eyebrow = "Mega Evolution";
         } else {
-          toast("Mega data is not available from the Pokémon data service yet.", true,);
+          toast(
+            "Mega data is not available from the Pokémon data service yet.",
+            true,
+          );
           active = "base";
         }
       } else if (active === "y" && yMega) {
@@ -133,7 +145,10 @@ showPokemonDetails = function (p) {
           badge = "MEGA Y";
           eyebrow = "Mega Evolution";
         } else {
-          toast("Mega Y data is not available from the Pokémon data service yet.", true);
+          toast(
+            "Mega Y data is not available from the Pokémon data service yet.",
+            true,
+          );
           active = "base";
         }
       } else if (active === "z" && zMega) {
@@ -144,7 +159,10 @@ showPokemonDetails = function (p) {
           badge = "Z MEGA";
           eyebrow = "Z Mega Evolution";
         } else {
-          toast("Z Mega data is not available from the Pokémon data service yet.", true,);
+          toast(
+            "Z Mega data is not available from the Pokémon data service yet.",
+            true,
+          );
           active = "base";
         }
       } else if (active === "hero" && hasHero) {
@@ -155,7 +173,10 @@ showPokemonDetails = function (p) {
           badge = "HERO";
           eyebrow = "Zero to Hero";
         } else {
-          toast("Palafin Hero data is not available from the Pokémon data service yet.", true,);
+          toast(
+            "Palafin Hero data is not available from the Pokémon data service yet.",
+            true,
+          );
           active = "base";
         }
       }

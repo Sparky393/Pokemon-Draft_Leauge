@@ -102,7 +102,9 @@ async function fetchMetaBySlug(slug) {
     const d = await r.json();
     return {
       image:
-        d.sprites?.other?.["official-artwork"]?.front_default || d.sprites?.front_default || "",
+        d.sprites?.other?.["official-artwork"]?.front_default ||
+        d.sprites?.front_default ||
+        "",
       abilities: (d.abilities || []).map((a) => prettyPokeText(a.ability.name)),
       moves: (d.moves || []).map((m) => prettyPokeText(m.move.name)),
       stats: (d.stats || []).map((s) => ({
@@ -121,7 +123,9 @@ async function getPokemonFullMeta(name) {
   try {
     let r = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokeSlug(name)}`);
     if (!r.ok && name.includes("("))
-      r = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokeSlug(name.split(" (")[0])}`,);
+      r = await fetch(
+        `https://pokeapi.co/api/v2/pokemon/${pokeSlug(name.split(" (")[0])}`,
+      );
     if (!r.ok) return { ...base, stats: [] };
     const data = await r.json();
     const full = {
@@ -138,7 +142,10 @@ async function getPokemonFullMeta(name) {
   }
 }
 function bstOf(meta) {
-  return (meta?.stats || []).reduce((sum, s) => sum + (Number(s.value) || 0), 0,);
+  return (meta?.stats || []).reduce(
+    (sum, s) => sum + (Number(s.value) || 0),
+    0,
+  );
 }
 function showPokemonDetails(p) {
   getPokemonFullMeta(p.name).then((base) => {
@@ -160,7 +167,10 @@ function showPokemonDetails(p) {
           title = megaLabel(slug);
           isMega = true;
         } else {
-          toast("Mega data is not available from the Pokémon data service yet.", true,);
+          toast(
+            "Mega data is not available from the Pokémon data service yet.",
+            true,
+          );
           formIndex = -1;
         }
       }
@@ -188,7 +198,9 @@ function pokemonFilterAbilities(p, meta) {
   const yAbilities =
     typeof MEGA_Y_METADATA === "undefined"
       ? []
-      : megaFormsFor(p.name).flatMap((slug) => MEGA_Y_METADATA[slug]?.abilities || []);
+      : megaFormsFor(p.name).flatMap(
+          (slug) => MEGA_Y_METADATA[slug]?.abilities || [],
+        );
   return [...(meta?.abilities || []), ...yAbilities];
 }
 function finalFilterBar(prefix, showBst = true) {
@@ -216,9 +228,16 @@ async function wireFinalFilters(prefix, source, draw) {
           ? await getPokemonFullMeta(p.name)
           : null;
       if (revision !== filterRevision) return;
-      if (type !== "all" && !m.types?.some(t => t.toLowerCase() === type)) continue;
-      if (move && !m.moves.some((x) => x.toLowerCase().includes(move))) continue;
-      if (ability && !pokemonFilterAbilities(p, m).some((x) => x.toLowerCase().includes(ability)))
+      if (type !== "all" && !m.types?.some((t) => t.toLowerCase() === type))
+        continue;
+      if (move && !m.moves.some((x) => x.toLowerCase().includes(move)))
+        continue;
+      if (
+        ability &&
+        !pokemonFilterAbilities(p, m).some((x) =>
+          x.toLowerCase().includes(ability),
+        )
+      )
         continue;
       rows.push({ p, m });
     }
@@ -238,7 +257,9 @@ async function wireFinalFilters(prefix, source, draw) {
   ["search", "move", "ability"].forEach((x) =>
     $(`#${prefix}-${x}`).addEventListener("input", apply),
   );
-  ["sort", "mega", "type"].forEach((x) => $(`#${prefix}-${x}`).addEventListener("change", apply),);
+  ["sort", "mega", "type"].forEach((x) =>
+    $(`#${prefix}-${x}`).addEventListener("change", apply),
+  );
   $(`#${prefix}-clear`).onclick = () => {
     $(`#${prefix}-search`).value = "";
     $(`#${prefix}-move`).value = "";
@@ -289,14 +310,18 @@ renderDraft = async function (snapshot) {
       d.settings.draftOpen &&
       !d.settings.draftFinalized &&
       (state.user.role === "MANAGER" ||
-        (state.user.role === "COACH" && d.currentTeam && d.currentTeam.id === state.user.teamId));
+        (state.user.role === "COACH" &&
+          d.currentTeam &&
+          d.currentTeam.id === state.user.teamId));
   let chosen = null;
   $("#page-draft").innerHTML =
     `<div class="section-title"><div><h1>Draft Room</h1><p class="muted">10 rounds · ${d.settings.snakeDraft ? "snake" : "linear"} draft</p></div>${state.user.role === "MANAGER" ? '<button id="undo-pick" class="danger">Undo Last Pick</button>' : ""}</div><div class="card on-clock"><div><span class="eyebrow">ON THE CLOCK</span><h2>${d.currentTeam ? teamBrand(d.currentTeam, "md") : "Draft complete"}</h2></div><div class="draft-pick-action"><span id="draft-action-selection" class="muted" role="status" aria-live="polite">No Pokémon selected</span><button id="make-pick" class="primary" disabled>Draft Selected Pokémon</button></div></div><div class="card"><div class="section-title"><div><h2>Available Pokémon</h2><p class="muted">Click a Pokémon to select it and open its stats.</p></div><span class="pool-count">${d.available.length} Pokémon left</span></div>${finalFilterBar("draft", true)}<p id="draft-selection" class="selection-status muted">Select a Pokémon card.</p><div id="draft-grid" class="pokemon-card-grid"></div></div><div class="card"><h2>Draft Board</h2><div class="table-wrap"><table><thead><tr><th>Pick</th><th>Round</th><th>Team</th><th>Pokémon</th></tr></thead><tbody>${d.picks.map((p) => `<tr><td>${p.overallPick}</td><td>${p.round}</td><td>${teamBrand(p.teamId)}</td><td>${esc(p.pokemonName)}</td></tr>`).join("") || '<tr><td colspan="4">No picks yet</td></tr>'}</tbody></table></div></div>`;
   const draw = (rows) => {
     const grid = $("#draft-grid");
     grid.innerHTML =
-      rows.map((p) => pokemonCard(p, chosen === p.id ? "selected" : "")).join("") ||
+      rows
+        .map((p) => pokemonCard(p, chosen === p.id ? "selected" : ""))
+        .join("") ||
       '<div class="empty-state">No Pokémon match these filters.</div>';
     grid.querySelectorAll(".pokemon-card").forEach(
       (c) =>
@@ -308,7 +333,8 @@ renderDraft = async function (snapshot) {
             .forEach((x) => x.classList.toggle("selected", x === c));
           $("#draft-selection").innerHTML =
             `Selected: <strong>${esc(p.name)}</strong> · $${p.price}`;
-          $("#draft-action-selection").textContent = `Selected: ${p.name} · $${p.price}`;
+          $("#draft-action-selection").textContent =
+            `Selected: ${p.name} · $${p.price}`;
           $("#make-pick").disabled = !canPick;
           showPokemonDetails(p);
         }),
@@ -390,8 +416,9 @@ renderBids = async function () {
   const draw = (rows) => {
     const grid = $("#fa-grid");
     grid.innerHTML =
-      rows.map((p) => pokemonCard(p, wanted === p.id ? "selected" : "")).join("") ||
-      '<div class="empty-state">No free agents match.</div>';
+      rows
+        .map((p) => pokemonCard(p, wanted === p.id ? "selected" : ""))
+        .join("") || '<div class="empty-state">No free agents match.</div>';
     grid.querySelectorAll(".pokemon-card").forEach(
       (c) =>
         (c.onclick = () => {
@@ -417,7 +444,9 @@ renderBids = async function () {
         method: "POST",
         body: {
           wantedPokemonId: wanted,
-          dropPokemonId: $("#bid-drop").value ? Number($("#bid-drop").value) : null,
+          dropPokemonId: $("#bid-drop").value
+            ? Number($("#bid-drop").value)
+            : null,
           amount: Number($("#bid-amount").value || 0),
         },
       });

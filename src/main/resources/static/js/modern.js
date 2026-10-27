@@ -10,7 +10,9 @@ renderHome = async function (initialDashboard) {
   const d = initialDashboard || (await api("/api/dashboard/view"));
   state.teams = d.teams;
   state.settings = d.settings;
-  const my = state.user.teamId ? state.teams.find((t) => t.id === state.user.teamId) : null;
+  const my = state.user.teamId
+    ? state.teams.find((t) => t.id === state.user.teamId)
+    : null;
   $("#page-home").innerHTML =
     `${hero("League Portal", esc(d.settings.leagueName), `Week ${d.settings.currentWeek} of ${d.settings.regularSeasonWeeks}`)}<div class="grid"><div class="card"><div class="eyebrow">League</div><div class="stat">16</div><p class="muted">Coaches across two divisions</p></div><div class="card"><div class="eyebrow">Draft</div><div class="stat">${d.settings.draftOpen ? "OPEN" : "CLOSED"}</div><p class="muted">${d.currentDraftTeam ? `${esc(d.currentDraftTeam.name)} is on the clock` : "Draft complete"}</p></div><div class="card"><div class="eyebrow">Playoffs</div><div class="stat">${d.settings.playoffSeedModeEnabled ? "ON" : "OFF"}</div><p class="muted">Scenario mode ${d.settings.playoffSeedModeEnabled ? "available" : "locked until final two weeks"}</p></div>${my ? `<div class="card"><div class="eyebrow">My Team</div><h2 class="my-team-home">${teamBrand(my, "md")}</h2><div class="stat">${my.wins}-${my.losses}</div><p class="muted">${my.differential >= 0 ? "+" : ""}${my.differential} differential · $${my.faBudget} FAAB</p></div>` : ""}</div>`;
 };
@@ -19,7 +21,8 @@ renderDraft = async function () {
   const d = await api("/api/draft");
   let selected = null;
   const canPick =
-    state.user.role === "MANAGER" || (d.currentTeam && d.currentTeam.id === state.user.teamId);
+    state.user.role === "MANAGER" ||
+    (d.currentTeam && d.currentTeam.id === state.user.teamId);
   $("#page-draft").innerHTML =
     `${hero("Live Draft", "Draft Room", `10 rounds · ${d.settings.snakeDraft ? "Snake" : "Linear"} format`, state.user.role === "MANAGER" ? '<button id="undo-pick" class="danger">Undo Last Pick</button>' : "")}<div class="card"><div class="eyebrow">On The Clock</div><h2>${d.currentTeam ? esc(d.currentTeam.name) : "Draft Complete"}</h2>${d.currentTeam ? `<p class="muted">Draft position ${d.currentTeam.draftPosition}</p>` : ""}</div><div class="filter-bar"><input id="draft-search" placeholder="Search available Pokemon..."><select id="draft-price"><option value="all">All Values</option><option value="high">$15–$20</option><option value="mid">$8–$14</option><option value="low">$0–$7</option></select></div><div id="draft-grid" class="pokemon-card-grid"></div><div class="selection-footer"><div id="draft-selection" class="muted">Select a Pokemon from the grid</div><button id="make-pick" class="primary" disabled>Draft Pokemon</button></div><div class="card" style="margin-top:24px"><h2>Draft Board</h2><div class="table-wrap"><table><thead><tr><th>Pick</th><th>Round</th><th>Team</th><th>Pokemon</th></tr></thead><tbody>${d.picks.map((p) => `<tr><td>${p.overallPick}</td><td>${p.round}</td><td>${esc(p.teamName)}</td><td>${esc(p.pokemonName)}</td></tr>`).join("") || '<tr><td colspan="4">No picks yet</td></tr>'}</tbody></table></div></div>`;
   const draw = () => {
@@ -34,7 +37,11 @@ renderDraft = async function () {
           (price === "low" && p.price <= 7)),
     );
     $("#draft-grid").innerHTML =
-      list.map((p) => monCard(p, `clickable ${selected === p.id ? "selected" : ""}`),).join("") ||
+      list
+        .map((p) =>
+          monCard(p, `clickable ${selected === p.id ? "selected" : ""}`),
+        )
+        .join("") ||
       '<div class="empty-state">No available Pokemon match your search.</div>';
     $$("#draft-grid .mon-card").forEach(
       (c) =>
@@ -105,7 +112,8 @@ renderStandings = async function () {
   const draw = () => {
     const id = $("#standing-team").value;
     const panel = (division, rows) => {
-      const filtered = id === "all" ? rows : rows.filter((t) => String(t.id) === id);
+      const filtered =
+        id === "all" ? rows : rows.filter((t) => String(t.id) === id);
       return `<div class="glass-panel team-view"><div class="eyebrow">Division ${division}</div><h2>Division ${division}</h2><div class="standing-row standing-labels"><span>#</span><span>Team</span><span>W</span><span>L</span><span>Diff</span></div>${filtered.map((t, i) => `<div class="standing-row"><span class="standing-rank">${rows.indexOf(t) + 1}</span><span class="standing-team">${esc(t.name)}</span><span>${t.wins}</span><span>${t.losses}</span><span>${t.differential >= 0 ? "+" : ""}${t.differential}</span></div>`).join("") || '<div class="empty-state">Team is in the other division.</div>'}</div>`;
     };
     $("#standing-results").innerHTML =
@@ -123,7 +131,8 @@ renderSchedule = async function () {
   const draw = () => {
     const w = $("#schedule-week").value,
       t = $("#schedule-team").value;
-    const team = t === "all" ? null : state.teams.find((x) => String(x.id) === t);
+    const team =
+      t === "all" ? null : state.teams.find((x) => String(x.id) === t);
     const list = data.filter(
       (m) =>
         (w === "all" || String(m.week) === w) &&
@@ -135,7 +144,8 @@ renderSchedule = async function () {
           (m) =>
             `<div class="match-card"><div class="match-week">Week ${m.week}</div><div class="match-row"><span>${esc(m.homeTeam)}</span><span class="score">${m.played ? m.homeScore : "—"}</span></div><div class="match-row"><span>${esc(m.awayTeam)}</span><span class="score">${m.played ? m.awayScore : "—"}</span></div>${state.user.role === "MANAGER" ? `<div class="match-actions"><input class="score-home inline-input glass-input" data-id="${m.id}" type="number" min="0" value="${m.homeScore ?? ""}" placeholder="Home"><input class="score-away inline-input glass-input" data-id="${m.id}" type="number" min="0" value="${m.awayScore ?? ""}" placeholder="Away"><button class="primary save-result" data-id="${m.id}">Save</button>${m.played ? `<button class="secondary clear-result" data-id="${m.id}">Clear</button>` : ""}</div>` : ""}</div>`,
         )
-        .join("") || '<div class="empty-state">No matchups match these filters.</div>';
+        .join("") ||
+      '<div class="empty-state">No matchups match these filters.</div>';
     $$(".save-result").forEach(
       (b) =>
         (b.onclick = async () => {
@@ -232,7 +242,9 @@ renderBids = async function () {
     const draw = () => {
       $("#fa-grid").innerHTML =
         free
-          .filter((p) => p.name.toLowerCase().includes($("#fa-search").value.toLowerCase()),)
+          .filter((p) =>
+            p.name.toLowerCase().includes($("#fa-search").value.toLowerCase()),
+          )
           .map((p) => monCard(p))
           .join("") || '<div class="empty-state">No free agents match.</div>';
     };
@@ -259,8 +271,12 @@ renderBids = async function () {
   const draw = () => {
     $("#fa-grid").innerHTML =
       free
-        .filter((p) => p.name.toLowerCase().includes($("#fa-search").value.toLowerCase()),)
-        .map((p) => monCard(p, `clickable ${wanted === p.id ? "selected" : ""}`),)
+        .filter((p) =>
+          p.name.toLowerCase().includes($("#fa-search").value.toLowerCase()),
+        )
+        .map((p) =>
+          monCard(p, `clickable ${wanted === p.id ? "selected" : ""}`),
+        )
         .join("") || '<div class="empty-state">No free agents match.</div>';
     $$("#fa-grid .mon-card").forEach(
       (c) =>

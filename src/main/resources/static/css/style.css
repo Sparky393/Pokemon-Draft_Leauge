@@ -25,9 +25,21 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at 18% 8%, rgba(49, 106, 230, 0.32), transparent 32%),
-    radial-gradient(circle at 82% 18%, rgba(0, 183, 255, 0.18), transparent 34%),
-    radial-gradient(circle at 50% 100%, rgba(73, 82, 255, 0.2), transparent 42%),
+    radial-gradient(
+      circle at 18% 8%,
+      rgba(49, 106, 230, 0.32),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 82% 18%,
+      rgba(0, 183, 255, 0.18),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 50% 100%,
+      rgba(73, 82, 255, 0.2),
+      transparent 42%
+    ),
     linear-gradient(135deg, #071326, #0b1b36 45%, #06101f);
   background-attachment: fixed;
 }
@@ -68,7 +80,11 @@ button {
   padding: 34px;
   border: 1px solid var(--line-strong);
   border-radius: 26px;
-  background: linear-gradient(135deg, rgba(34, 85, 142, 0.34), rgba(9, 28, 55, 0.52));
+  background: linear-gradient(
+    135deg,
+    rgba(34, 85, 142, 0.34),
+    rgba(9, 28, 55, 0.52)
+  );
   backdrop-filter: blur(28px) saturate(145%);
   -webkit-backdrop-filter: blur(28px) saturate(145%);
   box-shadow:
@@ -115,7 +131,11 @@ button {
   color: white;
   border: 1px solid rgba(110, 205, 255, 0.46);
   border-radius: 13px;
-  background: linear-gradient(135deg, rgba(65, 165, 255, 0.56), rgba(35, 100, 195, 0.42));
+  background: linear-gradient(
+    135deg,
+    rgba(65, 165, 255, 0.56),
+    rgba(35, 100, 195, 0.42)
+  );
   box-shadow:
     0 10px 30px rgba(30, 130, 240, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.16);
@@ -123,7 +143,11 @@ button {
 .login-card button:hover {
   transform: translateY(-1px);
   border-color: rgba(125, 215, 255, 0.76);
-  background: linear-gradient(135deg, rgba(70, 178, 255, 0.68), rgba(38, 112, 215, 0.52));
+  background: linear-gradient(
+    135deg,
+    rgba(70, 178, 255, 0.68),
+    rgba(38, 112, 215, 0.52)
+  );
 }
 .hint {
   margin-top: 20px;
@@ -148,7 +172,11 @@ button {
   display: flex;
   flex-direction: column;
   color: white;
-  background: linear-gradient(180deg, rgba(7, 19, 38, 0.83), rgba(5, 15, 31, 0.72));
+  background: linear-gradient(
+    180deg,
+    rgba(7, 19, 38, 0.83),
+    rgba(5, 15, 31, 0.72)
+  );
   border-right: 1px solid var(--line);
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
@@ -196,7 +224,11 @@ button {
 .sidebar nav button.active {
   color: #eefdff;
   border-color: rgba(105, 190, 255, 0.28);
-  background: linear-gradient(135deg, rgba(55, 145, 240, 0.3), rgba(25, 85, 170, 0.2));
+  background: linear-gradient(
+    135deg,
+    rgba(55, 145, 240, 0.3),
+    rgba(25, 85, 170, 0.2)
+  );
   box-shadow:
     0 8px 25px rgba(20, 100, 200, 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.09);
@@ -248,7 +280,11 @@ h3 {
   margin-bottom: 17px;
   border: 1px solid var(--line);
   border-radius: 20px;
-  background: linear-gradient(135deg, rgba(30, 76, 130, 0.25), rgba(9, 28, 55, 0.41));
+  background: linear-gradient(
+    135deg,
+    rgba(30, 76, 130, 0.25),
+    rgba(9, 28, 55, 0.41)
+  );
   backdrop-filter: blur(22px) saturate(135%);
   -webkit-backdrop-filter: blur(22px) saturate(135%);
   box-shadow:
@@ -302,12 +338,20 @@ select option {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .primary {
-  background: linear-gradient(135deg, rgba(55, 145, 240, 0.48), rgba(25, 85, 170, 0.38));
+  background: linear-gradient(
+    135deg,
+    rgba(55, 145, 240, 0.48),
+    rgba(25, 85, 170, 0.38)
+  );
   border-color: rgba(100, 190, 255, 0.42);
 }
 .primary:hover {
   transform: translateY(-1px);
-  background: linear-gradient(135deg, rgba(65, 165, 255, 0.58), rgba(35, 100, 195, 0.46));
+  background: linear-gradient(
+    135deg,
+    rgba(65, 165, 255, 0.58),
+    rgba(35, 100, 195, 0.46)
+  );
   border-color: rgba(110, 205, 255, 0.65);
 }
 .secondary {
@@ -416,12 +460,20 @@ tbody tr:hover {
   padding: 11px;
   border: 1px solid rgba(120, 190, 255, 0.14);
   border-radius: 13px;
-  background: linear-gradient(135deg, rgba(28, 71, 122, 0.2), rgba(7, 24, 46, 0.38));
+  background: linear-gradient(
+    135deg,
+    rgba(28, 71, 122, 0.2),
+    rgba(7, 24, 46, 0.38)
+  );
   transition: 0.16s ease;
 }
 .pokemon-option:hover {
   border-color: rgba(110, 195, 255, 0.34);
-  background: linear-gradient(135deg, rgba(35, 88, 150, 0.28), rgba(9, 31, 60, 0.45));
+  background: linear-gradient(
+    135deg,
+    rgba(35, 88, 150, 0.28),
+    rgba(9, 31, 60, 0.45)
+  );
   transform: translateY(-1px);
 }
 .pokemon-option label {
@@ -450,7 +502,11 @@ tbody tr:hover {
 .subtabs button.active {
   color: white;
   border-color: rgba(100, 190, 255, 0.4);
-  background: linear-gradient(135deg, rgba(55, 145, 240, 0.42), rgba(25, 85, 170, 0.32));
+  background: linear-gradient(
+    135deg,
+    rgba(55, 145, 240, 0.42),
+    rgba(25, 85, 170, 0.32)
+  );
   box-shadow: 0 8px 25px rgba(20, 100, 200, 0.13);
 }
 .section-title {
@@ -574,7 +630,11 @@ tbody tr:hover {
 .sidebar > button[data-page="account"].active {
   color: #eefdff;
   border-color: rgba(105, 190, 255, 0.28);
-  background: linear-gradient(135deg, rgba(55, 145, 240, 0.3), rgba(25, 85, 170, 0.2));
+  background: linear-gradient(
+    135deg,
+    rgba(55, 145, 240, 0.3),
+    rgba(25, 85, 170, 0.2)
+  );
   box-shadow:
     0 8px 25px rgba(20, 100, 200, 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.09);

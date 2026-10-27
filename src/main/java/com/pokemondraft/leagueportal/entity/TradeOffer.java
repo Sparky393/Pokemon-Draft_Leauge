@@ -27,10 +27,14 @@ public class TradeOffer {
 
   private LocalDateTime createdAt = LocalDateTime.now();
 
-  public TradeOffer() {
-  }
+  public TradeOffer() {}
 
-  public TradeOffer(Long p, Long r, List<Long> offered, List<Long> requested, int proposerFaab,
+  public TradeOffer(
+      Long p,
+      Long r,
+      List<Long> offered,
+      List<Long> requested,
+      int proposerFaab,
       int recipientFaab) {
     this.proposerTeamId = p;
     this.recipientTeamId = r;
@@ -41,14 +45,18 @@ public class TradeOffer {
   }
 
   private String csv(List<Long> ids) {
-    return ids == null ? ""
-        : ids.stream().filter(Objects::nonNull).distinct().map(String::valueOf)
-            .reduce((a, b) -> a + "," + b).orElse("");
+    return ids == null
+        ? ""
+        : ids.stream()
+            .filter(Objects::nonNull)
+            .distinct()
+            .map(String::valueOf)
+            .reduce((a, b) -> a + "," + b)
+            .orElse("");
   }
 
   private List<Long> ids(String csv) {
-    if (csv == null || csv.isBlank())
-      return List.of();
+    if (csv == null || csv.isBlank()) return List.of();
     return Arrays.stream(csv.split(",")).filter(x -> !x.isBlank()).map(Long::valueOf).toList();
   }
 
