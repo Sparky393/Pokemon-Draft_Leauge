@@ -17,7 +17,8 @@ jobs:
           cache: maven
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version-file: ".node-version"
+          check-latest: true
       - name: Build app with H2, never production Neon
         run: mvn --batch-mode -DskipTests package
       - name: Install Chromium and Playwright

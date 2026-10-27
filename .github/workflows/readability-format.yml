@@ -21,7 +21,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: ".node-version"
+          check-latest: true
 
       - name: Format JavaScript, CSS, HTML, and Markdown
         run: |
