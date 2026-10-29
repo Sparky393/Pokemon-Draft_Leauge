@@ -69,7 +69,7 @@ const context = vm.createContext({
     };
   },
 });
-for (const file of ["pokemon-ui.js", "final-ui.js"])
+for (const file of ["champions-learnsets.js", "pokemon-ui.js", "final-ui.js"])
   vm.runInContext(readFileSync(`src/main/resources/static/js/${file}`, "utf8"), context);
 const plain =value => JSON.parse(JSON.stringify(value));
 const metadata = await Promise.all([
@@ -79,7 +79,7 @@ const metadata = await Promise.all([
 ]);
 assert.equal(calls.length, 1, "Concurrent cache upgrades share one metadata request");
 assert.deepEqual(plain(metadata[0].types), ["Fire", "Flying"]);
-assert.deepEqual(JSON.parse(storage.get("draftLeaguePokemonMetaV6")).Charizard.types, [
+assert.deepEqual(JSON.parse(storage.get("draftLeaguePokemonMetaV7")).Charizard.types, [
   "Fire",
   "Flying"
 ]);
@@ -259,3 +259,51 @@ assert.equal(
 console.log(
   "PASS: 18 types, both dual-type slots, draft/free-agent/legacy filters, combined search/move/ability/sort/Mega filters, reset, stale-result guard, legacy cache upgrade, shared requests; no league API requests"
 );
+
+const snapshot = { currentTeam: { id: 2 }, picks: [
+  { teamId: 1, price: 88 }, { teamId: 2, price: 100 }
+] };
+assert.equal(context.draftRemainingBudget(snapshot, { role: "COACH", teamId: 1 }), 12);
+assert.equal(context.draftRemainingBudget(snapshot, { role: "MANAGER" }), 0);
+assert.equal(context.draftRemainingBudget({ currentTeam: null, picks: [] }, { role: "GUEST" }), null);
+assert.equal(context.draftRemainingBudget({ currentTeam: { id: 1 }, picks: [{ teamId: 1 }] }, { role: "MANAGER" }), null);
+inputs("draft");
+fields.set("#draft-budget", { value: "all", listeners: {}, addEventListener(event, fn) { this.listeners[event] = fn; } });
+let affordableRows;
+await context.wireFinalFilters("draft", source, rows => { affordableRows = plain(rows); }, 12);
+const budget = fields.get("#draft-budget");
+budget.value = "affordable";
+await budget.listeners.change();
+assert.deepEqual(affordableRows.map(p => p.name), ["Rotom Wash", "Raichu"]);
+assert.match(context.finalFilterBar("draft", true, 12), /value="affordable" selected/);
+fields.get("#draft-type").value = "water";
+await fields.get("#draft-type").listeners.change();
+assert.deepEqual(affordableRows.map(p => p.name), ["Rotom Wash"]);
+fields.get("#draft-type").value = "all";
+await context.wireFinalFilters("draft", source, rows => { affordableRows = plain(rows); }, 0);
+assert.equal(affordableRows.length, 0);
+await fields.get("#draft-clear").onclick();
+assert.equal(affordableRows.length, source.length);
+assert.equal(budget.value, "all");
+console.log("PASS: coach/on-clock budgets, exact affordability boundary, zero budget, combined type filter, persistence and clear.");
+
+assert.equal(context.draftOpenSlots(snapshot, { role: "COACH", teamId: 1 }), 9);
+assert.equal(context.draftOpenSlots({ currentTeam: { id: 1 }, picks: Array.from({length: 10}, () => ({teamId: 1})) }, { role: "MANAGER" }), 0);
+const fiveDollar = { price: 5 }, fourDollar = { price: 4 }, oneDollar = { price: 1 }, freeMon = { price: 0 };
+const fits = (candidate, pool, dollars, slots) => context.draftPickFitsBudget(candidate, pool, dollars, slots);
+assert.equal(fits(fiveDollar, [fiveDollar, oneDollar], 5, 2), false, "Reserve $1 when no free Pokémon remain");
+assert.equal(fits(fourDollar, [fourDollar, oneDollar], 5, 2), true, "Exact reserve boundary");
+assert.equal(fits(fiveDollar, [fiveDollar, freeMon], 5, 2), true, "A free Pokémon can finish the roster");
+assert.equal(fits(fiveDollar, [fiveDollar, freeMon, oneDollar], 5, 3), false, "One free Pokémon cannot fill two slots");
+assert.equal(fits(freeMon, [freeMon, fiveDollar], 0, 2), false, "The candidate cannot also be counted as a future free pick");
+assert.equal(fits(fiveDollar, [fiveDollar], 5, 1), true);
+assert.equal(fits(fiveDollar, [fiveDollar], 5, 0), false);
+assert.equal(fits(fourDollar, [fourDollar, {price: null}], 5, 2), false);
+assert.equal(fits(fourDollar, [fourDollar, oneDollar], 100, 3), false, "Need enough distinct Pokémon");
+budget.value = "affordable";
+await context.wireFinalFilters("draft", source, rows => { affordableRows = plain(rows); }, 24, 2);
+assert.deepEqual(affordableRows.map(p => p.name), ["Charizard", "Rotom Wash", "Raichu"]);
+fields.get("#draft-type").value = "fire";
+await fields.get("#draft-type").listeners.change();
+assert.deepEqual(affordableRows.map(p => p.name), ["Charizard"], "Reserve uses the full pool, not only matching Fire types");
+console.log("PASS: roster completion reserves, finite free picks, candidate exclusion, full rosters, missing prices, insufficient pool, and combined filter wiring.");

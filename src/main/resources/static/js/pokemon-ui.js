@@ -24,8 +24,8 @@ const POKEMON_TYPES = Object.freeze([
 function pokemonTypeFilter(prefix) {
   return `<div class="filter-field"><label for="${prefix}-type">Type</label><select id="${prefix}-type"><option value="all">All types</option>${POKEMON_TYPES.map(type => `<option value="${type.toLowerCase()}">${type}</option>`).join("")}</select></div>`;
 }
-// V6 invalidates old image lookups after correcting Rotom and Squawkabilly form slugs.
-const POKE_CACHE_KEY = "draftLeaguePokemonMetaV6";
+// V7 discards cross-game move lists cached before Champions learnsets were bundled.
+const POKE_CACHE_KEY = "draftLeaguePokemonMetaV7";
 try {
   Object.entries(JSON.parse(localStorage.getItem(POKE_CACHE_KEY) || "{}"),).forEach(([k, v]) =>
     pokemonMetaCache.set(k, v)
@@ -92,6 +92,27 @@ function prettyPokeText(s) {
     .map((x) => (x ? x[0].toUpperCase() + x.slice(1) : ""))
     .join(" ");
 }
+function championsMovesForSlug(slug) {
+  const aliases = {
+    "indeedee-male": "indeedee", "basculegion-male": "basculegion",
+    "indeedee-female": "indeedeef", "basculegion-female": "basculegionf",
+    "meowstic-female": "meowsticf",
+    "toxtricity-amped": "toxtricity", "toxtricity-low-key": "toxtricitylowkey",
+    "pyroar-male": "pyroar", "meowstic-male": "meowstic",
+    "maushold-family-of-four": "maushold", "aegislash-shield": "aegislash",
+    "gourgeist-average": "gourgeist", "mimikyu-disguised": "mimikyu",
+    "morpeko-full-belly": "morpeko", "palafin-zero": "palafin",
+    "lycanroc-midday": "lycanroc", "squawkabilly-blue-plumage": "squawkabilly",
+    "tauros-paldea-combat-breed": "taurospaldeacombat",
+    "tauros-paldea-blaze-breed": "taurospaldeablaze",
+    "tauros-paldea-aqua-breed": "taurospaldeaaqua",
+  };
+  // Mega and battle-only forms share the species' move pool.
+  const base = slug.replace(/-mega(?:-[xyz])?$/, "").replace(/-hero$/, "");
+  const id = aliases[base] || base.replace(/[^a-z0-9]/g, "");
+  // Never fall back to cross-game moves for an unknown species.
+  return typeof CHAMPIONS_LEARNSETS === "undefined" ? [] : [...(CHAMPIONS_LEARNSETS[id] || [])];
+}
 async function fetchPokemonData(slug) {
   if (globalThis.leagueSession?.isEnded()) throw new Error("Session ended");
   const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${slug}`);
@@ -129,7 +150,7 @@ async function loadPokemonMeta(name) {
         "",
       types: (data.types || []).map(t => prettyPokeText(t.type.name)),
       abilities: (data.abilities || []).map((a) => prettyPokeText(a.ability.name),),
-      moves: (data.moves || []).map((m) => prettyPokeText(m.move.name)),
+      moves: championsMovesForSlug(pokeSlug(name)),
       stats: (data.stats || []).map((s) => ({
         name: prettyPokeText(s.stat.name),
         value: s.base_stat,

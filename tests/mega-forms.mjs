@@ -21,6 +21,7 @@ const context = vm.createContext({
       .map((x) => x[0]?.toUpperCase() + x.slice(1))
       .join(" "),
   getPokemonMeta: async () => base,
+  championsMovesForSlug: () => [],
   fetch: async (url) => {
     externalLookups.push(url);
     return {

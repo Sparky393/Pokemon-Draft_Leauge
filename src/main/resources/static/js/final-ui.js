@@ -104,7 +104,7 @@ async function fetchMetaBySlug(slug) {
       image:
         d.sprites?.other?.["official-artwork"]?.front_default || d.sprites?.front_default || "",
       abilities: (d.abilities || []).map((a) => prettyPokeText(a.ability.name)),
-      moves: (d.moves || []).map((m) => prettyPokeText(m.move.name)),
+      moves: championsMovesForSlug(slug),
       stats: (d.stats || []).map((s) => ({
         name: prettyPokeText(s.stat.name),
         value: s.base_stat,
@@ -191,10 +191,36 @@ function pokemonFilterAbilities(p, meta) {
       : megaFormsFor(p.name).flatMap((slug) => MEGA_Y_METADATA[slug]?.abilities || []);
   return [...(meta?.abilities || []), ...yAbilities];
 }
-function finalFilterBar(prefix, showBst = true) {
-  return `<div class="pokemon-filters type-filter-bar"><div class="filter-field wide"><label>Pokémon</label><input id="${prefix}-search" placeholder="Search Pokémon..."></div><div class="filter-field"><label>Sort</label><select id="${prefix}-sort"><option value="name">Name A–Z</option><option value="price-low">Price Low → High</option><option value="price-high" selected>Price High → Low</option>${showBst ? '<option value="bst-high">BST High → Low</option><option value="bst-low">BST Low → High</option>' : ""}</select></div>${pokemonTypeFilter(prefix)}<div class="filter-field"><label>Mega</label><select id="${prefix}-mega"><option value="all">All Pokémon</option><option value="mega">Has Mega Evolution</option></select></div><div class="filter-field"><label>Move</label><input id="${prefix}-move" list="${prefix}-move-list" placeholder="Type a move..."><datalist id="${prefix}-move-list"></datalist></div><div class="filter-field"><label>Ability</label><input id="${prefix}-ability" list="${prefix}-ability-list" placeholder="Type an ability..."><datalist id="${prefix}-ability-list"></datalist></div><button type="button" class="secondary" id="${prefix}-clear">Clear</button></div>`;
+let draftAffordableOnly = false;
+function draftBudgetTeamId(snapshot, user) {
+  return user.role === "COACH" ? user.teamId : snapshot.currentTeam?.id;
 }
-async function wireFinalFilters(prefix, source, draw) {
+function draftOpenSlots(snapshot, user) {
+  const teamId = draftBudgetTeamId(snapshot, user);
+  if (teamId == null) return 0;
+  return Math.max(0, 10 - snapshot.picks.filter(p => String(p.teamId) === String(teamId)).length);
+}
+function draftRemainingBudget(snapshot, user) {
+  const teamId = draftBudgetTeamId(snapshot, user);
+  if (teamId == null) return null;
+  const picks = snapshot.picks.filter(p => String(p.teamId) === String(teamId));
+  if (picks.some(p => typeof p.price !== "number" || !Number.isFinite(p.price))) return null;
+  return Math.max(0, 100 - picks.reduce((sum, p) => sum + p.price, 0));
+}
+function draftPickFitsBudget(candidate, available, budget, openSlots) {
+  const validPrice = p => typeof p.price === "number" && Number.isFinite(p.price) && p.price >= 0;
+  if (openSlots < 1 || !validPrice(candidate) || candidate.price > budget) return false;
+  // Reserve distinct Pokémon from the whole pool, independent of other search filters.
+  const rest = available.filter(p => p !== candidate && validPrice(p)).sort((a, b) => a.price - b.price);
+  const needed = openSlots - 1;
+  if (rest.length < needed) return false;
+  const reserve = rest.slice(0, needed).reduce((sum, p) => sum + p.price, 0);
+  return candidate.price + reserve <= budget;
+}
+function finalFilterBar(prefix, showBst = true, remainingBudget = null) {
+  return `<div class="pokemon-filters type-filter-bar"><div class="filter-field wide"><label>Pokémon</label><input id="${prefix}-search" placeholder="Search Pokémon..."></div><div class="filter-field"><label>Sort</label><select id="${prefix}-sort"><option value="name">Name A–Z</option><option value="price-low">Price Low → High</option><option value="price-high" selected>Price High → Low</option>${showBst ? '<option value="bst-high">BST High → Low</option><option value="bst-low">BST Low → High</option>' : ""}</select></div>${pokemonTypeFilter(prefix)}${prefix === "draft" ? `<div class="filter-field"><label for="draft-budget" title="Reserves the cheapest available Pokémon needed to complete your 10-Pokémon roster">Budget</label><select id="draft-budget" ${remainingBudget == null ? "disabled" : ""}><option value="all">All prices</option><option value="affordable" ${draftAffordableOnly && remainingBudget != null ? "selected" : ""}>Within budget${remainingBudget == null ? " (unavailable)" : ` ($${remainingBudget} left)`}</option></select></div>` : ""}<div class="filter-field"><label>Mega</label><select id="${prefix}-mega"><option value="all">All Pokémon</option><option value="mega">Has Mega Evolution</option></select></div><div class="filter-field"><label>Move</label><input id="${prefix}-move" list="${prefix}-move-list" placeholder="Type a move..."><datalist id="${prefix}-move-list"></datalist></div><div class="filter-field"><label>Ability</label><input id="${prefix}-ability" list="${prefix}-ability-list" placeholder="Type an ability..."><datalist id="${prefix}-ability-list"></datalist></div><button type="button" class="secondary" id="${prefix}-clear">Clear</button></div>`;
+}
+async function wireFinalFilters(prefix, source, draw, remainingBudget = null, openSlots = 1) {
   let filterRevision = 0;
   const apply = async () => {
     const revision = ++filterRevision;
@@ -206,6 +232,8 @@ async function wireFinalFilters(prefix, source, draw) {
       type = $(`#${prefix}-type`).value;
     const rows = [];
     for (const p of source) {
+      if (remainingBudget != null && $(`#${prefix}-budget`)?.value === "affordable" &&
+          !draftPickFitsBudget(p, source, remainingBudget, openSlots)) continue;
       if (
         !pokemonSearchNames(p).some((name) => name.toLowerCase().includes(q)) ||
         (mega === "mega" && !megaFormsFor(p.name).length)
@@ -239,7 +267,14 @@ async function wireFinalFilters(prefix, source, draw) {
     $(`#${prefix}-${x}`).addEventListener("input", apply),
   );
   ["sort", "mega", "type"].forEach((x) => $(`#${prefix}-${x}`).addEventListener("change", apply),);
+  const budgetField = $(`#${prefix}-budget`);
+  budgetField?.addEventListener("change", () => {
+    if (prefix === "draft") draftAffordableOnly = budgetField.value === "affordable";
+    return apply();
+  });
   $(`#${prefix}-clear`).onclick = () => {
+    if (budgetField) budgetField.value = "all";
+    if (prefix === "draft") draftAffordableOnly = false;
     $(`#${prefix}-search`).value = "";
     $(`#${prefix}-move`).value = "";
     $(`#${prefix}-ability`).value = "";
@@ -290,9 +325,10 @@ renderDraft = async function (snapshot) {
       !d.settings.draftFinalized &&
       (state.user.role === "MANAGER" ||
         (state.user.role === "COACH" && d.currentTeam && d.currentTeam.id === state.user.teamId));
+  const remainingBudget = draftRemainingBudget(d, state.user);
   let chosen = null;
   $("#page-draft").innerHTML =
-    `<div class="section-title"><div><h1>Draft Room</h1><p class="muted">10 rounds · ${d.settings.snakeDraft ? "snake" : "linear"} draft</p></div>${state.user.role === "MANAGER" ? '<button id="undo-pick" class="danger">Undo Last Pick</button>' : ""}</div><div class="card on-clock"><div><span class="eyebrow">ON THE CLOCK</span><h2>${d.currentTeam ? teamBrand(d.currentTeam, "md") : "Draft complete"}</h2></div><div class="draft-pick-action"><span id="draft-action-selection" class="muted" role="status" aria-live="polite">No Pokémon selected</span><button id="make-pick" class="primary" disabled>Draft Selected Pokémon</button></div></div><div class="card"><div class="section-title"><div><h2>Available Pokémon</h2><p class="muted">Click a Pokémon to select it and open its stats.</p></div><span class="pool-count">${d.available.length} Pokémon left</span></div>${finalFilterBar("draft", true)}<p id="draft-selection" class="selection-status muted">Select a Pokémon card.</p><div id="draft-grid" class="pokemon-card-grid"></div></div><div class="card"><h2>Draft Board</h2><div class="table-wrap"><table><thead><tr><th>Pick</th><th>Round</th><th>Team</th><th>Pokémon</th></tr></thead><tbody>${d.picks.map((p) => `<tr><td>${p.overallPick}</td><td>${p.round}</td><td>${teamBrand(p.teamId)}</td><td>${esc(p.pokemonName)}</td></tr>`).join("") || '<tr><td colspan="4">No picks yet</td></tr>'}</tbody></table></div></div>`;
+    `<div class="section-title"><div><h1>Draft Room</h1><p class="muted">10 rounds · ${d.settings.snakeDraft ? "snake" : "linear"} draft</p></div>${state.user.role === "MANAGER" ? '<button id="undo-pick" class="danger">Undo Last Pick</button>' : ""}</div><div class="card on-clock"><div><span class="eyebrow">ON THE CLOCK</span><h2>${d.currentTeam ? teamBrand(d.currentTeam, "md") : "Draft complete"}</h2></div><div class="draft-pick-action"><span id="draft-action-selection" class="muted" role="status" aria-live="polite">No Pokémon selected</span><button id="make-pick" class="primary" disabled>Draft Selected Pokémon</button></div></div><div class="card"><div class="section-title"><div><h2>Available Pokémon</h2><p class="muted">Click a Pokémon to select it and open its stats.</p></div><span class="pool-count">${d.available.length} Pokémon left</span></div>${finalFilterBar("draft", true, remainingBudget)}<p id="draft-selection" class="selection-status muted">Select a Pokémon card.</p><div id="draft-grid" class="pokemon-card-grid"></div></div><div class="card"><h2>Draft Board</h2><div class="table-wrap"><table><thead><tr><th>Pick</th><th>Round</th><th>Team</th><th>Pokémon</th></tr></thead><tbody>${d.picks.map((p) => `<tr><td>${p.overallPick}</td><td>${p.round}</td><td>${teamBrand(p.teamId)}</td><td>${esc(p.pokemonName)}</td></tr>`).join("") || '<tr><td colspan="4">No picks yet</td></tr>'}</tbody></table></div></div>`;
   const draw = (rows) => {
     const grid = $("#draft-grid");
     grid.innerHTML =
@@ -316,7 +352,7 @@ renderDraft = async function (snapshot) {
     hydratePokemonCards(grid);
   };
   draw(d.available);
-  wireFinalFilters("draft", d.available, draw);
+  wireFinalFilters("draft", d.available, draw, remainingBudget, draftOpenSlots(d, state.user));
   $("#make-pick").onclick = async () => {
     if (!chosen || !canPick) return;
     const button = $("#make-pick");
