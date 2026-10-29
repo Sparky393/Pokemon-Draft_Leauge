@@ -15,8 +15,11 @@ public class ScheduleService {
   private final LeagueSettingsRepository settingsRepo;
   private final WeekLockService weekLocks;
 
-  public ScheduleService(TeamRepository teams, MatchupRepository matchups,
-      LeagueSettingsRepository settingsRepo, WeekLockService weekLocks) {
+  public ScheduleService(
+      TeamRepository teams,
+      MatchupRepository matchups,
+      LeagueSettingsRepository settingsRepo,
+      WeekLockService weekLocks) {
     this.teams = teams;
     this.matchups = matchups;
     this.settingsRepo = settingsRepo;
@@ -39,25 +42,30 @@ public class ScheduleService {
     List<Team> currentTeams = teams.findAllMetadata();
     Map<Integer, Team> bySlot = resolveOfficialTeams(currentTeams);
     if (bySlot.size() != 16) {
-      log.warn("Not reconciling schedule: couldn't identify all 16 official teams by name "
-          + "or by unique draft position. Existing database schedule remains unchanged.");
+      log.warn(
+          "Not reconciling schedule: couldn't identify all 16 official teams by name "
+              + "or by unique draft position. Existing database schedule remains unchanged.");
       return;
     }
 
     List<Matchup> unused = new ArrayList<>();
     for (Matchup m : matchups.findAllByOrderByWeekAscIdAsc())
-      if (m.getWeek() >= 1 && m.getWeek() <= SeasonCalendar.REGULAR_SEASON_END)
-        unused.add(m);
+      if (m.getWeek() >= 1 && m.getWeek() <= SeasonCalendar.REGULAR_SEASON_END) unused.add(m);
 
     for (SeasonCalendar.Fixture f : SeasonCalendar.fixtures()) {
       Long home = Objects.requireNonNull(bySlot.get(f.homeSlot())).getId();
       Long away = Objects.requireNonNull(bySlot.get(f.awaySlot())).getId();
-      Matchup candidate = unused.stream()
-          .filter(m -> m.getWeek() == f.week() && sameTeams(m, home, away)).findFirst()
-          .orElse(null);
+      Matchup candidate =
+          unused.stream()
+              .filter(m -> m.getWeek() == f.week() && sameTeams(m, home, away))
+              .findFirst()
+              .orElse(null);
       if (candidate == null)
-        candidate = unused.stream().filter(m -> !m.isPlayed() && sameTeams(m, home, away))
-            .findFirst().orElse(null);
+        candidate =
+            unused.stream()
+                .filter(m -> !m.isPlayed() && sameTeams(m, home, away))
+                .findFirst()
+                .orElse(null);
       if (candidate == null) {
         matchups.save(new Matchup(f.week(), home, away));
       } else {
@@ -86,8 +94,8 @@ public class ScheduleService {
     syncPlayoffs();
   }
 
-  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory
-      .getLogger(ScheduleService.class);
+  private static final org.slf4j.Logger log =
+      org.slf4j.LoggerFactory.getLogger(ScheduleService.class);
 
   /**
    * Existing Neon draft_position values need not be unique. Prefer matching the spreadsheet team
@@ -95,8 +103,7 @@ public class ScheduleService {
    * Fresh seed databases still have Team 1..16 and use the unique draft positions as a fallback.
    */
   private Map<Integer, Team> resolveOfficialTeams(List<Team> all) {
-    if (all.size() != 16)
-      return Map.of();
+    if (all.size() != 16) return Map.of();
 
     // Persist fixture positions once. Coach-owned display names can then change
     // freely without breaking the published season on subsequent Render restarts.
@@ -108,15 +115,14 @@ public class ScheduleService {
         break;
       }
     }
-    if (stored.size() == 16)
-      return stored;
+    if (stored.size() == 16) return stored;
 
     Map<Integer, Team> named = new HashMap<>();
     Set<Long> allocated = new HashSet<>();
     for (int slot = 1; slot <= 16; slot++) {
       String official = SeasonCalendar.teamNameForSlot(slot);
-      List<Team> found = all.stream().filter(t -> official.equalsIgnoreCase(t.getCoachName()))
-          .toList();
+      List<Team> found =
+          all.stream().filter(t -> official.equalsIgnoreCase(t.getCoachName())).toList();
       if (found.isEmpty())
         found = all.stream().filter(t -> official.equalsIgnoreCase(t.getName())).toList();
       if (found.size() != 1 || !allocated.add(found.get(0).getId())) {
@@ -125,14 +131,12 @@ public class ScheduleService {
       }
       named.put(slot, found.get(0));
     }
-    if (named.size() == 16)
-      return saveOfficialSlots(named);
+    if (named.size() == 16) return saveOfficialSlots(named);
 
     Map<Integer, Team> positions = new HashMap<>();
     for (Team t : all) {
       int slot = t.getDraftPosition();
-      if (slot < 1 || slot > 16 || positions.putIfAbsent(slot, t) != null)
-        return Map.of();
+      if (slot < 1 || slot > 16 || positions.putIfAbsent(slot, t) != null) return Map.of();
     }
     return positions.size() == 16 ? saveOfficialSlots(positions) : Map.of();
   }
@@ -158,8 +162,7 @@ public class ScheduleService {
   }
 
   public static boolean validSeriesScore(int week, Integer home, Integer away) {
-    if (home == null || away == null)
-      return false;
+    if (home == null || away == null) return false;
     if (week >= 14) {
       return (home == 2 && (away == 0 || away == 1)) || (away == 2 && (home == 0 || home == 1));
     }
@@ -170,13 +173,16 @@ public class ScheduleService {
   public void setResult(Long matchupId, int homeScore, int awayScore) {
     Matchup m = matchups.findById(matchupId).orElseThrow();
     weekLocks.requireEditable(m.getWeek());
-    if (m.getWeek() < 1 || m.getWeek() > SeasonCalendar.FINAL_WEEK
+    if (m.getWeek() < 1
+        || m.getWeek() > SeasonCalendar.FINAL_WEEK
         || !SeasonCalendar.week(m.getWeek()).lineupRequired())
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          "This week has no scheduled match.");
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "This week has no scheduled match.");
     if (!validSeriesScore(m.getWeek(), homeScore, awayScore))
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          m.getWeek() >= 14 ? "Playoff scores must be 2–0, 2–1, 0–2 or 1–2."
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          m.getWeek() >= 14
+              ? "Playoff scores must be 2–0, 2–1, 0–2 or 1–2."
               : "Regular-season scores must be 3–0, 2–1, 1–2 or 0–3.");
     m.setHomeScore(homeScore);
     m.setAwayScore(awayScore);
@@ -209,10 +215,12 @@ public class ScheduleService {
       map.put(t.getId(), t);
     }
     for (Matchup m : matchups.findAll()) {
-      if (m.getWeek() < 1 || m.getWeek() > SeasonCalendar.REGULAR_SEASON_END
-          || !SeasonCalendar.isRegularGameWeek(m.getWeek()) || !m.isPlayed()
-          || m.getHomeScore() == null || m.getAwayScore() == null)
-        continue;
+      if (m.getWeek() < 1
+          || m.getWeek() > SeasonCalendar.REGULAR_SEASON_END
+          || !SeasonCalendar.isRegularGameWeek(m.getWeek())
+          || !m.isPlayed()
+          || m.getHomeScore() == null
+          || m.getAwayScore() == null) continue;
       Team h = map.get(m.getHomeTeamId()), a = map.get(m.getAwayTeamId());
       int diff = m.getHomeScore() - m.getAwayScore();
       h.setDifferential(h.getDifferential() + diff);
@@ -235,29 +243,37 @@ public class ScheduleService {
   }
 
   private boolean isRegularSeasonComplete(List<Matchup> all) {
-    List<Matchup> scheduled = all.stream()
-        .filter(m -> SeasonCalendar.isRegularGameWeek(m.getWeek())).toList();
-    return scheduled.size() == SeasonCalendar.fixtureCount() && scheduled.stream()
-        .allMatch(m -> m.isPlayed() && m.getHomeScore() != null && m.getAwayScore() != null);
+    List<Matchup> scheduled =
+        all.stream().filter(m -> SeasonCalendar.isRegularGameWeek(m.getWeek())).toList();
+    return scheduled.size() == SeasonCalendar.fixtureCount()
+        && scheduled.stream()
+            .allMatch(m -> m.isPlayed() && m.getHomeScore() != null && m.getAwayScore() != null);
   }
 
-  private record BracketSlot(int week, String division, String label, Long home, Long away,
-      String placeholderHome, String placeholderAway) {
-  }
+  private record BracketSlot(
+      int week,
+      String division,
+      String label,
+      Long home,
+      Long away,
+      String placeholderHome,
+      String placeholderAway) {}
 
   private Matchup existingPlayoffMatch(BracketSlot slot, List<Matchup> all) {
-    if (slot.home() == null || slot.away() == null)
-      return null;
+    if (slot.home() == null || slot.away() == null) return null;
     return all.stream()
         .filter(m -> m.getWeek() == slot.week() && sameTeams(m, slot.home(), slot.away()))
-        .findFirst().orElse(null);
+        .findFirst()
+        .orElse(null);
   }
 
   private Long winnerOf(BracketSlot slot, List<Matchup> all) {
     Matchup m = existingPlayoffMatch(slot, all);
-    if (m == null || !m.isPlayed() || m.getHomeScore() == null || m.getAwayScore() == null
-        || m.getHomeScore().equals(m.getAwayScore()))
-      return null;
+    if (m == null
+        || !m.isPlayed()
+        || m.getHomeScore() == null
+        || m.getAwayScore() == null
+        || m.getHomeScore().equals(m.getAwayScore())) return null;
     return m.getHomeScore() > m.getAwayScore() ? m.getHomeTeamId() : m.getAwayTeamId();
   }
 
@@ -267,14 +283,42 @@ public class ScheduleService {
     List<Team> a = standings("A", teamRows, h2h), b = standings("B", teamRows, h2h);
     List<BracketSlot> result = new ArrayList<>();
     // Both divisions use 1v4 and 2v3.
-    result.add(new BracketSlot(14, "Kanto", "Quarterfinal 1", ready ? a.get(0).getId() : null,
-        ready ? a.get(3).getId() : null, "1 seed", "4 seed"));
-    result.add(new BracketSlot(14, "Kanto", "Quarterfinal 2", ready ? a.get(1).getId() : null,
-        ready ? a.get(2).getId() : null, "2 seed", "3 seed"));
-    result.add(new BracketSlot(14, "Johto", "Quarterfinal 1", ready ? b.get(0).getId() : null,
-        ready ? b.get(3).getId() : null, "1 seed", "4 seed"));
-    result.add(new BracketSlot(14, "Johto", "Quarterfinal 2", ready ? b.get(1).getId() : null,
-        ready ? b.get(2).getId() : null, "2 seed", "3 seed"));
+    result.add(
+        new BracketSlot(
+            14,
+            "Kanto",
+            "Quarterfinal 1",
+            ready ? a.get(0).getId() : null,
+            ready ? a.get(3).getId() : null,
+            "1 seed",
+            "4 seed"));
+    result.add(
+        new BracketSlot(
+            14,
+            "Kanto",
+            "Quarterfinal 2",
+            ready ? a.get(1).getId() : null,
+            ready ? a.get(2).getId() : null,
+            "2 seed",
+            "3 seed"));
+    result.add(
+        new BracketSlot(
+            14,
+            "Johto",
+            "Quarterfinal 1",
+            ready ? b.get(0).getId() : null,
+            ready ? b.get(3).getId() : null,
+            "1 seed",
+            "4 seed"));
+    result.add(
+        new BracketSlot(
+            14,
+            "Johto",
+            "Quarterfinal 2",
+            ready ? b.get(1).getId() : null,
+            ready ? b.get(2).getId() : null,
+            "2 seed",
+            "3 seed"));
 
     BracketSlot kSemi = semifinal(result.get(0), result.get(1), a, "Kanto", all);
     BracketSlot jSemi = semifinal(result.get(2), result.get(3), b, "Johto", all);
@@ -283,27 +327,27 @@ public class ScheduleService {
 
     Long kWinner = winnerOf(kSemi, all);
     Long jWinner = winnerOf(jSemi, all);
-    result.add(new BracketSlot(16, "Championship", "Final", kWinner, jWinner, "Kanto champion",
-        "Johto champion"));
+    result.add(
+        new BracketSlot(
+            16, "Championship", "Final", kWinner, jWinner, "Kanto champion", "Johto champion"));
     return result;
   }
 
-  private BracketSlot semifinal(BracketSlot first, BracketSlot second, List<Team> seeds,
-      String division, List<Matchup> all) {
+  private BracketSlot semifinal(
+      BracketSlot first, BracketSlot second, List<Team> seeds, String division, List<Matchup> all) {
     Long left = winnerOf(first, all), right = winnerOf(second, all);
     if (left == null || right == null)
-      return new BracketSlot(15, division, "Semifinal", null, null, "Higher remaining seed",
-          "Lower remaining seed");
+      return new BracketSlot(
+          15, division, "Semifinal", null, null, "Higher remaining seed", "Lower remaining seed");
     Map<Long, Integer> seedRank = new HashMap<>();
-    for (int i = 0; i < seeds.size(); i++)
-      seedRank.put(seeds.get(i).getId(), i);
+    for (int i = 0; i < seeds.size(); i++) seedRank.put(seeds.get(i).getId(), i);
     if (seedRank.get(left) > seedRank.get(right)) {
       Long tmp = left;
       left = right;
       right = tmp;
     }
-    return new BracketSlot(15, division, "Semifinal", left, right, "Higher remaining seed",
-        "Lower remaining seed");
+    return new BracketSlot(
+        15, division, "Semifinal", left, right, "Higher remaining seed", "Lower remaining seed");
   }
 
   /**
@@ -319,8 +363,7 @@ public class ScheduleService {
     List<BracketSlot> slots = bracketSlots(teamRows, all);
     Set<Long> retain = new HashSet<>();
     for (BracketSlot slot : slots) {
-      if (slot.home() == null || slot.away() == null)
-        continue;
+      if (slot.home() == null || slot.away() == null) continue;
       Matchup game = existingPlayoffMatch(slot, all);
       if (game == null) {
         game = matchups.save(new Matchup(slot.week(), slot.home(), slot.away()));
@@ -365,8 +408,7 @@ public class ScheduleService {
   private Map<String, Object> bracketView(List<Team> teamRows, List<Matchup> all) {
     boolean ready = isRegularSeasonComplete(all);
     Map<Long, String> names = new HashMap<>();
-    for (Team t : teamRows)
-      names.put(t.getId(), t.getName());
+    for (Team t : teamRows) names.put(t.getId(), t.getName());
     List<Map<String, Object>> games = new ArrayList<>();
     for (BracketSlot slot : bracketSlots(teamRows, all)) {
       Matchup game = existingPlayoffMatch(slot, all);
@@ -383,8 +425,10 @@ public class ScheduleService {
       row.put("ready", game != null);
       games.add(row);
     }
-    long remaining = all.stream()
-        .filter(m -> SeasonCalendar.isRegularGameWeek(m.getWeek()) && !m.isPlayed()).count();
+    long remaining =
+        all.stream()
+            .filter(m -> SeasonCalendar.isRegularGameWeek(m.getWeek()) && !m.isPlayed())
+            .count();
     Map<String, Object> result = new LinkedHashMap<>();
     result.put("regularSeasonComplete", ready);
     result.put("regularGamesRemaining", remaining);
@@ -393,8 +437,8 @@ public class ScheduleService {
   }
 
   public List<Team> standings(String division) {
-    return standings(division, teams.findMetadataByDivision(division),
-        headToHead(matchups.findAll()));
+    return standings(
+        division, teams.findMetadataByDivision(division), headToHead(matchups.findAll()));
   }
 
   public Map<String, List<Team>> standings() {
@@ -404,35 +448,35 @@ public class ScheduleService {
   }
 
   private List<Team> standings(String division, List<Team> teamRows, Map<String, Integer> h2h) {
-    List<Team> list = new ArrayList<>(
-        teamRows.stream().filter(t -> division.equals(t.getDivision())).toList());
-    list.sort((x, y) -> {
-      if (x.getManualRank() > 0 || y.getManualRank() > 0) {
-        int xr = x.getManualRank() > 0 ? x.getManualRank() : Integer.MAX_VALUE;
-        int yr = y.getManualRank() > 0 ? y.getManualRank() : Integer.MAX_VALUE;
-        if (xr != yr)
-          return Integer.compare(xr, yr);
-      }
-      if (x.getWins() != y.getWins())
-        return Integer.compare(y.getWins(), x.getWins());
-      if (x.getDifferential() != y.getDifferential())
-        return Integer.compare(y.getDifferential(), x.getDifferential());
-      int xy = h2h.getOrDefault(key(x.getId(), y.getId()), 0);
-      if (xy != 0)
-        return -Integer.compare(xy, 0);
-      return x.getName().compareToIgnoreCase(y.getName());
-    });
+    List<Team> list =
+        new ArrayList<>(teamRows.stream().filter(t -> division.equals(t.getDivision())).toList());
+    list.sort(
+        (x, y) -> {
+          if (x.getManualRank() > 0 || y.getManualRank() > 0) {
+            int xr = x.getManualRank() > 0 ? x.getManualRank() : Integer.MAX_VALUE;
+            int yr = y.getManualRank() > 0 ? y.getManualRank() : Integer.MAX_VALUE;
+            if (xr != yr) return Integer.compare(xr, yr);
+          }
+          if (x.getWins() != y.getWins()) return Integer.compare(y.getWins(), x.getWins());
+          if (x.getDifferential() != y.getDifferential())
+            return Integer.compare(y.getDifferential(), x.getDifferential());
+          int xy = h2h.getOrDefault(key(x.getId(), y.getId()), 0);
+          if (xy != 0) return -Integer.compare(xy, 0);
+          return x.getName().compareToIgnoreCase(y.getName());
+        });
     return list;
   }
 
   private Map<String, Integer> headToHead(List<Matchup> all) {
     Map<String, Integer> h = new HashMap<>();
     for (Matchup m : all) {
-      if (m.getWeek() < 1 || m.getWeek() > SeasonCalendar.REGULAR_SEASON_END
-          || !SeasonCalendar.isRegularGameWeek(m.getWeek()) || !m.isPlayed()
-          || m.getHomeScore() == null || m.getAwayScore() == null
-          || m.getHomeScore().equals(m.getAwayScore()))
-        continue;
+      if (m.getWeek() < 1
+          || m.getWeek() > SeasonCalendar.REGULAR_SEASON_END
+          || !SeasonCalendar.isRegularGameWeek(m.getWeek())
+          || !m.isPlayed()
+          || m.getHomeScore() == null
+          || m.getAwayScore() == null
+          || m.getHomeScore().equals(m.getAwayScore())) continue;
       Long winner = m.getHomeScore() > m.getAwayScore() ? m.getHomeTeamId() : m.getAwayTeamId();
       Long loser = winner.equals(m.getHomeTeamId()) ? m.getAwayTeamId() : m.getHomeTeamId();
       h.put(key(winner, loser), 1);

@@ -25,10 +25,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 /** SQL measurements use disposable H2 only. No external database or credentials. */
-@SpringBootTest(properties = { "spring.datasource.url=jdbc:h2:mem:egress;DB_CLOSE_DELAY=-1",
-    "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa",
-    "spring.datasource.password=", "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.jpa.properties.hibernate.session_factory.statement_inspector=com.pokemondraft.leagueportal.EgressRegressionTest$SqlCapture" })
+@SpringBootTest(
+    properties = {
+      "spring.datasource.url=jdbc:h2:mem:egress;DB_CLOSE_DELAY=-1",
+      "spring.datasource.driver-class-name=org.h2.Driver",
+      "spring.datasource.username=sa",
+      "spring.datasource.password=",
+      "spring.jpa.hibernate.ddl-auto=create-drop",
+      "spring.jpa.properties.hibernate.session_factory.statement_inspector=com.pokemondraft.leagueportal.EgressRegressionTest$SqlCapture"
+    })
 @AutoConfigureMockMvc
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class EgressRegressionTest {
@@ -41,44 +46,25 @@ class EgressRegressionTest {
     }
   }
 
-  @Autowired
-  MockMvc mvc;
-  @Autowired
-  TeamRepository teams;
-  @Autowired
-  AppUserRepository users;
-  @Autowired
-  PokemonRepository pokemon;
-  @Autowired
-  RosterEntryRepository roster;
-  @Autowired
-  EntityManagerFactory emf;
-  @Autowired
-  EntityManager em;
-  @Autowired
-  DraftPickRepository picks;
-  @Autowired
-  LeagueSettingsRepository settings;
-  @Autowired
-  WeeklySubmissionRepository submissions;
-  @Autowired
-  MatchupRepository matchups;
-  @Autowired
-  FreeAgentBidRepository bids;
-  @Autowired
-  TradeOfferRepository trades;
-  @Autowired
-  TransactionRecordRepository transactions;
-  @Autowired
-  DraftService draft;
-  @Autowired
-  com.pokemondraft.leagueportal.controllers.ApiController api;
-  @Autowired
-  WeeklyLineupService lineups;
-  @Autowired
-  TransactionHistoryService history;
-  @Autowired
-  ScheduleService schedule;
+  @Autowired MockMvc mvc;
+  @Autowired TeamRepository teams;
+  @Autowired AppUserRepository users;
+  @Autowired PokemonRepository pokemon;
+  @Autowired RosterEntryRepository roster;
+  @Autowired EntityManagerFactory emf;
+  @Autowired EntityManager em;
+  @Autowired DraftPickRepository picks;
+  @Autowired LeagueSettingsRepository settings;
+  @Autowired WeeklySubmissionRepository submissions;
+  @Autowired MatchupRepository matchups;
+  @Autowired FreeAgentBidRepository bids;
+  @Autowired TradeOfferRepository trades;
+  @Autowired TransactionRecordRepository transactions;
+  @Autowired DraftService draft;
+  @Autowired com.pokemondraft.leagueportal.controllers.ApiController api;
+  @Autowired WeeklyLineupService lineups;
+  @Autowired TransactionHistoryService history;
+  @Autowired ScheduleService schedule;
 
   @Test
   @Transactional
@@ -96,23 +82,30 @@ class EgressRegressionTest {
     MockHttpSession coach = session("coach1");
     em.clear();
     SqlCapture.queries.clear();
-    mvc.perform(get("/api/notifications").session(coach)).andExpect(status().isOk())
+    mvc.perform(get("/api/notifications").session(coach))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].title").value("FAAB bid won!"));
-    assertEquals(3, SqlCapture.queries.stream().filter(q -> q.startsWith("select ")).count(),
+    assertEquals(
+        3,
+        SqlCapture.queries.stream().filter(q -> q.startsWith("select ")).count(),
         "Far-away deadlines need only identity, settings, and a narrow won-notice query");
     league = settings.findById(1L).orElseThrow();
     league.setLineupDeadline(LocalDateTime.now(ZoneId.of("America/New_York")).plusHours(2));
     settings.saveAndFlush(league);
-    mvc.perform(get("/api/notifications").session(coach)).andExpect(status().isOk())
-        .andExpect(jsonPath("$[*].title")
-            .value(org.hamcrest.Matchers.hasItem("Your Week 1 lineup is due soon")));
+    mvc.perform(get("/api/notifications").session(coach))
+        .andExpect(status().isOk())
+        .andExpect(
+            jsonPath("$[*].title")
+                .value(org.hamcrest.Matchers.hasItem("Your Week 1 lineup is due soon")));
     submissions.saveAndFlush(new WeeklySubmission(1L, 1, "1,2,3,4,5,6"));
-    mvc.perform(get("/api/notifications").session(coach)).andExpect(status().isOk())
+    mvc.perform(get("/api/notifications").session(coach))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(1));
     won.setStatus(BidStatus.LOST);
     bids.saveAndFlush(won);
-    mvc.perform(get("/api/notifications").session(coach)).andExpect(status().isOk())
+    mvc.perform(get("/api/notifications").session(coach))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(0));
   }
 
@@ -147,17 +140,20 @@ class EgressRegressionTest {
   @Transactional
   void logoCacheChecksVersionAndAuthenticationBeforeReturningBytes() throws Exception {
     MockHttpSession coach = session("coach1");
-    byte[] first = { 1, 2, 3 }, second = { 4, 5, 6 };
+    byte[] first = {1, 2, 3}, second = {4, 5, 6};
     teams.updateLogo(1L, Base64.getEncoder().encodeToString(first), "image/png", 1001L);
-    mvc.perform(get("/api/teams/1/logo").session(coach)).andExpect(status().isOk())
+    mvc.perform(get("/api/teams/1/logo").session(coach))
+        .andExpect(status().isOk())
         .andExpect(content().bytes(first));
     SqlCapture.queries.clear();
-    mvc.perform(get("/api/teams/1/logo").session(coach)).andExpect(status().isOk())
+    mvc.perform(get("/api/teams/1/logo").session(coach))
+        .andExpect(status().isOk())
         .andExpect(content().bytes(first));
     assertEquals(0, logoPayloadSelects(), "Warm image request reads metadata only");
     // Simulate an upload handled by a different Render instance.
     teams.updateLogo(1L, Base64.getEncoder().encodeToString(second), "image/png", 1002L);
-    mvc.perform(get("/api/teams/1/logo").session(coach)).andExpect(status().isOk())
+    mvc.perform(get("/api/teams/1/logo").session(coach))
+        .andExpect(status().isOk())
         .andExpect(content().bytes(second));
     mvc.perform(get("/api/teams/1/logo")).andExpect(status().isUnauthorized());
     teams.updateLogo(1L, null, null, 1003L);
@@ -168,17 +164,21 @@ class EgressRegressionTest {
   @Transactional
   void lightweightDashboardPreservesDefaultResponseAndSkipsUnusedRoster() throws Exception {
     MockHttpSession coach = session("coach1");
-    mvc.perform(get("/api/dashboard").session(coach)).andExpect(status().isOk())
+    mvc.perform(get("/api/dashboard").session(coach))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$.myRoster").isArray());
     em.clear();
     SqlCapture.queries.clear();
-    mvc.perform(get("/api/dashboard/view").session(coach)).andExpect(status().isOk())
+    mvc.perform(get("/api/dashboard/view").session(coach))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$.myRoster").doesNotExist())
         .andExpect(jsonPath("$.teams.length()").value(16))
         .andExpect(jsonPath("$.user.username").value("coach1"))
         .andExpect(jsonPath("$.settings").exists());
     assertTrue(SqlCapture.queries.stream().noneMatch(q -> q.contains("from roster_entry")));
-    assertEquals(5, SqlCapture.queries.stream().filter(q -> q.startsWith("select ")).count(),
+    assertEquals(
+        5,
+        SqlCapture.queries.stream().filter(q -> q.startsWith("select ")).count(),
         "Home omits the two unused roster/Pokemon reads from the seven-query dashboard");
   }
 
@@ -192,16 +192,20 @@ class EgressRegressionTest {
     assertEquals(5200, history.history().size());
     SqlCapture.queries.clear();
     assertEquals(5200, history.history().size());
-    assertEquals(1, SqlCapture.queries.stream().filter(q -> q.startsWith("select ")).count(),
+    assertEquals(
+        1,
+        SqlCapture.queries.stream().filter(q -> q.startsWith("select ")).count(),
         "History over the previous 5000-row limit still uses a tiny warm revision");
-    TransactionRecord appended = transactions
-        .saveAndFlush(new TransactionRecord("TEST_HISTORY", "Appended"));
+    TransactionRecord appended =
+        transactions.saveAndFlush(new TransactionRecord("TEST_HISTORY", "Appended"));
     SqlCapture.queries.clear();
     var fresh = history.history();
     assertEquals(5201, fresh.size());
     assertEquals(appended.getId(), fresh.getFirst().id());
-    long payloadReads = SqlCapture.queries.stream()
-        .filter(q -> q.startsWith("select ") && q.contains(".description")).count();
+    long payloadReads =
+        SqlCapture.queries.stream()
+            .filter(q -> q.startsWith("select ") && q.contains(".description"))
+            .count();
     assertTrue(payloadReads <= 2, "Append reloads at most the changed/new ID chunks");
     transactions.deleteById(fresh.getLast().id());
     transactions.flush();
@@ -220,8 +224,13 @@ class EgressRegressionTest {
     var owned = roster.findByTeamId(1L).stream().map(RosterEntry::getPokemonId).sorted().toList();
     List<Long> reversed = new ArrayList<>(owned);
     Collections.reverse(reversed);
-    submissions.saveAndFlush(new WeeklySubmission(1L, 1,
-        reversed.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","))));
+    submissions.saveAndFlush(
+        new WeeklySubmission(
+            1L,
+            1,
+            reversed.stream()
+                .map(String::valueOf)
+                .collect(java.util.stream.Collectors.joining(","))));
     settings.flush();
     em.clear();
     SqlCapture.queries.clear();
@@ -238,14 +247,16 @@ class EgressRegressionTest {
 
   private MockHttpSession session(String username) {
     MockHttpSession session = new MockHttpSession();
-    session.setAttribute(AuthService.SESSION_USER_ID,
-        users.findByUsername(username).orElseThrow().getId());
+    session.setAttribute(
+        AuthService.SESSION_USER_ID, users.findByUsername(username).orElseThrow().getId());
     return session;
   }
 
   private long logoPayloadSelects() {
-    return SqlCapture.queries.stream().filter(q -> q.startsWith("select "))
-        .filter(q -> q.matches("(?s).*\\.logo_base64(?:,|\\s+from).*")).count();
+    return SqlCapture.queries.stream()
+        .filter(q -> q.startsWith("select "))
+        .filter(q -> q.matches("(?s).*\\.logo_base64(?:,|\\s+from).*"))
+        .count();
   }
 
   @Test
@@ -264,20 +275,45 @@ class EgressRegressionTest {
         roster.save(new RosterEntry(team.getId(), pool.get(i * 6 + j).getId()));
     }
     MockHttpSession session = new MockHttpSession();
-    session.setAttribute(AuthService.SESSION_USER_ID,
-        users.findByUsername("coach1").orElseThrow().getId());
-    for (String endpoint : List.of("/api/draft/status", "/api/draft", "/api/rosters",
-        "/api/dashboard", "/api/playoffs", "/api/flow/schedule", "/api/settings",
-        "/api/weeks/locks", "/api/exports/transactions")) {
+    session.setAttribute(
+        AuthService.SESSION_USER_ID, users.findByUsername("coach1").orElseThrow().getId());
+    for (String endpoint :
+        List.of(
+            "/api/draft/status",
+            "/api/draft",
+            "/api/rosters",
+            "/api/dashboard",
+            "/api/playoffs",
+            "/api/flow/schedule",
+            "/api/settings",
+            "/api/weeks/locks",
+            "/api/exports/transactions")) {
       emf.getCache().evictAll();
       SqlCapture.queries.clear();
       mvc.perform(get(endpoint).session(session)).andExpect(status().isOk());
       long selects = SqlCapture.queries.stream().filter(q -> q.startsWith("select ")).count();
       long logos = logoPayloadSelects();
       assertEquals(0, logos, endpoint + " must not retrieve logo payloads");
-      Map<String, Integer> limits = Map.of("/api/draft/status", 4, "/api/draft", 6, "/api/rosters",
-          4, "/api/dashboard", 7, "/api/playoffs", 3, "/api/flow/schedule", 5, "/api/settings", 3,
-          "/api/weeks/locks", 2, "/api/exports/transactions", 2);
+      Map<String, Integer> limits =
+          Map.of(
+              "/api/draft/status",
+              4,
+              "/api/draft",
+              6,
+              "/api/rosters",
+              4,
+              "/api/dashboard",
+              7,
+              "/api/playoffs",
+              3,
+              "/api/flow/schedule",
+              5,
+              "/api/settings",
+              3,
+              "/api/weeks/locks",
+              2,
+              "/api/exports/transactions",
+              2);
       assertTrue(selects <= limits.get(endpoint), endpoint + " SELECT regression: " + selects);
       System.out.printf("EGRESS %s selects=%d logoPayloadSelects=%d%n", endpoint, selects, logos);
     }
@@ -293,40 +329,60 @@ class EgressRegressionTest {
     em.flush();
     em.clear();
     SqlCapture.queries.clear();
-    mvc.perform(get("/api/teams").session(coach)).andExpect(status().isOk())
+    mvc.perform(get("/api/teams").session(coach))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].logoUrl").value("/api/teams/1/logo?v=42"))
         .andExpect(jsonPath("$[0].logoBase64").doesNotExist());
     assertEquals(0, logoPayloadSelects());
     assertEquals(before, teams.findById(1L).orElseThrow().getLogoBase64());
-    byte[] png = Base64.getDecoder().decode(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9YueWUkAAAAASUVORK5CYII=");
+    byte[] png =
+        Base64.getDecoder()
+            .decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9YueWUkAAAAASUVORK5CYII=");
     em.clear();
     SqlCapture.queries.clear();
-    mvc.perform(multipart("/api/teams/me/logo")
-        .file(new MockMultipartFile("file", "logo.png", "image/png", png)).session(coach)
-        .header("X-Requested-With", "XMLHttpRequest")).andExpect(status().isOk())
+    mvc.perform(
+            multipart("/api/teams/me/logo")
+                .file(new MockMultipartFile("file", "logo.png", "image/png", png))
+                .session(coach)
+                .header("X-Requested-With", "XMLHttpRequest"))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$.logoUrl").isString());
     assertEquals(0, logoPayloadSelects(), "Replacing a logo must not retrieve the previous image");
     em.clear();
-    mvc.perform(get("/api/teams/1/logo").session(coach)).andExpect(status().isOk())
-        .andExpect(content().bytes(png)).andExpect(content().contentType("image/png"))
-        .andExpect(header().string("Cache-Control",
-            org.hamcrest.Matchers.containsString("max-age=604800")));
+    mvc.perform(get("/api/teams/1/logo").session(coach))
+        .andExpect(status().isOk())
+        .andExpect(content().bytes(png))
+        .andExpect(content().contentType("image/png"))
+        .andExpect(
+            header()
+                .string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=604800")));
     mvc.perform(
-        put("/api/teams/me/name").session(coach).header("X-Requested-With", "XMLHttpRequest")
-            .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Still My Logo\"}"))
-        .andExpect(status().isOk()).andExpect(jsonPath("$.name").value("Still My Logo"));
+            put("/api/teams/me/name")
+                .session(coach)
+                .header("X-Requested-With", "XMLHttpRequest")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Still My Logo\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("Still My Logo"));
     em.clear();
     Team renamed = teams.findById(1L).orElseThrow();
     assertEquals(Base64.getEncoder().encodeToString(png), renamed.getLogoBase64());
     assertEquals(budget, renamed.getFaBudget());
     mvc.perform(
-        delete("/api/teams/me/logo").session(coach).header("X-Requested-With", "XMLHttpRequest"))
-        .andExpect(status().isOk()).andExpect(jsonPath("$.logoUrl").doesNotExist());
+            delete("/api/teams/me/logo")
+                .session(coach)
+                .header("X-Requested-With", "XMLHttpRequest"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.logoUrl").doesNotExist());
     em.clear();
     mvc.perform(get("/api/teams/1/logo").session(coach)).andExpect(status().isNotFound());
-    mvc.perform(post("/api/draft/pick").session(coach).contentType(MediaType.APPLICATION_JSON)
-        .content("{}")).andExpect(status().isForbidden());
+    mvc.perform(
+            post("/api/draft/pick")
+                .session(coach)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isForbidden());
   }
 
   @Test
@@ -345,8 +401,10 @@ class EgressRegressionTest {
     league.setDraftFinalized(false);
     league.setSnakeDraft(true);
     settings.saveAndFlush(league);
-    List<Team> ordered = teams.findAllMetadata().stream()
-        .sorted(Comparator.comparingInt(Team::getDraftPosition)).toList();
+    List<Team> ordered =
+        teams.findAllMetadata().stream()
+            .sorted(Comparator.comparingInt(Team::getDraftPosition))
+            .toList();
     for (int i = 0; i < 160; i++) {
       int slot = i / 16 % 2 == 0 ? i % 16 : 15 - i % 16;
       Long teamId = ordered.get(slot).getId();
@@ -362,10 +420,12 @@ class EgressRegressionTest {
       assertEquals(50, roster.totalPriceByTeamId(team.getId()));
       assertEquals(team.getFaBudget(), teams.findById(team.getId()).orElseThrow().getFaBudget());
     }
-    mvc.perform(get("/api/rosters").session(session("coach1"))).andExpect(status().isOk())
+    mvc.perform(get("/api/rosters").session(session("coach1")))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].pokemon.length()").value(10));
     draft.finalizeDraft();
-    mvc.perform(get("/api/draft/status").session(session("coach1"))).andExpect(status().isOk())
+    mvc.perform(get("/api/draft/status").session(session("coach1")))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$.pickCount").value(160))
         .andExpect(jsonPath("$.draftFinalized").value(true))
         .andExpect(jsonPath("$.draftOpen").value(false));
@@ -384,24 +444,38 @@ class EgressRegressionTest {
     settings.saveAndFlush(league);
     lineups.submit(home, homeIds);
     MockHttpSession coach = session("coach1");
-    mvc.perform(get("/api/flow/schedule").param("week", "1").param("teamId", String.valueOf(home))
-        .session(coach)).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+    mvc.perform(
+            get("/api/flow/schedule")
+                .param("week", "1")
+                .param("teamId", String.valueOf(home))
+                .session(coach))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].homeSubmitted").value(true))
         .andExpect(jsonPath("$[0].awaySubmitted").value(false))
         .andExpect(jsonPath("$[0].revealed").value(false))
         .andExpect(jsonPath("$[0].homeLineup").doesNotExist());
     lineups.submit(away, awayIds);
     submissions.saveAndFlush(new WeeklySubmission(home, 2, "1,2,3,4,5,6"));
-    assertEquals(2, submissions.findForMatchups(List.of(game.getId())).size(),
+    assertEquals(
+        2,
+        submissions.findForMatchups(List.of(game.getId())).size(),
         "Scoped batch excludes other weeks");
-    mvc.perform(get("/api/flow/schedule").param("week", "1").param("teamId", String.valueOf(home))
-        .session(coach)).andExpect(status().isOk()).andExpect(jsonPath("$[0].revealed").value(true))
+    mvc.perform(
+            get("/api/flow/schedule")
+                .param("week", "1")
+                .param("teamId", String.valueOf(home))
+                .session(coach))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].revealed").value(true))
         .andExpect(jsonPath("$[0].homeLineup.length()").value(6))
         .andExpect(jsonPath("$[0].awayLineup.length()").value(6));
-    assertThrows(org.springframework.web.server.ResponseStatusException.class,
+    assertThrows(
+        org.springframework.web.server.ResponseStatusException.class,
         () -> lineups.submit(home, homeIds));
     mvc.perform(get("/api/lineups/week/1").session(coach)).andExpect(status().isForbidden());
-    mvc.perform(get("/api/lineups/week/1").session(session("manager"))).andExpect(status().isOk())
+    mvc.perform(get("/api/lineups/week/1").session(session("manager")))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(2));
   }
 
@@ -436,14 +510,18 @@ class EgressRegressionTest {
     FreeAgentBid bid = bidding.submitBid(1L, wanted.getId(), pool.get(0).getId(), 1);
     bids.flush();
     MockHttpSession coach = session("coach1");
-    mvc.perform(get("/api/free-agency/bids").session(coach)).andExpect(status().isOk())
+    mvc.perform(get("/api/free-agency/bids").session(coach))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].status").value("PENDING"));
-    mvc.perform(get("/api/free-agency/bids").session(session("coach2"))).andExpect(status().isOk())
+    mvc.perform(get("/api/free-agency/bids").session(session("coach2")))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(0));
     assertTrue(history.history().isEmpty());
     SqlCapture.queries.clear();
     assertTrue(history.history().isEmpty());
-    assertEquals(1, SqlCapture.queries.stream().filter(q -> q.startsWith("select ")).count(),
+    assertEquals(
+        1,
+        SqlCapture.queries.stream().filter(q -> q.startsWith("select ")).count(),
         "Warm history only reads its revision");
     assertEquals(1, faabAt(11, 28, 19).processBids().get("winners"));
     em.flush();
@@ -454,10 +532,12 @@ class EgressRegressionTest {
     assertTrue(roster.findByPokemonId(wanted.getId()).isPresent());
     assertTrue(roster.findByPokemonId(pool.get(0).getId()).isEmpty());
     assertEquals(2, history.history().size(), "New journal rows invalidate the cache immediately");
-    mvc.perform(get("/api/free-agency/bids").session(coach)).andExpect(status().isOk())
+    mvc.perform(get("/api/free-agency/bids").session(coach))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].status").value("WON"))
         .andExpect(jsonPath("$[0].wantedPokemonName").value(wanted.getName()));
-    mvc.perform(get("/api/notifications").session(coach)).andExpect(status().isOk())
+    mvc.perform(get("/api/notifications").session(coach))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$[*].title").value(org.hamcrest.Matchers.hasItem("FAAB bid won!")));
     transactions.deleteAllInBatch();
     assertTrue(history.history().isEmpty(), "Reset invalidates cached journal rows");
@@ -465,10 +545,11 @@ class EgressRegressionTest {
 
   private FreeAgencyService faabAt(int month, int day, int hour) {
     ZoneId eastern = ZoneId.of("America/New_York");
-    Clock clock = Clock
-        .fixed(LocalDateTime.of(2026, month, day, hour, 0).atZone(eastern).toInstant(), eastern);
-    return new FreeAgencyService(bids, teams, pokemon, roster, transactions, trades, matchups,
-        settings, clock);
+    Clock clock =
+        Clock.fixed(
+            LocalDateTime.of(2026, month, day, hour, 0).atZone(eastern).toInstant(), eastern);
+    return new FreeAgencyService(
+        bids, teams, pokemon, roster, transactions, trades, matchups, settings, clock);
   }
 
   @Test
@@ -479,7 +560,8 @@ class EgressRegressionTest {
     MockHttpSession coach = session("coach1");
     em.clear();
     SqlCapture.queries.clear();
-    mvc.perform(get("/api/draft/status").session(coach)).andExpect(status().isOk())
+    mvc.perform(get("/api/draft/status").session(coach))
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$.draftFinalized").value(false));
     assertEquals(0, logoPayloadSelects());
     assertTrue(
@@ -508,7 +590,9 @@ class EgressRegressionTest {
     draft.undoLast();
     draft.pick(1L, true, pool.get(1).getId());
     em.flush();
-    assertNotEquals(first, api.idleDraftStatus(coach).get("revision"),
+    assertNotEquals(
+        first,
+        api.idleDraftStatus(coach).get("revision"),
         "Undo and repick at the same count must refresh other tabs");
     String open = api.idleDraftStatus(coach).get("revision");
     league.setDraftOpen(false);
@@ -534,18 +618,21 @@ class EgressRegressionTest {
     }
     em.flush();
     FreeAgencyService service = faabAt(11, 26, 12);
-    TradeOffer accepted = service.offerTrade(1L, 2L, List.of(pool.get(0).getId()),
-        List.of(pool.get(10).getId()), 1, 0);
-    TradeOffer conflicting = service.offerTrade(1L, 2L, List.of(pool.get(0).getId()),
-        List.of(pool.get(10).getId()), 0, 0);
-    TradeOffer unrelated = service.offerTrade(1L, 2L, List.of(pool.get(1).getId()),
-        List.of(pool.get(11).getId()), 0, 0);
+    TradeOffer accepted =
+        service.offerTrade(
+            1L, 2L, List.of(pool.get(0).getId()), List.of(pool.get(10).getId()), 1, 0);
+    TradeOffer conflicting =
+        service.offerTrade(
+            1L, 2L, List.of(pool.get(0).getId()), List.of(pool.get(10).getId()), 0, 0);
+    TradeOffer unrelated =
+        service.offerTrade(
+            1L, 2L, List.of(pool.get(1).getId()), List.of(pool.get(11).getId()), 0, 0);
     service.respondTrade(accepted.getId(), 2L, false, true);
     em.flush();
     em.clear();
     assertEquals(TradeStatus.ACCEPTED, trades.findById(accepted.getId()).orElseThrow().getStatus());
-    assertEquals(TradeStatus.CANCELLED,
-        trades.findById(conflicting.getId()).orElseThrow().getStatus());
+    assertEquals(
+        TradeStatus.CANCELLED, trades.findById(conflicting.getId()).orElseThrow().getStatus());
     assertEquals(TradeStatus.PENDING, trades.findById(unrelated.getId()).orElseThrow().getStatus());
     assertEquals(2L, roster.findByPokemonId(pool.get(0).getId()).orElseThrow().getTeamId());
     assertEquals(1L, roster.findByPokemonId(pool.get(10).getId()).orElseThrow().getTeamId());
@@ -555,7 +642,11 @@ class EgressRegressionTest {
     assertEquals(50, roster.totalPriceByTeamId(2L));
     assertEquals(2, teams.findById(1L).orElseThrow().getFaBudget());
     assertEquals(4, teams.findById(2L).orElseThrow().getFaBudget());
-    assertTrue(transactions.findAllByOrderByCreatedAtDesc().get(0).getDescription()
-        .contains(pool.get(0).getName()));
+    assertTrue(
+        transactions
+            .findAllByOrderByCreatedAtDesc()
+            .get(0)
+            .getDescription()
+            .contains(pool.get(0).getName()));
   }
 }

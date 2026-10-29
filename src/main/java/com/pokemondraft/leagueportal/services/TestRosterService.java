@@ -26,11 +26,19 @@ public class TestRosterService {
   private final WeekLockRepository weekLocks;
   private final ScheduleService schedule;
 
-  public TestRosterService(TeamRepository teams, PokemonRepository pokemon,
-      RosterEntryRepository roster, DraftPickRepository picks,
-      WeeklySubmissionRepository submissions, TransactionRecordRepository transactions,
-      FreeAgentBidRepository bids, TradeOfferRepository trades, MatchupRepository matchups,
-      LeagueSettingsRepository settings, WeekLockRepository weekLocks, ScheduleService schedule) {
+  public TestRosterService(
+      TeamRepository teams,
+      PokemonRepository pokemon,
+      RosterEntryRepository roster,
+      DraftPickRepository picks,
+      WeeklySubmissionRepository submissions,
+      TransactionRecordRepository transactions,
+      FreeAgentBidRepository bids,
+      TradeOfferRepository trades,
+      MatchupRepository matchups,
+      LeagueSettingsRepository settings,
+      WeekLockRepository weekLocks,
+      ScheduleService schedule) {
     this.teams = teams;
     this.pokemon = pokemon;
     this.roster = roster;
@@ -48,22 +56,27 @@ public class TestRosterService {
   @Transactional
   public Map<String, Integer> fillTestRosters() {
     if (roster.count() != 0 || picks.count() != 0) {
-      throw new ResponseStatusException(HttpStatus.CONFLICT,
-          "Clear rosters first, then use Fill Test Rosters.");
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT, "Clear rosters first, then use Fill Test Rosters.");
     }
 
-    List<Team> teamList = teams.findAll().stream()
-        .sorted(Comparator.comparingInt(Team::getDraftPosition)).toList();
+    List<Team> teamList =
+        teams.findAll().stream().sorted(Comparator.comparingInt(Team::getDraftPosition)).toList();
     if (teamList.size() != 16) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
           "Test fill needs exactly 16 teams. Found " + teamList.size() + ".");
     }
 
     List<Pokemon> pool = new ArrayList<>(pokemon.findAll());
     int needed = teamList.size() * ROSTER_SIZE;
     if (pool.size() < needed) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          "Not enough Pokemon to fill every roster. Need " + needed + ", found " + pool.size()
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "Not enough Pokemon to fill every roster. Need "
+              + needed
+              + ", found "
+              + pool.size()
               + ".");
     }
 
@@ -77,8 +90,11 @@ public class TestRosterService {
     List<Pokemon> selected = new ArrayList<>(pool.subList(0, needed));
     int selectedTotal = selected.stream().mapToInt(Pokemon::getPrice).sum();
     if (selectedTotal > teamList.size() * ROSTER_BUDGET) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The cheapest 160 Pokemon cost $"
-          + selectedTotal + ", so 16 legal $100 rosters cannot be created.");
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
+          "The cheapest 160 Pokemon cost $"
+              + selectedTotal
+              + ", so 16 legal $100 rosters cannot be created.");
     }
     selected.sort(
         Comparator.comparingInt(Pokemon::getPrice).reversed().thenComparing(Pokemon::getName));
@@ -91,13 +107,20 @@ public class TestRosterService {
     }
 
     for (Pokemon p : selected) {
-      Team best = teamList.stream().filter(t -> assignments.get(t.getId()).size() < ROSTER_SIZE)
-          .filter(t -> values.get(t.getId()) + p.getPrice() <= ROSTER_BUDGET)
-          .min(Comparator.comparingInt((Team t) -> values.get(t.getId()))
-              .thenComparingInt(t -> assignments.get(t.getId()).size())
-              .thenComparingInt(Team::getDraftPosition))
-          .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-              "Could not balance the generated rosters under $100. Clear and try" + " again."));
+      Team best =
+          teamList.stream()
+              .filter(t -> assignments.get(t.getId()).size() < ROSTER_SIZE)
+              .filter(t -> values.get(t.getId()) + p.getPrice() <= ROSTER_BUDGET)
+              .min(
+                  Comparator.comparingInt((Team t) -> values.get(t.getId()))
+                      .thenComparingInt(t -> assignments.get(t.getId()).size())
+                      .thenComparingInt(Team::getDraftPosition))
+              .orElseThrow(
+                  () ->
+                      new ResponseStatusException(
+                          HttpStatus.BAD_REQUEST,
+                          "Could not balance the generated rosters under $100. Clear and try"
+                              + " again."));
       assignments.get(best.getId()).add(p);
       values.put(best.getId(), values.get(best.getId()) + p.getPrice());
     }
@@ -105,7 +128,8 @@ public class TestRosterService {
     for (Team team : teamList) {
       if (assignments.get(team.getId()).size() != ROSTER_SIZE
           || values.get(team.getId()) > ROSTER_BUDGET) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
             "Could not create a legal 10-Pokemon roster for " + team.getName() + ".");
       }
     }
@@ -121,21 +145,37 @@ public class TestRosterService {
     }
 
     int highestValue = values.values().stream().mapToInt(Integer::intValue).max().orElse(0);
-    transactions.save(new TransactionRecord("TEST_SETUP",
-        "Commissioner filled all 16 test rosters with 10 Pokemon each. Highest roster value: $"
-            + highestValue + "."));
-    return Map.of("teams", teamList.size(), "pokemonAssigned", assigned, "highestRosterValue",
-        highestValue);
+    transactions.save(
+        new TransactionRecord(
+            "TEST_SETUP",
+            "Commissioner filled all 16 test rosters with 10 Pokemon each. Highest roster value: $"
+                + highestValue
+                + "."));
+    return Map.of(
+        "teams", teamList.size(), "pokemonAssigned", assigned, "highestRosterValue", highestValue);
   }
 
-  public record ResetPreview(long draftPicks, long rosterEntries, long bids, long trades,
-      long transactions, long weeklyLineups, long playedGames, long lockedWeeks) {
-  }
+  public record ResetPreview(
+      long draftPicks,
+      long rosterEntries,
+      long bids,
+      long trades,
+      long transactions,
+      long weeklyLineups,
+      long playedGames,
+      long lockedWeeks) {}
 
   @Transactional(readOnly = true)
   public ResetPreview resetPreview() {
-    return new ResetPreview(picks.count(), roster.count(), bids.count(), trades.count(),
-        transactions.count(), submissions.count(), matchups.countByPlayedTrue(), weekLocks.count());
+    return new ResetPreview(
+        picks.count(),
+        roster.count(),
+        bids.count(),
+        trades.count(),
+        transactions.count(),
+        submissions.count(),
+        matchups.countByPlayedTrue(),
+        weekLocks.count());
   }
 
   /**
@@ -162,7 +202,8 @@ public class TestRosterService {
       }
     }
     for (Matchup m : matchups.findAll()) {
-      if (m.getWeek() < 1 || m.getWeek() > SeasonCalendar.REGULAR_SEASON_END
+      if (m.getWeek() < 1
+          || m.getWeek() > SeasonCalendar.REGULAR_SEASON_END
           || !SeasonCalendar.isRegularGameWeek(m.getWeek())) {
         // Remove historical superseded fixtures and dynamically generated
         // playoff rounds. The published regular-season schedule remains.

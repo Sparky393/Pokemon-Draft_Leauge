@@ -28,8 +28,7 @@ public class Team {
   private String logoBase64;
 
   // Used only by read-only constructor projections; never persisted.
-  @Transient
-  private boolean logoPresent;
+  @Transient private boolean logoPresent;
   private String logoContentType;
   private Long logoVersion;
   // An immutable fixture-sheet identity: display names are editable by coaches.
@@ -70,12 +69,12 @@ public class Team {
   }
 
   public String getLogoUrl() {
-    return (!logoPresent && logoBase64 == null) || id == null ? null
+    return (!logoPresent && logoBase64 == null) || id == null
+        ? null
         : "/api/teams/" + id + "/logo?v=" + (logoVersion == null ? 0 : logoVersion);
   }
 
-  public Team() {
-  }
+  public Team() {}
 
   public Team(String name, String coachName, String division, int draftPosition) {
     this.name = name;
@@ -85,9 +84,21 @@ public class Team {
   }
 
   /** Read-only metadata projection. Never pass this partial object to save(). */
-  public Team(Long id, String name, String coachName, String division, int wins, int losses,
-      int differential, int faBudget, int draftPosition, int manualRank, String logoContentType,
-      Long logoVersion, Integer officialSlot, boolean logoPresent) {
+  public Team(
+      Long id,
+      String name,
+      String coachName,
+      String division,
+      int wins,
+      int losses,
+      int differential,
+      int faBudget,
+      int draftPosition,
+      int manualRank,
+      String logoContentType,
+      Long logoVersion,
+      Integer officialSlot,
+      boolean logoPresent) {
     this.id = id;
     this.name = name;
     this.coachName = coachName;

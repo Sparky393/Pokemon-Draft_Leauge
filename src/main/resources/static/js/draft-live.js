@@ -5,16 +5,25 @@ function draftBoardPokemon(pick) {
 
 // Use the existing draft snapshot; this display never fetches or changes league data.
 function draftTeamBudget(picks, teamId) {
-  const selected = picks.filter((pick) => String(pick.teamId) === String(teamId));
+  const selected = picks.filter(
+    (pick) => String(pick.teamId) === String(teamId),
+  );
   const slots = Math.max(0, 10 - selected.length);
-  if (selected.some((pick) => typeof pick.price !== "number" || !Number.isFinite(pick.price))) {
-    return { text: "Budget unavailable", title: "A drafted Pokémon price is unavailable." };
+  if (
+    selected.some(
+      (pick) => typeof pick.price !== "number" || !Number.isFinite(pick.price),
+    )
+  ) {
+    return {
+      text: "Budget unavailable",
+      title: "A drafted Pokémon price is unavailable.",
+    };
   }
   const remaining = 100 - selected.reduce((sum, pick) => sum + pick.price, 0);
   const average = slots ? Number((remaining / slots).toFixed(2)) : null;
   return {
     text: `$${remaining} left · ${slots ? `$${average}/slot` : "Roster full"}`,
-    title: `$${remaining} remaining · ${slots} open slots${slots ? ` · $${average} average per remaining slot` : ""}`
+    title: `$${remaining} remaining · ${slots} open slots${slots ? ` · $${average} average per remaining slot` : ""}`,
   };
 }
 
@@ -31,8 +40,8 @@ function wireDraftBoardScrolling(board) {
     position.setAttribute(
       "aria-valuetext",
       max
-        ? `${Math.round(100 * scroller.scrollLeft / max)}% across the draft board`
-        : "All columns visible"
+        ? `${Math.round((100 * scroller.scrollLeft) / max)}% across the draft board`
+        : "All columns visible",
     );
     arrows.forEach((arrow) => {
       arrow.disabled =
@@ -51,13 +60,14 @@ function wireDraftBoardScrolling(board) {
   const clicks = arrows.map((arrow) => {
     const click = () =>
       scroller.scrollBy({
-        left: Number(arrow.dataset.draftScroll) * scroller.clientWidth *.8,
-        behavior: "smooth"
+        left: Number(arrow.dataset.draftScroll) * scroller.clientWidth * 0.8,
+        behavior: "smooth",
       });
     arrow.addEventListener("click", click);
     return click;
   });
-  const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+  const observer =
+    typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
   observer?.observe(scroller);
   update();
   return () => {
@@ -80,7 +90,9 @@ function wireDraftBoardScrolling(board) {
   const originalRenderDraft = window.renderDraft;
 
   function buildBoard(d) {
-    const teams = [...state.teams].sort((a, b) => a.draftPosition - b.draftPosition,);
+    const teams = [...state.teams].sort(
+      (a, b) => a.draftPosition - b.draftPosition,
+    );
     const count = teams.length;
     const rounds = 10;
     const picks = new Map(d.picks.map((p) => [Number(p.overallPick), p]));
@@ -105,7 +117,11 @@ function wireDraftBoardScrolling(board) {
           const position = reversed ? count - column : column + 1;
           const overall = index * count + position;
           const pick = picks.get(overall);
-          const onClock = !pick && overall === currentPick && d.settings.draftOpen && d.currentTeam;
+          const onClock =
+            !pick &&
+            overall === currentPick &&
+            d.settings.draftOpen &&
+            d.currentTeam;
           const className = pick
             ? "draft-cell-picked"
             : onClock
@@ -156,7 +172,10 @@ function wireDraftBoardScrolling(board) {
 
   window.renderDraft = async function (snapshot) {
     const previous = document.querySelector(".draft-board-scroll");
-    const scroll = { left: previous?.scrollLeft || 0, top: previous?.scrollTop || 0 };
+    const scroll = {
+      left: previous?.scrollLeft || 0,
+      top: previous?.scrollTop || 0,
+    };
     disposeScrolling();
     const d = snapshot || (await api("/api/draft"));
     await originalRenderDraft(d);
@@ -180,7 +199,11 @@ function wireDraftBoardScrolling(board) {
     // Match its own heading, not a nested heading from another card.
     [...page.children]
       .filter((element) => element.classList.contains("card"))
-      .filter((card) => card.querySelector(":scope > h2")?.textContent.trim() === "Draft Board",)
+      .filter(
+        (card) =>
+          card.querySelector(":scope > h2")?.textContent.trim() ===
+          "Draft Board",
+      )
       .forEach((card) => card.remove());
 
     const title = page.querySelector(".section-title");
@@ -196,7 +219,9 @@ function wireDraftBoardScrolling(board) {
     }
     board?.querySelectorAll(".draft-board-pokemon").forEach((card) => {
       card.addEventListener("click", () => {
-        const pick = d.picks.find((p) => String(p.pokemonId) === card.dataset.pokemonId,);
+        const pick = d.picks.find(
+          (p) => String(p.pokemonId) === card.dataset.pokemonId,
+        );
         if (pick) showPokemonDetails(draftBoardPokemon(pick));
       });
     });
@@ -206,13 +231,22 @@ function wireDraftBoardScrolling(board) {
 
   async function checkDraft() {
     if (globalThis.leagueSession && !leagueSession.canPoll()) return;
-    if (refreshing || state.page !== "draft" || !state.user || document.hidden || draftFinalized)
+    if (
+      refreshing ||
+      state.page !== "draft" ||
+      !state.user ||
+      document.hidden ||
+      draftFinalized
+    )
       return;
     refreshing = true;
     try {
       if (!draftOpen) {
         const status = await api("/api/draft/idle-status");
-        if (status.revision !== idleRevision && !document.querySelector(".pokemon-detail-overlay"))
+        if (
+          status.revision !== idleRevision &&
+          !document.querySelector(".pokemon-detail-overlay")
+        )
           await window.renderDraft();
         return;
       }

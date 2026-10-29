@@ -22,23 +22,31 @@
       <div class="login-card">
         <div class="eyebrow">League Portal</div>
         <h1>Pokemon Draft League</h1>
-        <p class="muted"
-          >Sign in to manage your season. Automatic sign-out after 5 minutes without activity.</p
-        >
+        <p class="muted">
+          Sign in to manage your season. Automatic sign-out after 5 minutes
+          without activity.
+        </p>
         <p id="session-idle-message" class="muted hidden" role="status"></p>
         <label>Username<input id="login-username" /></label
         ><label>Password<input id="login-password" type="password" /></label
         ><button id="login-button">Log In</button>
-        <button id="guest-button" type="button" class="secondary">Continue as Guest</button>
+        <button id="guest-button" type="button" class="secondary">
+          Continue as Guest
+        </button>
       </div>
     </div>
-    <p id="session-refresh-status" class="session-refresh-status" role="status" hidden
-      >Updating league data…</p
+    <p
+      id="session-refresh-status"
+      class="session-refresh-status"
+      role="status"
+      hidden
     >
+      Updating league data…
+    </p>
     <div id="app" class="app hidden">
       <aside class="sidebar" id="league-sidebar">
-        <div class="sidebar-topbar"
-          ><div class="brand">Draft League</div>
+        <div class="sidebar-topbar">
+          <div class="brand">Draft League</div>
           <button
             id="sidebar-toggle"
             class="secondary sidebar-toggle"
@@ -47,12 +55,14 @@
             aria-expanded="true"
             aria-label="Collapse navigation"
             title="Collapse navigation"
-            >‹</button
           >
+            ‹
+          </button>
         </div>
         <div id="whoami" class="whoami"></div>
         <nav>
-          <button data-page="home">Home</button><button data-page="draft">Draft Room</button
+          <button data-page="home">Home</button
+          ><button data-page="draft">Draft Room</button
           ><button data-page="rosters">Rosters</button
           ><button data-page="standings">Standings</button
           ><button data-page="schedule">Schedule / Results</button
@@ -75,8 +85,9 @@
           aria-controls="league-sidebar"
           aria-expanded="false"
           hidden
-          >☰ Show navigation</button
         >
+          ☰ Show navigation
+        </button>
         <section id="page-home" class="page"></section>
         <section id="page-draft" class="page hidden"></section>
         <section id="page-rosters" class="page hidden"></section>

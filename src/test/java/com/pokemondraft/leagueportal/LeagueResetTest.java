@@ -25,8 +25,20 @@ class LeagueResetTest {
     WeekLockRepository locks = mock(WeekLockRepository.class);
     ScheduleService schedule = mock(ScheduleService.class);
 
-    TestRosterService service = new TestRosterService(teams, pokemon, roster, picks, submissions,
-        transactions, bids, trades, matchups, settings, locks, schedule);
+    TestRosterService service =
+        new TestRosterService(
+            teams,
+            pokemon,
+            roster,
+            picks,
+            submissions,
+            transactions,
+            bids,
+            trades,
+            matchups,
+            settings,
+            locks,
+            schedule);
     Team team = new Team("Burn", "Coach Burn", "A", 7);
     team.setFaBudget(1);
     team.setWins(4);

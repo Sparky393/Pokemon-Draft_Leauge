@@ -17,12 +17,11 @@ public class AuthController {
     this.auth = auth;
   }
 
-  public record LoginRequest(String username, String password) {
-  }
+  public record LoginRequest(String username, String password) {}
 
   @PostMapping("/login")
-  public UserDto login(@RequestBody LoginRequest req, HttpSession session,
-      HttpServletRequest request) {
+  public UserDto login(
+      @RequestBody LoginRequest req, HttpSession session, HttpServletRequest request) {
     var user = auth.login(req.username(), req.password(), session);
     request.changeSessionId(); // Avoid reusing a pre-login session identifier.
     return LeagueMapper.authUser(user);
@@ -35,8 +34,7 @@ public class AuthController {
     return viewer;
   }
 
-  public record ChangePasswordRequest(String currentPassword, String newPassword) {
-  }
+  public record ChangePasswordRequest(String currentPassword, String newPassword) {}
 
   @PostMapping("/change-password")
   public void changePassword(@RequestBody ChangePasswordRequest request, HttpSession session) {
@@ -65,7 +63,8 @@ public class AuthController {
 
   @GetMapping("/me")
   public UserDto me(HttpSession session) {
-    return auth.isGuest(session) ? auth.viewer(session)
+    return auth.isGuest(session)
+        ? auth.viewer(session)
         : LeagueMapper.authUser(auth.current(session));
   }
 }

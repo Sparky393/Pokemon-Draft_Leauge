@@ -22,14 +22,14 @@ const POKEMON_TYPES = Object.freeze([
   "Water",
 ]);
 function pokemonTypeFilter(prefix) {
-  return `<div class="filter-field"><label for="${prefix}-type">Type</label><select id="${prefix}-type"><option value="all">All types</option>${POKEMON_TYPES.map(type => `<option value="${type.toLowerCase()}">${type}</option>`).join("")}</select></div>`;
+  return `<div class="filter-field"><label for="${prefix}-type">Type</label><select id="${prefix}-type"><option value="all">All types</option>${POKEMON_TYPES.map((type) => `<option value="${type.toLowerCase()}">${type}</option>`).join("")}</select></div>`;
 }
 // V7 discards cross-game move lists cached before Champions learnsets were bundled.
 const POKE_CACHE_KEY = "draftLeaguePokemonMetaV7";
 try {
-  Object.entries(JSON.parse(localStorage.getItem(POKE_CACHE_KEY) || "{}"),).forEach(([k, v]) =>
-    pokemonMetaCache.set(k, v)
-  );
+  Object.entries(
+    JSON.parse(localStorage.getItem(POKE_CACHE_KEY) || "{}"),
+  ).forEach(([k, v]) => pokemonMetaCache.set(k, v));
 } catch {}
 function pokeSlug(name) {
   const special = {
@@ -122,7 +122,8 @@ async function fetchPokemonData(slug) {
 async function getPokemonMeta(name) {
   if (pokemonMetaCache.has(name)) {
     const cached = pokemonMetaCache.get(name);
-    if (cached?.image && Array.isArray(cached.types) && cached.types.length) return cached;
+    if (cached?.image && Array.isArray(cached.types) && cached.types.length)
+      return cached;
   }
   if (pokemonMetaRequests.has(name)) return pokemonMetaRequests.get(name);
   const request = loadPokemonMeta(name);
@@ -130,7 +131,8 @@ async function getPokemonMeta(name) {
   try {
     return await request;
   } finally {
-    if (pokemonMetaRequests.get(name) === request) pokemonMetaRequests.delete(name);
+    if (pokemonMetaRequests.get(name) === request)
+      pokemonMetaRequests.delete(name);
   }
 }
 async function loadPokemonMeta(name) {
@@ -158,7 +160,10 @@ async function loadPokemonMeta(name) {
     };
     pokemonMetaCache.set(name, meta);
     try {
-      localStorage.setItem(POKE_CACHE_KEY, JSON.stringify(Object.fromEntries(pokemonMetaCache)),);
+      localStorage.setItem(
+        POKE_CACHE_KEY,
+        JSON.stringify(Object.fromEntries(pokemonMetaCache)),
+      );
     } catch {}
     return meta;
   } catch {
@@ -192,7 +197,8 @@ async function hydratePokemonCards(root = document) {
       }
       if (loader) loader.remove();
       const line = card.querySelector(".poke-meta");
-      if (line && m.abilities.length) line.textContent = m.abilities.slice(0, 2).join(" · ");
+      if (line && m.abilities.length)
+        line.textContent = m.abilities.slice(0, 2).join(" · ");
     }
   }
   await Promise.all(Array.from({ length: Math.min(10, cards.length) }, worker));
@@ -216,9 +222,15 @@ async function wireAdvancedFilters(prefix, pokemon, draw) {
       for (const p of rows) {
         const m = await getPokemonMeta(p.name);
         if (revision !== filterRevision) return;
-        if (type !== "all" && !m.types?.some(t => t.toLowerCase() === type)) continue;
-        if (move && !m.moves.some((x) => x.toLowerCase().includes(move))) continue;
-        if (ability && !m.abilities.some((x) => x.toLowerCase().includes(ability))) continue;
+        if (type !== "all" && !m.types?.some((t) => t.toLowerCase() === type))
+          continue;
+        if (move && !m.moves.some((x) => x.toLowerCase().includes(move)))
+          continue;
+        if (
+          ability &&
+          !m.abilities.some((x) => x.toLowerCase().includes(ability))
+        )
+          continue;
         tested.push(p);
       }
       rows = tested;
@@ -253,7 +265,10 @@ renderRosters = async function () {
     `<div class="section-title"><div><h1>Rosters</h1><p class="muted">Browse every team and its Pokémon.</p></div><select id="roster-team"><option value="all">All Teams</option>${data.map((r) => `<option value="${r.team.id}">${esc(r.team.name)}</option>`).join("")}</select></div><div id="roster-content"></div>`;
   const draw = () => {
     const wanted = $("#roster-team").value,
-      rows = wanted === "all" ? data : data.filter((r) => String(r.team.id) === wanted);
+      rows =
+        wanted === "all"
+          ? data
+          : data.filter((r) => String(r.team.id) === wanted);
     $("#roster-content").innerHTML = `<div class="roster-team-grid">${rows
       .map((r) => {
         const value = r.pokemon.reduce((s, p) => s + Number(p.price || 0), 0);
@@ -267,8 +282,12 @@ renderRosters = async function () {
         (c.onclick = () => {
           const p = data
             .flatMap((r) => r.pokemon)
-            .find((x) => Number(x.pokemonId ?? x.id) === Number(c.dataset.pokemonId),);
-          if (p && typeof showPokemonDetails === "function") showPokemonDetails(p);
+            .find(
+              (x) =>
+                Number(x.pokemonId ?? x.id) === Number(c.dataset.pokemonId),
+            );
+          if (p && typeof showPokemonDetails === "function")
+            showPokemonDetails(p);
         }),
     );
   };

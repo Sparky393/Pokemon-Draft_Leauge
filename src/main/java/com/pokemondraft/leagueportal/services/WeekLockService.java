@@ -32,10 +32,8 @@ public class WeekLockService {
   public Map<Integer, Boolean> statuses() {
     Map<Integer, Boolean> out = new LinkedHashMap<>();
     Map<Integer, Boolean> stored = new LinkedHashMap<>();
-    for (WeekLock row : locks.findAll())
-      stored.put(row.getWeek(), row.isLocked());
-    for (int i = 1; i <= SeasonCalendar.FINAL_WEEK; i++)
-      out.put(i, stored.getOrDefault(i, false));
+    for (WeekLock row : locks.findAll()) stored.put(row.getWeek(), row.isLocked());
+    for (int i = 1; i <= SeasonCalendar.FINAL_WEEK; i++) out.put(i, stored.getOrDefault(i, false));
     return out;
   }
 
@@ -46,15 +44,23 @@ public class WeekLockService {
 
     if (locked) {
       if (!SeasonCalendar.week(week).lineupRequired())
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-            "There are no games to lock in this week");
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST, "There are no games to lock in this week");
       List<Matchup> games = matchups.findByWeekOrderByIdAsc(week);
-      int expected = SeasonCalendar.isRegularGameWeek(week) ? 8
-          : week == 14 ? 4 : week == 15 ? 2 : 1;
-      if (games.size() != expected || games.stream().anyMatch(g -> !g.isPlayed()
-          || !ScheduleService.validSeriesScore(g.getHomeScore(), g.getAwayScore())))
-        throw new ResponseStatusException(HttpStatus.CONFLICT,
-            "All " + expected + " results for Week " + week
+      int expected =
+          SeasonCalendar.isRegularGameWeek(week) ? 8 : week == 14 ? 4 : week == 15 ? 2 : 1;
+      if (games.size() != expected
+          || games.stream()
+              .anyMatch(
+                  g ->
+                      !g.isPlayed()
+                          || !ScheduleService.validSeriesScore(g.getHomeScore(), g.getAwayScore())))
+        throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "All "
+                + expected
+                + " results for Week "
+                + week
                 + " must be valid best-of-three scores (2–0, 2–1, 0–2, 1–2).");
     }
     WeekLock row = locks.findById(week).orElse(new WeekLock(week, locked));
@@ -69,11 +75,13 @@ public class WeekLockService {
   @Transactional(readOnly = true)
   public void requireEditable(int week) {
     if (isLocked(week))
-      throw new ResponseStatusException(HttpStatus.CONFLICT,
+      throw new ResponseStatusException(
+          HttpStatus.CONFLICT,
           "Week " + week + " is locked. Unlock it in Commissioner to edit scores.");
     for (int later = Math.max(14, week + 1); later <= SeasonCalendar.FINAL_WEEK; later++)
       if (isLocked(later))
-        throw new ResponseStatusException(HttpStatus.CONFLICT,
+        throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
             "Week " + later + " is locked. Unlock later playoff weeks before editing Week " + week);
   }
 }

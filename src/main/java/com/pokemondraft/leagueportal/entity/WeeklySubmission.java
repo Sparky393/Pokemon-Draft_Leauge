@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = { "teamId", "week" }))
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"teamId", "week"}))
 public class WeeklySubmission {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,8 +19,7 @@ public class WeeklySubmission {
   private LocalDateTime submittedAt;
   private boolean automatic = false;
 
-  public WeeklySubmission() {
-  }
+  public WeeklySubmission() {}
 
   public WeeklySubmission(Long teamId, int week, String csv) {
     this.teamId = teamId;

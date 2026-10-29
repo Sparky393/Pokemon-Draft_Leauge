@@ -20,12 +20,15 @@ class IdleConnectionConfigTest {
       properties.load(input);
     }
     Map<String, Object> settings = new HashMap<>();
-    properties.forEach((key, value) -> {
-      if (key.toString().startsWith("spring.datasource.hikari."))
-        settings.put(key.toString(), value);
-    });
-    HikariConfig config = new Binder(new MapConfigurationPropertySource(settings))
-        .bind("spring.datasource.hikari", Bindable.of(HikariConfig.class)).get();
+    properties.forEach(
+        (key, value) -> {
+          if (key.toString().startsWith("spring.datasource.hikari."))
+            settings.put(key.toString(), value);
+        });
+    HikariConfig config =
+        new Binder(new MapConfigurationPropertySource(settings))
+            .bind("spring.datasource.hikari", Bindable.of(HikariConfig.class))
+            .get();
     config.setJdbcUrl("jdbc:postgresql://127.0.0.1:1/unused");
     config.validate(); // Configuration only: never construct a datasource or open a connection.
     assertEquals(0, config.getMinimumIdle());

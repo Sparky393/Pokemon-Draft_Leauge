@@ -11,14 +11,14 @@ import org.springframework.stereotype.Component;
 public class ProductionDatabaseSafety {
   @PostConstruct
   public void validate() {
-    boolean onRender = System.getenv("RENDER") != null
-        && !"false".equalsIgnoreCase(System.getenv("RENDER"));
+    boolean onRender =
+        System.getenv("RENDER") != null && !"false".equalsIgnoreCase(System.getenv("RENDER"));
     boolean explicitlyProduction = "prod".equals(System.getenv("SPRING_PROFILES_ACTIVE"));
-    if (!onRender && !explicitlyProduction)
-      return;
+    if (!onRender && !explicitlyProduction) return;
 
     String url = System.getenv("DATABASE_URL");
-    if (url == null || url.isBlank()
+    if (url == null
+        || url.isBlank()
         || (!url.startsWith("jdbc:postgresql:") && !url.startsWith("postgresql:"))) {
       throw new IllegalStateException(
           "Production requires DATABASE_URL pointing to Neon PostgreSQL. "

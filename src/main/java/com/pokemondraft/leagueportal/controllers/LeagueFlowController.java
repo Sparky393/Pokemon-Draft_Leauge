@@ -24,9 +24,15 @@ public class LeagueFlowController {
   private final FreeAgencyService freeAgency;
   private final WeeklySubmissionRepository submissions;
 
-  public LeagueFlowController(AuthService auth, WeeklyLineupService lineups,
-      MatchupRepository matchups, TeamRepository teams, LeagueSettingsRepository settings,
-      RosterEntryRepository roster, PokemonRepository pokemon, FreeAgencyService freeAgency,
+  public LeagueFlowController(
+      AuthService auth,
+      WeeklyLineupService lineups,
+      MatchupRepository matchups,
+      TeamRepository teams,
+      LeagueSettingsRepository settings,
+      RosterEntryRepository roster,
+      PokemonRepository pokemon,
+      FreeAgencyService freeAgency,
       WeeklySubmissionRepository submissions) {
     this.auth = auth;
     this.lineups = lineups;
@@ -39,8 +45,7 @@ public class LeagueFlowController {
     this.submissions = submissions;
   }
 
-  public record LineupRequest(List<Long> pokemonIds) {
-  }
+  public record LineupRequest(List<Long> pokemonIds) {}
 
   @GetMapping("/lineup")
   public Map<String, Object> lineup(HttpSession session) {
@@ -49,10 +54,9 @@ public class LeagueFlowController {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Manager has no lineup");
     LeagueSettings s = settings.findById(1L).orElseThrow();
     int week = s.getCurrentWeek();
-    boolean required = SeasonCalendar.week(week).lineupRequired()
-        && lineups.hasMatchup(u.getTeamId(), week);
-    if (required)
-      lineups.finalizeExpired(week, s);
+    boolean required =
+        SeasonCalendar.week(week).lineupRequired() && lineups.hasMatchup(u.getTeamId(), week);
+    if (required) lineups.finalizeExpired(week, s);
     Map<String, Object> m = new LinkedHashMap<>();
     m.put("week", week);
     m.put("weekLabel", SeasonCalendar.week(week).label());
@@ -60,15 +64,17 @@ public class LeagueFlowController {
     m.put("deadline", s.getLineupDeadline());
     m.put("locked", required && lineups.isLocked(u.getTeamId(), week));
     m.put("roster", required ? rosterView(u.getTeamId()) : List.of());
-    WeeklySubmission ws = required
-        ? submissions.findByTeamIdAndWeek(u.getTeamId(), week).orElse(null)
-        : null;
+    WeeklySubmission ws =
+        required ? submissions.findByTeamIdAndWeek(u.getTeamId(), week).orElse(null) : null;
     m.put("submission", ws);
     if (ws != null)
-      m.put("selectedPokemonIds", Arrays.stream(ws.getPokemonIdsCsv().split(","))
-          .filter(x -> !x.isBlank()).map(Long::valueOf).toList());
-    else
-      m.put("selectedPokemonIds", List.of());
+      m.put(
+          "selectedPokemonIds",
+          Arrays.stream(ws.getPokemonIdsCsv().split(","))
+              .filter(x -> !x.isBlank())
+              .map(Long::valueOf)
+              .toList());
+    else m.put("selectedPokemonIds", List.of());
     return m;
   }
 
@@ -87,8 +93,10 @@ public class LeagueFlowController {
   }
 
   @GetMapping("/schedule")
-  public List<Map<String, Object>> schedule(HttpSession session,
-      @RequestParam(required = false) Integer week, @RequestParam(required = false) Long teamId) {
+  public List<Map<String, Object>> schedule(
+      HttpSession session,
+      @RequestParam(required = false) Integer week,
+      @RequestParam(required = false) Long teamId) {
     auth.viewer(session);
     List<Matchup> games = matchups.findPublished(week, teamId);
     Set<Long> teamIds = new HashSet<>();
@@ -100,9 +108,10 @@ public class LeagueFlowController {
     if (!teamIds.isEmpty())
       for (TeamRepository.Name t : teams.findNamesByIdIn(teamIds))
         names.put(t.getId(), t.getName());
-    Map<Long, Map<String, Object>> lineupsByGame = auth.isGuest(session)
-        ? lineups.matchupLineupsBatchReadOnly(games)
-        : lineups.matchupLineupsBatch(games);
+    Map<Long, Map<String, Object>> lineupsByGame =
+        auth.isGuest(session)
+            ? lineups.matchupLineupsBatchReadOnly(games)
+            : lineups.matchupLineupsBatch(games);
     List<Map<String, Object>> out = new ArrayList<>();
     for (Matchup x : games) {
       Map<String, Object> m = new LinkedHashMap<>();
@@ -124,13 +133,14 @@ public class LeagueFlowController {
   private List<LineupPokemonDto> rosterView(Long teamId) {
     List<LineupPokemonDto> out = new ArrayList<>();
     List<Long> ids = roster.findByTeamId(teamId).stream().map(RosterEntry::getPokemonId).toList();
-    Map<Long, Pokemon> mons = ids.isEmpty() ? Map.of()
-        : pokemon.findAllById(ids).stream()
-            .collect(java.util.stream.Collectors.toMap(Pokemon::getId, p -> p));
+    Map<Long, Pokemon> mons =
+        ids.isEmpty()
+            ? Map.of()
+            : pokemon.findAllById(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(Pokemon::getId, p -> p));
     for (Long id : ids) {
       Pokemon p = mons.get(id);
-      if (p != null)
-        out.add(LeagueMapper.lineupPokemon(p));
+      if (p != null) out.add(LeagueMapper.lineupPokemon(p));
     }
     return out;
   }

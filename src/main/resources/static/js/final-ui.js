@@ -102,7 +102,9 @@ async function fetchMetaBySlug(slug) {
     const d = await r.json();
     return {
       image:
-        d.sprites?.other?.["official-artwork"]?.front_default || d.sprites?.front_default || "",
+        d.sprites?.other?.["official-artwork"]?.front_default ||
+        d.sprites?.front_default ||
+        "",
       abilities: (d.abilities || []).map((a) => prettyPokeText(a.ability.name)),
       moves: championsMovesForSlug(slug),
       stats: (d.stats || []).map((s) => ({
@@ -121,7 +123,9 @@ async function getPokemonFullMeta(name) {
   try {
     let r = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokeSlug(name)}`);
     if (!r.ok && name.includes("("))
-      r = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokeSlug(name.split(" (")[0])}`,);
+      r = await fetch(
+        `https://pokeapi.co/api/v2/pokemon/${pokeSlug(name.split(" (")[0])}`,
+      );
     if (!r.ok) return { ...base, stats: [] };
     const data = await r.json();
     const full = {
@@ -138,7 +142,10 @@ async function getPokemonFullMeta(name) {
   }
 }
 function bstOf(meta) {
-  return (meta?.stats || []).reduce((sum, s) => sum + (Number(s.value) || 0), 0,);
+  return (meta?.stats || []).reduce(
+    (sum, s) => sum + (Number(s.value) || 0),
+    0,
+  );
 }
 function showPokemonDetails(p) {
   getPokemonFullMeta(p.name).then((base) => {
@@ -160,7 +167,10 @@ function showPokemonDetails(p) {
           title = megaLabel(slug);
           isMega = true;
         } else {
-          toast("Mega data is not available from the Pokémon data service yet.", true,);
+          toast(
+            "Mega data is not available from the Pokémon data service yet.",
+            true,
+          );
           formIndex = -1;
         }
       }
@@ -188,7 +198,9 @@ function pokemonFilterAbilities(p, meta) {
   const yAbilities =
     typeof MEGA_Y_METADATA === "undefined"
       ? []
-      : megaFormsFor(p.name).flatMap((slug) => MEGA_Y_METADATA[slug]?.abilities || []);
+      : megaFormsFor(p.name).flatMap(
+          (slug) => MEGA_Y_METADATA[slug]?.abilities || [],
+        );
   return [...(meta?.abilities || []), ...yAbilities];
 }
 let draftAffordableOnly = false;
@@ -244,9 +256,16 @@ async function wireFinalFilters(prefix, source, draw, remainingBudget = null, op
           ? await getPokemonFullMeta(p.name)
           : null;
       if (revision !== filterRevision) return;
-      if (type !== "all" && !m.types?.some(t => t.toLowerCase() === type)) continue;
-      if (move && !m.moves.some((x) => x.toLowerCase().includes(move))) continue;
-      if (ability && !pokemonFilterAbilities(p, m).some((x) => x.toLowerCase().includes(ability)))
+      if (type !== "all" && !m.types?.some((t) => t.toLowerCase() === type))
+        continue;
+      if (move && !m.moves.some((x) => x.toLowerCase().includes(move)))
+        continue;
+      if (
+        ability &&
+        !pokemonFilterAbilities(p, m).some((x) =>
+          x.toLowerCase().includes(ability),
+        )
+      )
         continue;
       rows.push({ p, m });
     }
@@ -266,7 +285,9 @@ async function wireFinalFilters(prefix, source, draw, remainingBudget = null, op
   ["search", "move", "ability"].forEach((x) =>
     $(`#${prefix}-${x}`).addEventListener("input", apply),
   );
-  ["sort", "mega", "type"].forEach((x) => $(`#${prefix}-${x}`).addEventListener("change", apply),);
+  ["sort", "mega", "type"].forEach((x) =>
+    $(`#${prefix}-${x}`).addEventListener("change", apply),
+  );
   const budgetField = $(`#${prefix}-budget`);
   budgetField?.addEventListener("change", () => {
     if (prefix === "draft") draftAffordableOnly = budgetField.value === "affordable";
@@ -332,7 +353,9 @@ renderDraft = async function (snapshot) {
   const draw = (rows) => {
     const grid = $("#draft-grid");
     grid.innerHTML =
-      rows.map((p) => pokemonCard(p, chosen === p.id ? "selected" : "")).join("") ||
+      rows
+        .map((p) => pokemonCard(p, chosen === p.id ? "selected" : ""))
+        .join("") ||
       '<div class="empty-state">No Pokémon match these filters.</div>';
     grid.querySelectorAll(".pokemon-card").forEach(
       (c) =>
@@ -344,7 +367,8 @@ renderDraft = async function (snapshot) {
             .forEach((x) => x.classList.toggle("selected", x === c));
           $("#draft-selection").innerHTML =
             `Selected: <strong>${esc(p.name)}</strong> · $${p.price}`;
-          $("#draft-action-selection").textContent = `Selected: ${p.name} · $${p.price}`;
+          $("#draft-action-selection").textContent =
+            `Selected: ${p.name} · $${p.price}`;
           $("#make-pick").disabled = !canPick;
           showPokemonDetails(p);
         }),
@@ -426,8 +450,9 @@ renderBids = async function () {
   const draw = (rows) => {
     const grid = $("#fa-grid");
     grid.innerHTML =
-      rows.map((p) => pokemonCard(p, wanted === p.id ? "selected" : "")).join("") ||
-      '<div class="empty-state">No free agents match.</div>';
+      rows
+        .map((p) => pokemonCard(p, wanted === p.id ? "selected" : ""))
+        .join("") || '<div class="empty-state">No free agents match.</div>';
     grid.querySelectorAll(".pokemon-card").forEach(
       (c) =>
         (c.onclick = () => {
@@ -453,7 +478,9 @@ renderBids = async function () {
         method: "POST",
         body: {
           wantedPokemonId: wanted,
-          dropPokemonId: $("#bid-drop").value ? Number($("#bid-drop").value) : null,
+          dropPokemonId: $("#bid-drop").value
+            ? Number($("#bid-drop").value)
+            : null,
           amount: Number($("#bid-amount").value || 0),
         },
       });

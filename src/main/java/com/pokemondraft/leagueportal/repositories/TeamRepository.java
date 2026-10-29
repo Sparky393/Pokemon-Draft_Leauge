@@ -29,10 +29,11 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
 
   boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
 
-  String METADATA = "select new com.pokemondraft.leagueportal.entity.Team(t.id, t.name, t.coachName, t.division,"
-      + " t.wins, t.losses, t.differential, t.faBudget, t.draftPosition, t.manualRank,"
-      + " t.logoContentType, t.logoVersion, t.officialSlot, case when t.logoBase64 is not null"
-      + " then true else false end) from Team t";
+  String METADATA =
+      "select new com.pokemondraft.leagueportal.entity.Team(t.id, t.name, t.coachName, t.division,"
+          + " t.wins, t.losses, t.differential, t.faBudget, t.draftPosition, t.manualRank,"
+          + " t.logoContentType, t.logoVersion, t.officialSlot, case when t.logoBase64 is not null"
+          + " then true else false end) from Team t";
 
   @Query(METADATA)
   List<Team> findAllMetadata();
@@ -50,14 +51,16 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
 
   @org.springframework.transaction.annotation.Transactional
   @org.springframework.data.jpa.repository.Modifying
-  @Query("update Team t set t.logoBase64 = :image, t.logoContentType = :contentType, t.logoVersion ="
-      + " :version where t.id = :id")
+  @Query(
+      "update Team t set t.logoBase64 = :image, t.logoContentType = :contentType, t.logoVersion ="
+          + " :version where t.id = :id")
   int updateLogo(Long id, String image, String contentType, Long version);
 
   @org.springframework.transaction.annotation.Transactional
   @org.springframework.data.jpa.repository.Modifying
-  @Query("update Team t set t.wins = :wins, t.losses = :losses, t.differential = :differential where"
-      + " t.id = :id")
+  @Query(
+      "update Team t set t.wins = :wins, t.losses = :losses, t.differential = :differential where"
+          + " t.id = :id")
   int updateStandings(Long id, int wins, int losses, int differential);
 
   @org.springframework.transaction.annotation.Transactional
@@ -73,9 +76,10 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     boolean getPresent();
   }
 
-  @Query("select t.logoVersion as logoVersion, t.logoContentType as logoContentType, case when"
-      + " t.logoBase64 is not null then true else false end as present from Team t where t.id ="
-      + " :id")
+  @Query(
+      "select t.logoVersion as logoVersion, t.logoContentType as logoContentType, case when"
+          + " t.logoBase64 is not null then true else false end as present from Team t where t.id ="
+          + " :id")
   Optional<LogoMetadata> findLogoMetadata(Long id);
 
   interface LogoImage {
@@ -86,7 +90,8 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     Long getLogoVersion();
   }
 
-  @Query("select t.logoBase64 as logoBase64, t.logoContentType as logoContentType, t.logoVersion as"
-      + " logoVersion from Team t where t.id = :id")
+  @Query(
+      "select t.logoBase64 as logoBase64, t.logoContentType as logoContentType, t.logoVersion as"
+          + " logoVersion from Team t where t.id = :id")
   Optional<LogoImage> findLogoImage(Long id);
 }

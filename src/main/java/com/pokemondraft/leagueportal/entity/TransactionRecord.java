@@ -16,8 +16,7 @@ public class TransactionRecord {
 
   private LocalDateTime createdAt = LocalDateTime.now();
 
-  public TransactionRecord() {
-  }
+  public TransactionRecord() {}
 
   public TransactionRecord(String type, String description) {
     this.type = type;
