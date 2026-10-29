@@ -24,6 +24,47 @@ class DeploymentPersistenceTest {
   @Autowired PokemonRepository pokemon;
   @Autowired MatchupRepository matchups;
   @Autowired AppUserRepository users;
+  @Autowired RosterEntryRepository roster;
+  @Autowired DraftPickRepository picks;
+
+  @Test
+  void gourgeistSizesHaveSeparateSlotsAndPrices() {
+    assertFalse(pokemon.findByName("Gourgeist").isPresent());
+    for (String size : new String[] {"Small", "Medium", "Large", "XL"}) {
+      Pokemon mon = pokemon.findByName("Gourgeist (" + size + ")").orElseThrow();
+      assertEquals(size.equals("Medium") ? 1 : 0, mon.getPrice());
+    }
+  }
+
+  @Test
+  void legacyGourgeistBecomesMediumWithoutChangingOwnershipOrPrice() throws Exception {
+    for (String size : new String[] {"Small", "Large", "XL"})
+      pokemon.delete(pokemon.findByName("Gourgeist (" + size + ")").orElseThrow());
+    pokemon.flush();
+    Pokemon mon = pokemon.findByName("Gourgeist (Medium)").orElseThrow();
+    mon.setName("Gourgeist");
+    mon.setPrice(3); // A commissioner's custom price must survive deployment.
+    pokemon.saveAndFlush(mon);
+    Long monId = mon.getId();
+    Long teamId = teams.findAll().get(0).getId();
+    RosterEntry entry = roster.saveAndFlush(new RosterEntry(teamId, monId));
+    DraftPick pick = picks.saveAndFlush(new DraftPick(1, 1, teamId, monId));
+    long poolSize = pokemon.count();
+
+    initializer.run();
+    initializer.run();
+
+    Pokemon renamed = pokemon.findByName("Gourgeist (Medium)").orElseThrow();
+    assertEquals(monId, renamed.getId());
+    assertEquals(3, renamed.getPrice());
+    assertTrue(renamed.isDrafted());
+    assertEquals(monId, roster.findById(entry.getId()).orElseThrow().getPokemonId());
+    assertEquals(monId, picks.findById(pick.getId()).orElseThrow().getPokemonId());
+    assertFalse(pokemon.findByName("Gourgeist").isPresent());
+    assertEquals(poolSize + 3, pokemon.count());
+    for (String size : new String[] {"Small", "Large", "XL"})
+      assertEquals(0, pokemon.findByName("Gourgeist (" + size + ")").orElseThrow().getPrice());
+  }
 
   @Test
   void codeRedeployKeepsCustomizedLeagueState() throws Exception {

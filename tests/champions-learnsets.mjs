@@ -22,6 +22,10 @@ for (const meta of [await context.getPokemonMeta("Emolga"), await context.fetchM
   assert.ok(meta.moves.includes("Electroweb"));
 }
 assert.ok(context.championsMovesForSlug("whimsicott").includes("Tailwind"));
+for (const [size, slug] of [["Small", "small"], ["Medium", "average"], ["Large", "large"], ["XL", "super"]]) {
+  assert.equal(context.pokeSlug(`Gourgeist (${size})`), `gourgeist-${slug}`);
+  assert.deepEqual(context.championsMovesForSlug(`gourgeist-${slug}`), context.championsMovesForSlug("gourgeist"));
+}
 assert.ok(context.championsMovesForSlug("charizard-mega-y").includes("Heat Wave"));
 assert.equal(context.championsMovesForSlug("unknown").length, 0);
 assert.notDeepEqual(context.championsMovesForSlug("indeedee-male"), context.championsMovesForSlug("indeedee-female"));

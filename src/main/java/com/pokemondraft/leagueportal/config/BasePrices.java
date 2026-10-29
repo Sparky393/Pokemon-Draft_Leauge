@@ -33,8 +33,8 @@ public final class BasePrices {
         4:Orthworm|Tyrantrum|Trevenant|Farfetch'd
         3:Hydrapple|Zoroark|Gogoat|Mabosstiff|Rampardos|Thievul|Emboar|Leafeon|Avalugg (Hisuian)|Luxray|Diggersby|Polteageist|Passimian|Tauros (Paldean Combat)
         2:Lycanroc (Midday)|Victreebel|Florges|Goodra|Musharna|Falinks|Bastiodon|Decidueye|Flapple|Persian
-        1:Beartic|Gourgeist|Pinsir|Emolga|Flareon|Arbok|Barbaracle|Castform|Ariados|Qwilfish
-        0:Slurpuff|Swalot|Roserade|Dedenne|Sandaconda|Stunfisk|Forretress|Appletun|Lycanroc (Midnight)|Furfrou|Avalugg|Garbodor|Simipour|Tauros|Stunfisk (Galarian)|Rotom|Simisage|Simisear|Watchog|Samurott
+        1:Beartic|Gourgeist (Medium)|Pinsir|Emolga|Flareon|Arbok|Barbaracle|Castform|Ariados|Qwilfish
+        0:Gourgeist (Small)|Gourgeist (Large)|Gourgeist (XL)|Slurpuff|Swalot|Roserade|Dedenne|Sandaconda|Stunfisk|Forretress|Appletun|Lycanroc (Midnight)|Furfrou|Avalugg|Garbodor|Simipour|Tauros|Stunfisk (Galarian)|Rotom|Simisage|Simisear|Watchog|Samurott
         """;
     for (String line : data.strip().split("\n")) {
       String[] pair = line.split(":", 2);

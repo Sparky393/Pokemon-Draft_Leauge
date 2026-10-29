@@ -40,6 +40,16 @@ public class DataInitializer {
       // Do not reconcile, reprice, or reset them on code deployments.
       Map<String, Integer> basePrices = BasePrices.values();
       List<Pokemon> pool = new ArrayList<>(pokemon.findAll());
+      // The original Gourgeist slot represented Average Size. Keep its ID,
+      // commissioner price and ownership when giving that size an explicit name.
+      if (pool.stream().noneMatch(p -> p.getName().equals("Gourgeist (Medium)"))) {
+        for (Pokemon p : pool) {
+          if (p.getName().equals("Gourgeist")) {
+            p.setName("Gourgeist (Medium)");
+            pokemon.save(p);
+          }
+        }
+      }
       if (pool.isEmpty()) {
         for (String name : championsPool())
           pool.add(pokemon.save(new Pokemon(name, basePrices.getOrDefault(name, 0))));
@@ -251,7 +261,10 @@ public class DataInitializer {
         "Goodra (Hisuian)",
         "Klefki",
         "Trevenant",
-        "Gourgeist",
+        "Gourgeist (Small)",
+        "Gourgeist (Medium)",
+        "Gourgeist (Large)",
+        "Gourgeist (XL)",
         "Avalugg",
         "Avalugg (Hisuian)",
         "Noivern",
