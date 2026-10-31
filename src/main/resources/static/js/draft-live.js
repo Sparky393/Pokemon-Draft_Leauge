@@ -226,6 +226,22 @@ function wireDraftBoardScrolling(board) {
       });
     });
     if (board) hydratePokemonCards(board);
+    // Export is intentionally outside the scroll container, at the bottom of Draft Room.
+    const exportFooter = document.createElement("div");
+    exportFooter.className = "card";
+    exportFooter.innerHTML = '<button id="download-full-draft-board" type="button" class="secondary">Download Full Draft Board</button><p class="muted small">Save every round and team in one PNG image on your device.</p>';
+    page.appendChild(exportFooter);
+    exportFooter.querySelector("button").addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      try {
+        await window.downloadFullDraftBoard(d);
+      } catch (error) {
+        toast(error.message || "Could not download the draft board");
+      } finally {
+        button.disabled = false;
+      }
+    });
     return d;
   };
 
