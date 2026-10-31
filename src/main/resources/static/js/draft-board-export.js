@@ -12,7 +12,7 @@
   }
 
   function wrapped(ctx, value, x, y, width, lineHeight, maxLines = 2) {
-    const words = String(value ?? "").split(/\\s+/);
+    const words = String(value ?? "").split(/\s+/);
     const lines = [];
     let line = "";
     for (const word of words) {
