@@ -1,0 +1,40 @@
+/* Full rosters use five columns on desktop in both All Teams and single-team views. */
+#page-rosters .roster-panel {
+  min-width: 0;
+  container-type: inline-size;
+}
+#page-rosters .roster-pokemon-grid .pokemon-card {
+  min-width: 0;
+  width: 100%;
+}
+#page-rosters .roster-pokemon-grid .pokemon-art img {
+  max-width: calc(100% - 8px);
+  object-fit: contain;
+}
+#page-rosters .roster-heading {
+  flex-wrap: wrap;
+}
+#page-rosters .roster-title-wrap {
+  min-width: 0;
+}
+#page-rosters .roster-pokemon-grid .pokemon-card-body strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 801px) {
+  #page-rosters .roster-team-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)) !important;
+  }
+  #page-rosters .roster-pokemon-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 10px;
+  }
+}
+@container (max-width: 600px) {
+  #page-rosters .roster-pokemon-grid .pokemon-card-body {
+    padding: 9px 7px;
+  }
+  #page-rosters .roster-pokemon-grid .pokemon-card-body strong {
+    font-size: 12px;
+  }
+}
