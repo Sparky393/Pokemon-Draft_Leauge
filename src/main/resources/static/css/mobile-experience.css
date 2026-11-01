@@ -66,8 +66,8 @@
     gap: 8px;
   }
   .sidebar .sidebar-identity .team-avatar {
-    width: 29px;
-    height: 29px;
+    width: 40px;
+    height: 40px;
     flex-shrink: 0;
   }
   .sidebar .sidebar-identity strong,
