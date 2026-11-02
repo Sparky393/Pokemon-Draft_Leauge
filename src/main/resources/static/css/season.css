@@ -247,3 +247,37 @@
     padding: 10px !important;
   }
 }
+
+/* Keep each lineup indicator with its own team, including on narrow phones. */
+.season-lineup-status {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  color: #a6bdd3;
+}
+.season-lineup-team {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.season-lineup-indicator {
+  flex: 0 0 20px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 800;
+}
+.season-lineup-team-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.season-lineup-state {
+  flex: 0 0 auto;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.season-lineup-note {
+  margin: 0;
+  font-size: 12px;
+}
