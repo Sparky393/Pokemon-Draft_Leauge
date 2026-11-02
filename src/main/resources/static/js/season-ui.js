@@ -174,7 +174,11 @@ renderSchedule = async function () {
           <p>${w.kind === "free_agency" ? "Free agency / waivers only." : "League-wide bye week."}</p>
           ${(w.waiverNotes || []).map((note) => `<p class="muted">${esc(note)}</p>`).join("")}</div>`;
         } else if (rows.length) {
-          body = rows
+          // Full-width revealed lineups belong after all compact matchup cards.
+          // Otherwise a revealed game in the middle of the schedule pushes
+          // later unrevealed games below it and makes them easy to miss.
+          body = [...rows]
+            .sort((a, b) => Number(a.revealed) - Number(b.revealed))
             .map((m) =>
               seasonMatchCard(m, lockedWeeks[String(m.week)] === true),
             )
