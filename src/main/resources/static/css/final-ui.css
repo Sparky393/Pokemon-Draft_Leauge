@@ -567,3 +567,11 @@
   padding: 45px 4px;
   font-weight: 700;
 }
+
+/* Commissioner-only roster overview: two team panels per desktop row.
+   Coaches and guests retain their existing auto-fit layout. */
+@media (min-width: 901px) {
+  .roster-team-grid.commissioner-roster-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
