@@ -347,7 +347,8 @@
   color: #8299ad;
 }
 .roster-team-grid {
-  grid-template-columns: repeat(auto-fit, minmax(390px, 1fr)) !important;
+  /* Exactly two team rosters across on desktop; never auto-fit a third. */
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
 }
 .roster-badges {
   display: flex;
