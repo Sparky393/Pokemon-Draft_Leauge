@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
-const IDLE = 300000;
+const IDLE = 900000;
 const source = readFileSync("src/main/resources/static/js/session-idle.js", "utf8",);
 const apiSource = readFileSync("src/main/resources/static/js/api-fix.js", "utf8",);
 const user = { id: 1, username: "coach1", role: "COACH", teamId: 1 };
@@ -201,7 +201,7 @@ async function test(name, fn) {
   console.log("PASS:", name);
 }
 
-await test("poll requests never extend five-minute inactivity; exactly one logout; no later API traffic", async () => {
+await test("poll requests never extend fifteen-minute inactivity; exactly one logout; no later API traffic", async () => {
   const w = world(),
     t = w.tab();
   assert.equal(t.begin(), true);
