@@ -205,7 +205,7 @@ await test("poll requests never extend fifteen-minute inactivity; exactly one lo
   const w = world(),
     t = w.tab();
   assert.equal(t.begin(), true);
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 29; i++) {
     await w.advance(30000);
     await t.c.api("/api/notifications");
   }
