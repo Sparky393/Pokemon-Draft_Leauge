@@ -1,0 +1,180 @@
+/* Sky stadium: blue skies, Premier Ball pearl surfaces, and red accents. */
+:root {
+  color-scheme: light;
+  --bg: #f8faf5;
+  --bg2: #d1d8df;
+  --surface: #e2e6ea;
+  --surface-inset: #d1d8df;
+  --accent: #d94a53;
+  --glass: var(--surface);
+  --glass2: var(--surface-inset);
+  --glass-strong: var(--surface);
+  --line: #adbcc9;
+  --line-strong: #91a5b5;
+  --text: #17324d;
+  --muted: #526b80;
+  --blue: #086da8;
+  --blue2: #087cc1;
+  --cyan: #087a91;
+  --green: #13734d;
+  --yellow: #896000;
+  --red: #bc3040;
+  --danger: #bc3040;
+}
+body {
+  background: linear-gradient(180deg, #079bf3 0, #70c9f5 25vh, #d7eff6 58vh, #fafaf2 95vh) fixed !important;
+  color: var(--text) !important;
+}
+body::before, body::after { display: none; }
+h1, h2, h3, h4, .stat, .score, .stat-list strong { color: var(--text); }
+.eyebrow { color: #086da8; }
+.content { position: relative; }
+.page-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: linear-gradient(115deg, #e2e6ea, #d1d8df);
+  box-shadow: 0 12px 35px #175f8c14;
+}
+.page-hero::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 190px;
+  height: 190px;
+  right: -28px;
+  top: -44px;
+  border: 15px solid #fff9;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 18%, #fff9 19% 28%, transparent 29%), linear-gradient(transparent 44%, #fff9 44% 56%, transparent 56%);
+  pointer-events: none;
+}
+.page-hero h1 { position: relative; }
+.page-hero p { margin-bottom: 0; }
+.glass-panel, .card, .team-card, .week, .pokemon-option, .login-card,
+.pokemon-card, .pokemon-detail-card {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--text);
+  box-shadow: 0 12px 32px #17496c12, inset 0 1px #edf0f3;
+}
+.login-card { border-top: 5px solid #ef4444 !important; }
+.login-card::before, .brand::before {
+  content: "";
+  display: block;
+  width: 44px;
+  height: 44px;
+  border: 3px solid #17324d;
+  border-radius: 50%;
+  background: radial-gradient(circle, white 0 17%, #17324d 19% 28%, transparent 30%), linear-gradient(#ef4444 0 44%, #17324d 44% 56%, white 56%);
+  flex: none;
+}
+.login-card::before { margin-bottom: 22px; }
+.sidebar {
+  background: linear-gradient(165deg, #c4e0ee, #d6e7ed 60%, #c5dbe5) !important;
+  color: var(--text);
+  border-right-color: #a7c7d8;
+  box-shadow: 8px 0 32px #17496c0c;
+}
+.sidebar .brand { display: flex; align-items: center; gap: 10px; color: var(--text); }
+.brand::before { width: 28px; height: 28px; border-width: 2px; }
+.brand::before, .login-card::before {
+  /* Great Ball: cobalt crown, paired red stripes, ivory lower shell. */
+  background:
+    radial-gradient(circle, #fffdf5 0 17%, #17324d 19% 28%, transparent 30%),
+    linear-gradient(transparent 44%, #17324d 44% 56%, transparent 56%),
+    linear-gradient(90deg, transparent 18%, #ef5456 18% 31%, transparent 31% 69%, #ef5456 69% 82%, transparent 82%) top / 100% 50% no-repeat,
+    linear-gradient(#267dca 0 50%, #fffdf5 50%);
+}
+.sidebar .whoami { border-bottom-color: #a9c9d9; }
+.sidebar nav button, .whoami, .league-tool-links > button { color: #526b80; }
+.sidebar nav button, .sidebar .whoami { color: #34566f; }
+.sidebar nav button:hover { color: #17324d; background: #edf7ff; }
+.sidebar nav button.active {
+  background: #eaf6fb;
+  color: #17324d;
+  border-color: #9fc5dc;
+  box-shadow: inset 4px 0 #ef4444;
+}
+.primary, .login-card #login-button {
+  color: #fff !important;
+  background: #173e60 !important;
+  border-color: #173e60 !important;
+  box-shadow: 0 5px 12px #173e6020;
+}
+.primary:hover, .login-card #login-button:hover { background: #0b5986 !important; }
+.sidebar .secondary { background: #dcecf4 !important; border-color: #a7c7d8 !important; }
+.sidebar .logout { background: #eedfe2 !important; border-color: #d9b8bf !important; }
+#page-home > .grid > .card { border-top: 3px solid #438fc3 !important; }
+#page-home > .grid > .card:nth-child(2) { border-top-color: #dc6165 !important; }
+#page-home > .grid > .card:nth-child(3) { border-top-color: #91a5b5 !important; }
+.secondary, .login-card .secondary {
+  color: #244b69 !important;
+  background: #edf7ff !important;
+  border-color: #bbd9ec !important;
+}
+.danger, .logout { color: #ac2637 !important; background: #fff0f1 !important; border-color: #f5c4ca !important; }
+input, select, textarea, .login-card input, .glass-input, .glass-select,
+.pokemon-filters input, .pokemon-filters select, .filter-bar input, .filter-bar select {
+  background: #e9edf0 !important;
+  color: var(--text) !important;
+  border-color: #adbcc9 !important;
+}
+select option { background: #e9edf0; color: #17324d; }
+input::placeholder, textarea::placeholder { color: #62788a; }
+.login-card label, .pokemon-filters label { color: #405c73; }
+:focus-visible { outline: 3px solid #087cc1; outline-offset: 3px; }
+.filter-bar, .pokemon-filters, .subtabs, .table-wrap, .match-card,
+.season-match, .playoff-game, .schedule-team-lineup, .league-tool-panel,
+.league-notice-item, .stat-list > div, .detail-art, .hint {
+  background: var(--surface-inset) !important;
+  border-color: var(--line) !important;
+  color: var(--text);
+}
+th { background: #d1d8df !important; color: #405c73 !important; }
+td { color: #24435c !important; border-color: #adbcc9 !important; }
+.pokemon-art, .pokemon-card-art { background: radial-gradient(ellipse at center, #e2e6ea 10%, #d1d8df 100%) !important; }
+.pokemon-card:hover { border-color: var(--accent) !important; box-shadow: 0 12px 28px #17649420; }
+.pokemon-card.selected, .display-pokemon-card.selected { outline: 2px solid var(--accent); background: #e8e3e7 !important; box-shadow: 0 0 0 4px #d94a531a; }
+.price-badge, .pool-count, .budget-chip, .pill, .detail-badges span, .season-kind, .standing-rank {
+  color: #19587c;
+  background: #e3f3fd;
+  border-color: #b6d9ee;
+}
+.roster-value, .good { color: #116443; background: #e4f6ec; }
+.warning { color: #805700; background: #fff4cf; }
+.bad, .budget-error, .roster-value.over { color: #ac2637 !important; background: #fff0f1; }
+.detail-info p, .stat-list > div, .selection-status strong, #draft-action-selection,
+.season-versus span, .season-off-week, .league-notice-item small, .league-tool-links > button:hover { color: #405c73; }
+.selection-footer { background: var(--surface) !important; border-color: var(--line) !important; color: var(--text); }
+.subtabs button { color: #526b80 !important; }
+.subtabs button.active { background: #d9efff !important; color: #17324d !important; }
+.detail-close { background: #e8f3fa; color: #17324d; border-color: #bbd9ec; }
+.draft-cell-empty { background: #d1d8df; }
+.draft-cell-picked { background: #e3f4eb; }
+.draft-cell-current { background: #eee0e3; outline-color: var(--accent); }
+.live-draft-board .draft-snake-table thead,
+.live-draft-board .draft-snake-table thead th,
+.live-draft-board .draft-snake-table .draft-round-heading {
+  background: #dceef8 !important;
+  color: #17324d !important;
+  border-color: #b5d3e5 !important;
+}
+.draft-snake-table .draft-team-name,
+.draft-snake-table .draft-team-position,
+.draft-snake-table .draft-team-budget {
+  color: #244b69;
+  opacity: 1;
+}
+.draft-board-scroll { scrollbar-color: #74a8c7 #e4f1f8; }
+.draft-board-scroll::-webkit-scrollbar-track,
+.draft-board-scroll::-webkit-scrollbar-corner { background: #e4f1f8; }
+.playoff-cutoff::after { background: #f2f8fc; color: #405c73; }
+@media (max-width: 800px) {
+  .page-hero { padding: 20px; }
+  .page-hero h1 { font-size: 28px; }
+}
+@media print { body { background: #fff !important; } }
