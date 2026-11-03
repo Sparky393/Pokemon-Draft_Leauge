@@ -274,7 +274,7 @@ renderRosters = async function () {
         wanted === "all"
           ? data
           : data.filter((r) => String(r.team.id) === wanted);
-    $("#roster-content").innerHTML = `<div class="roster-team-grid">${rows
+    $("#roster-content").innerHTML = `<div class="roster-team-grid${state.user?.role === "MANAGER" ? " commissioner-roster-grid" : ""}">${rows
       .map((r) => {
         const value = r.pokemon.reduce((s, p) => s + Number(p.price || 0), 0);
         return `<section class="card roster-panel"><div class="roster-heading"><div class="roster-title-wrap">${teamAvatar(r.team, "lg")}<div><span class="eyebrow">DIVISION ${esc(r.team.division)}</span><h2>${esc(r.team.name)}</h2><p class="muted">${esc(r.team.coachName)}</p></div></div><div class="roster-badges"><span class="pill">${r.pokemon.length}/10</span><span class="roster-value">$${value}/$100</span></div></div><div class="pokemon-card-grid roster-pokemon-grid">${r.pokemon.map((p) => pokemonCard(p)).join("") || '<div class="empty-state">No Pokémon drafted yet.</div>'}</div></section>`;

@@ -15,15 +15,22 @@ function seasonMatchCard(m, locked = false) {
       '</h4><div class="schedule-six-grid">' +
       (m.awayLineup || []).map((p) => simplePokemonCard(p)).join("") +
       "</div></div></div>"
-    : '<p class="muted season-lineup-status">' +
+    : '<div class="season-lineup-status" aria-label="Lineup submission status">' +
+      '<div class="season-lineup-team"><span class="season-lineup-indicator" aria-hidden="true">' +
       (m.homeSubmitted ? "✓" : "○") +
-      " " +
+      '</span><span class="season-lineup-team-name">' +
       teamBrand(m.homeTeamId) +
-      " · " +
+      '</span><span class="season-lineup-state">' +
+      (m.homeSubmitted ? "Submitted" : "Not submitted") +
+      '</span></div>' +
+      '<div class="season-lineup-team"><span class="season-lineup-indicator" aria-hidden="true">' +
       (m.awaySubmitted ? "✓" : "○") +
-      " " +
+      '</span><span class="season-lineup-team-name">' +
       teamBrand(m.awayTeamId) +
-      " — lineups hidden until both submit</p>";
+      '</span><span class="season-lineup-state">' +
+      (m.awaySubmitted ? "Submitted" : "Not submitted") +
+      '</span></div>' +
+      '<p class="season-lineup-note">Lineups hidden until both submit</p></div>';
   const tools = locked
     ? '<p class="season-locked-note">🔒 Final results — locked by commissioner</p>'
     : state.user.role === "MANAGER"
@@ -167,7 +174,11 @@ renderSchedule = async function () {
           <p>${w.kind === "free_agency" ? "Free agency / waivers only." : "League-wide bye week."}</p>
           ${(w.waiverNotes || []).map((note) => `<p class="muted">${esc(note)}</p>`).join("")}</div>`;
         } else if (rows.length) {
-          body = rows
+          // Full-width revealed lineups belong after all compact matchup cards.
+          // Otherwise a revealed game in the middle of the schedule pushes
+          // later unrevealed games below it and makes them easy to miss.
+          body = [...rows]
+            .sort((a, b) => Number(a.revealed) - Number(b.revealed))
             .map((m) =>
               seasonMatchCard(m, lockedWeeks[String(m.week)] === true),
             )

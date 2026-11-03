@@ -62,7 +62,7 @@ try {
     );
     await page.clock.fastForward(181000);
     await page.locator("#login-screen:not(.hidden)").waitFor();
-    assert.match(await page.locator("#session-idle-message").innerText(), /5 minutes/,);
+    assert.match(await page.locator("#session-idle-message").innerText(), /15 minutes/,);
     assert.equal(requests.filter((path) => path === "/api/auth/logout").length, 1,);
     const stoppedCount = requests.length;
     await page.clock.fastForward(240000);
