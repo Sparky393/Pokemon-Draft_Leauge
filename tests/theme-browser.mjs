@@ -121,6 +121,30 @@ for (const width of [1440, 390]) {
         // Let existing button/page transitions settle before sampling computed colors.
         await page.waitForTimeout(300);
         const failures = await page.evaluate(audit);
+        if (name === "rosters") {
+          const gaps = await page
+            .locator("#page-rosters .pokemon-card")
+            .evaluateAll((cards) =>
+              cards
+                .filter((card) => {
+                  const art = card.querySelector(".pokemon-art");
+                  if (!art) return false;
+                  const border = parseFloat(
+                    getComputedStyle(card).borderTopWidth,
+                  );
+                  return (
+                    Math.abs(
+                      art.getBoundingClientRect().top -
+                        card.getBoundingClientRect().top -
+                        border,
+                    ) > 1
+                  );
+                })
+                .map((card) => card.dataset.pokemonName),
+            );
+          if (gaps.length)
+            throw Error(`Artwork gaps above roster cards: ${gaps.join(", ")}`);
+        }
         if (failures.length) {
           console.log(JSON.stringify({ width, role, theme, name, failures }));
           throw Error("Text contrast below target");
