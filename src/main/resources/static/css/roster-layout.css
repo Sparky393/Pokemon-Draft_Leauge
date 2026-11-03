@@ -22,6 +22,9 @@
   overflow-wrap: anywhere;
 }
 @media (min-width: 801px) {
+  #page-lineup .lineup-draft-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
   #page-rosters .roster-team-grid {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)) !important;
   }

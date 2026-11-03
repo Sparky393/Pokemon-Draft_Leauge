@@ -1,4 +1,4 @@
-/* Club identity: compact crests are consistent from standings to the draft board. */
+/* Club identity: larger crests keep team artwork legible across league views. */
 .team-brand {
   display: inline-flex;
   align-items: center;
@@ -17,8 +17,8 @@
   place-items: center;
   overflow: hidden;
   flex: 0 0 auto;
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   border: 1px solid rgba(155, 207, 255, 0.28);
   background: linear-gradient(140deg, #234e79, #122844 70%);
@@ -28,36 +28,36 @@
 .team-avatar img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
   display: block;
 }
 .team-avatar-fallback {
-  font-size: 11px;
+  font-size: 15px;
   line-height: 1;
   letter-spacing: -0.04em;
   font-weight: 900;
 }
 .team-avatar--xs {
-  width: 25px;
-  height: 25px;
+  width: 36px;
+  height: 36px;
 }
 .team-avatar--xs .team-avatar-fallback {
-  font-size: 9px;
+  font-size: 12px;
 }
 .team-avatar--md {
-  width: 52px;
-  height: 52px;
+  width: 68px;
+  height: 68px;
 }
 .team-avatar--md .team-avatar-fallback {
-  font-size: 16px;
+  font-size: 20px;
 }
 .team-avatar--lg {
-  width: 80px;
-  height: 80px;
+  width: 104px;
+  height: 104px;
 }
 .team-avatar--lg .team-avatar-fallback {
-  font-size: 22px;
+  font-size: 28px;
 }
 .sidebar-identity {
   display: flex;
@@ -84,8 +84,8 @@
   text-align: left;
 }
 .standing-team .team-avatar {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
 }
 .roster-title-wrap {
   display: flex;
@@ -115,8 +115,8 @@
   color: inherit;
 }
 .season-versus .team-avatar {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
 }
 .season-versus > strong:last-child .team-avatar {
   order: 2;
@@ -130,8 +130,8 @@
   gap: 4px;
 }
 .draft-team-name .team-avatar {
-  width: 36px;
-  height: 36px;
+  width: 64px;
+  height: 64px;
 }
 .branding-card {
   padding: 24px;
@@ -244,25 +244,51 @@
     gap: 10px;
   }
   .team-avatar--lg {
-    width: 64px;
-    height: 64px;
+    width: 80px;
+    height: 80px;
   }
   .season-versus {
     gap: 5px;
   }
   .season-versus .team-avatar {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
   }
 }
 
 @media (max-width: 800px) {
   .standing-team .team-avatar {
-    width: 34px;
-    height: 34px;
+    width: 44px;
+    height: 44px;
   }
   .draft-team-name .team-avatar {
-    width: 30px;
-    height: 30px;
+    width: 52px;
+    height: 52px;
+  }
+}
+
+/* Allow the team name to wrap beside a larger crest without pushing scores out. */
+.standing-team {
+  min-width: 0;
+}
+.standing-team .team-brand,
+.season-versus .team-brand {
+  gap: 12px;
+}
+.draft-team-name .team-brand {
+  gap: 8px;
+}
+@media (max-width: 800px) {
+  .sidebar .sidebar-identity .team-avatar {
+    width: 48px;
+    height: 48px;
+  }
+  .standing-team .team-brand,
+  .season-versus .team-brand {
+    gap: 8px;
+  }
+  .team-avatar--md {
+    width: 56px;
+    height: 56px;
   }
 }
