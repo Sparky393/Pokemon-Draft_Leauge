@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pokemon Draft League Portal</title>
+    <script src="/js/theme.js?v=1"></script>
     <link rel="stylesheet" href="/css/style.css?v=idle1" />
     <link rel="stylesheet" href="/css/modern.css?v=30" />
     <link rel="stylesheet" href="/css/final-ui.css?v=commissioner-roster2" />
@@ -15,13 +16,20 @@
     <link rel="stylesheet" href="/css/mobile-experience.css?v=logos3" />
     <link rel="stylesheet" href="/css/draft-experience.css?v=frozen1" />
     <link rel="stylesheet" href="/css/roster-layout.css?v=1" />
-    <link rel="stylesheet" href="/css/sky-theme.css?v=5" />
+    <link rel="stylesheet" href="/css/sky-theme.css?v=6" />
     <!-- deployment persistence test -->
   </head>
   <body>
     <div id="toast"></div>
     <div id="login-screen" class="center-screen">
       <div class="login-card">
+        <button
+          type="button"
+          class="secondary theme-toggle"
+          aria-pressed="false"
+        >
+          Dark mode
+        </button>
         <div class="eyebrow">League Portal</div>
         <h1>Pokemon Draft League</h1>
         <p class="muted">
@@ -77,6 +85,13 @@
           </button>
         </nav>
         <button data-page="account">Account / Password</button>
+        <button
+          type="button"
+          class="secondary theme-toggle"
+          aria-pressed="false"
+        >
+          Dark mode
+        </button>
         <button id="logout-button" class="logout">Log Out</button>
       </aside>
       <main class="content">
